@@ -13,10 +13,15 @@
 # signif.equally
 # equal.n.decimals
 #
+
+# -- Source locally --
 # source("O:/Sites/TA/Transfer/hpda/R/func.R")
 # source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/func.R")
+#
+# -- GitHub --
 # source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")
-# browseURL("https://github.com/danielhoop/R/blob/master/func.R")
+# browseURL("https://github.com/danielhoop/R/edit/master/func.R")
+# browseURL("https://github.com/danielhoop/R/edit/master/Rhelp.R")
 
 
 #### Options ####
