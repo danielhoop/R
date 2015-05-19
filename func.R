@@ -13,12 +13,15 @@
 # signif.equally
 # equal.n.decimals
 #
+# source("O:/Sites/TA/Transfer/hpda/R/func.R")
 # source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/func.R")
+# source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")
+# browseURL("https://github.com/danielhoop/R/blob/master/func.R")
 
 
 #### Options ####
 # Optionen nur bei mir selbst einlesen. Nicht auf anderen Computern (falls Script-Ausfuehrung ueber Laufwerk W:)
-if(length(list.files("C:/Users/U80823148/"))>0) {
+if(FALSE) if(length(list.files("C:/Users/U80823148/"))>0) {
   options(scipen = 3) # mit scipen = 3 geht die Digits-Anzeige bis 0.000001 (also 1e-06). Ab 1e-07 in scientific notation.
   options(help.try.all.packages=TRUE)
   #options(prompt="    ")
@@ -509,13 +512,13 @@ write.cb <- function(data, names=c("col","rowcol","row","no"), ...){
   names <- match.arg(names)
   
   if(names=="row") {
-    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=FALSE, row.names=TRUE)
+    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=FALSE, row.names=TRUE, ...)
   } else if (names=="col") {
-    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=TRUE, row.names=FALSE) # Nur colnames
+    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=TRUE, row.names=FALSE, ...) # Nur colnames
   } else if (names=="rowcol") {
-    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=NA)                    # Colnames & Rownames
+    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=NA, ...)                    # Colnames & Rownames
   } else {
-    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=FALSE, row.names=FALSE)
+    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=FALSE, row.names=FALSE, ...)
   }
 }
 
@@ -1508,18 +1511,18 @@ hms.to.sec <- function(hms){
            as.numeric(substr(hms,7,nchar(hms))))
 }
 
+#sec.to.hms(c(119000.5,4,3,2,2342234.4),1)
 sec.to.hms <- function(sec, digits=0){
   # Convert seconds to time format hh:mm:ss (Digits are possible for seconds)
   h <- floor( sec / 3600 )
-  m <- as.matrix( floor( sec%%3600 / 60 ) )
-  m <- apply(m,1,function(m){
-    if(nchar(m)==1) m <- paste0("0", m)
-  })  
+  m <- floor( sec%%3600 / 60 )
   s <- as.matrix(round( sec%%60 , digits))
-  s <- apply(s,1,function(s){
-    s1 <- unlist(strsplit(as.character(s),"\\."))[1]
-    if(nchar(s1)==1) s <- paste0("0", s)
-  })
+  
+  ind <- nchar(h )==1; h[ind] <- paste0("0",h[ind])
+  ind <- nchar(m )==1; m[ind] <- paste0("0",m[ind])
+  s1 <- sapply(strsplit(as.character(s),"\\."),function(x)x[[1]])
+  ind <- nchar(s1)==1; s[ind] <- paste0("0",s[ind])
+  
   return(paste(h,m,s,sep=":"))
 }
 
@@ -2118,32 +2121,6 @@ get.googlemaps.slopes <- function(N, E){
   # extract.adr <- function(x)  return(unname(substr(x, 2+gregexpr(":", x)[[1]][1], nchar(x)-1)))
 }
 
-
-time.to.sec <- function(char){
-  # This function converts time in the format hh:mm:ss to seconds.
-  return( as.numeric(substr(char,1,2))*3600 + 
-            as.numeric(substr(char,4,5))*60 + 
-            as.numeric(substr(char,7,nchar(char)))  )
-}
-# sec <- c(23456, 50000); sec_to_time(sec)
-sec.to.time <- function(sec){
-  # This function converts seconds to the format hh:mm:ss
-  if(length(sec)>1) return( sapply(sec,function(x)sec_to_time(x)) )
-  if(is.na(sec)) return(NA)
-  
-  h <- floor(sec/3600)
-  sec <- (sec-h*3600)
-  m <-  floor(sec/60)
-  sec <- (sec-m*60)
-  s <- round(sec); rm(sec)
-  if(nchar(h)==1) h <- paste0("0",h)
-  if(nchar(m)==1) m <- paste0("0",m)
-  if(nchar(s)==1) s <- paste0("0",s)
-  time <- paste0(h, ":", m, ":", s)
-  return(time)
-}
-
-
 if(FALSE) list.dirs2 <- function(path=".", pattern=NULL, all.dirs=FALSE,  full.names=FALSE, ignore.case=FALSE) {
   # This function lists all Folders in a directory.
   
@@ -2328,6 +2305,100 @@ if(FALSE){
   interval=100; ngrp=5
   stratif.sqrt.f.rule(x,5,20)
 }
+
+#mclapply.own(1:100, function(x)return(x*2), type="PSOCK")
+#mclapply.own(1:100, function(x)return(x*y+1), type="PSOCK")
+#type <- "PSOCK"; mc.cores=8; X <- as.list(1:100); values <- X; FUN <- function(x)return(x*2)
+mclapply.own <- function(X, FUN, mc.cores=getOption("mc.cores", 8), type=c("PSOCK", "FORK", "MPI")){
+  # The function depends on following packages
+  # parallel, snow, Rmpi
+  if(!grepl("return",paste0(deparse(FUN),collapse="")))
+    stop(paste0("FUN must explicitly return the result by using return(). The entered function looks like this\n",
+                "    ",paste0(deparse(FUN),collapse=""), "\n",
+                "  But it should look like this:\n",
+                "    function(x)return(x*2)"))
+  
+  type <- match.arg(type)
+  
+  library(parallel)
+  cl <- makeCluster(mc.cores, type=type)
+  
+  #res <- tryCatch({
+  #  parLapply(cl, X=X, fun=FUN)
+  #}, finally = {
+  #  stopCluster(cl)
+  #  if(type=="MPI") mpi.exit()
+  #})
+  
+  res <- parLapply(cl, X=X, fun=FUN)
+  stopCluster(cl)
+  if(type=="MPI") mpi.exit()
+  return(res)
+}
+
+## Define the hack
+mclapply.hack <- function(...) {
+  ## A script to implement a hackish version of 
+  ## parallel:mclapply() on Windows machines.
+  ## On Linux or Mac, the script has no effect
+  ## beyond loading the parallel library. 
+  
+  # http://www.stat.cmu.edu/~nmv/2014/07/14/implementing-mclapply-on-windows
+  # http://www.stat.cmu.edu/~nmv/setup/mclapply.hack.R
+  require(parallel)
+  
+  ## Create a cluster
+  size.of.list <- length(list(...)[[1]])
+  cl <- makeCluster( min(size.of.list, detectCores()) )
+  
+  ## Find out the names of the loaded packages 
+  loaded.package.names <- c(
+    ## Base packages
+    sessionInfo()$basePkgs,
+    ## Additional packages
+    names( sessionInfo()$otherPkgs ))
+  
+  tryCatch( {
+    
+    ## Copy over all of the objects within scope to
+    ## all clusters. 
+    this.env <- environment()
+    while( identical( this.env, globalenv() ) == FALSE ) {
+      clusterExport(cl,
+                    ls(all.names=TRUE, env=this.env),
+                    envir=this.env)
+      this.env <- parent.env(environment())
+    }
+    clusterExport(cl,
+                  ls(all.names=TRUE, env=globalenv()),
+                  envir=globalenv())
+    
+    ## Load the libraries on all the clusters
+    ## N.B. length(cl) returns the number of clusters
+    parLapply( cl, 1:length(cl), function(xx){
+      lapply(loaded.package.names, function(yy) {
+        require(yy , character.only=TRUE)})
+    })
+    
+    ## Run the lapply in parallel 
+    return( parLapply( cl, ...) )
+  }, finally = {        
+    ## Stop the cluster
+    stopCluster(cl)
+  })
+}
+
+## If the OS is Windows, set mclapply to the
+## the hackish version. Otherwise, leave the
+## definition alone. 
+if(FALSE) mclapply <- switch( Sys.info()[['sysname']],
+                    Windows = {mclapply.hack}, 
+                    Linux   = {mclapply},
+                    Darwin  = {mclapply})
+
+## end mclapply.hack.R
+
+
 
 #### OUTLIER DETECION ####
 #x <- c(1,2,3,6,5,7,4,2,4,5,6,7,22); p <- 0.05
@@ -3783,7 +3854,9 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
 }
 
 load.gb <- function() {
-  pfad <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/_ZA/Ref/Data/Grundlagenbericht/GB.RData"
+  pfad1 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/_ZA/Ref/Data/Grundlagenbericht/GB.RData"
+  pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/GB/GB.RData"
+  if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
   cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
   cat(pfad, "\n", sep="")
   load(paste0(pfad))
