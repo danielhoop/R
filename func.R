@@ -429,50 +429,72 @@ color.gradient <- function(x, colors=c("red","yellow","green"), colsteps=100) {
   # Else it is done with findInterval() which is much faster.
   # Example found in the internet: browseURL("http://stackoverflow.com/questions/18827214/one-colour-gradient-according-to-value-in-column-scatterplot-in-r")
   
-  #lux <- length(unique(x))
-  #if(lux<15){
-  #  lx <- length(x)
-  #  choose <- apply(  
-  #    abs( matrix( rep(x,colsteps),ncol=lx,byrow=TRUE) -
-  #           matrix( rep(seq(min(x),max(x), length.out=colsteps),lx), ncol=lx ) ) ,
-  #    2, function(x)which.min(x)[1] )
-  #  return( colorRampPalette(colors) (colsteps) [ choose ] )
-  #} else {
-    return( colorRampPalette(colors) (colsteps) [ findInterval(x, seq(min(x),max(x), length.out=colsteps)) ] )  
-  #}
-}
-
-
-if(FALSE) color.gradient.ALTERNATIVE <- function(x, colors=c("red","yellow","green")) {
-  # Create Color Gradient for a given vector x with given colors.
-  #
-  # The function creates a color function with colorRampPalette().
-  # Then it hands over the number of unique elements of x into this function()().
-  # From the result of the function()()[ ] only these elements are picked which are most similar to the values in the sequence min(x) to max(x)
-  # If length(unique(x)) is relatively small (<15) it is done in a computation intensive matter in order to to achieve better results.
-  # Else it is done with findInterval() which is much faster.
-  # Example found in the internet: browseURL("http://stackoverflow.com/questions/18827214/one-colour-gradient-according-to-value-in-column-scatterplot-in-r")
-  
-  lux <- length(unique(x))
-  if(lux<15){
-    lx <- length(x)
-    choose <- apply(  
-      abs( matrix( rep(x,lux),ncol=lx,byrow=TRUE) -
-             matrix( rep(seq(min(x),max(x), length.out=lux),lx), ncol=lx ) ) ,
-      2, function(x)which(x==min(x))[1] )
-    return( colorRampPalette(colors) (lux) [ choose ] )
-  } else {
-    return( colorRampPalette(colors) (lux) [ findInterval(x, seq(min(x),max(x), length.out=lux)) ] )  
-  }
+  return( colorRampPalette(colors) (colsteps) [ findInterval(x, seq(min(x),max(x), length.out=colsteps)) ] )
 }
 
 #### CONVENIENCE FUNCTIONS ####
+
+vergleichslohn <- function(region=NULL, jahr=NULL){
+  
+  # This function returns a matrix containing the Vergleichsloehne for the ZA. Optionally, regions and years can be chosen.
+  # The following code is for import of data.
+  #t1 <- read.cb("rowcol")
+  #colnames(t1) <- substr.rev(colnames(t1),1,4)
+  #t1 <- as.matrix(t1)
+  #dput(t1)
+  
+  vgl <- structure(c(42301.656, 38300.148, 35066.52, 43789.056, 39646.848, 
+                     36299.52, 44800.488, 40562.604, 37137.96, 46406.88, 42017.04, 
+                     38469.6, 48132.264, 43579.212, 39899.88, 50988.072, 46164.876, 
+                     42267.24, 54498.336, 49343.088, 45177.12, 57116.16, 51713.28, 
+                     47347.2, 58663.056, 53113.848, 48629.52, 59496, 53868, 49320, 
+                     60269.448, 54568.284, 49961.16, 61320, 56328, 51996, 61626.6, 
+                     56609.64, 52255.98, 62055.84, 57003.936, 52619.952, 62864.028, 
+                     56749.74, 53090.796, 63678.816, 57485.28, 53778.912, 65854.2, 
+                     60885, 55128.6, 67010.664, 61954.2, 56096.712, 67629.744, 62434.008, 
+                     56934.072, 68230.008, 62988.156, 57439.404, 68938.56, 63084.6, 
+                     58188.12, 69689.376, 63771.66, 58821.852, 71091.552, 64520.064, 
+                     60204.096, 72560.964, 65853.648, 61448.472, 73279.212, 66993.936, 
+                     62387.184, 73853.388, 67518.864, 62876.016, 74198.64, 66963, 
+                     62587.68, 74786.352, 67493.4, 63083.424, 73712.4, 69108.396, 
+                     63839.772, 74298, 69657.42, 64346.94), .Dim = c(3L, 30L), .Dimnames = list(
+                       c("1", "2", "3"), c("1985", "1986", "1987", "1988", "1989", 
+                                           "1990", "1991", "1992", "1993", "1994", "1995", "1996", "1997", 
+                                           "1998", "1999", "2000", "2001", "2002", "2003", "2004", "2005", 
+                                           "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", 
+                                           "2014")))
+  if(is.null(region)) region <- 1:nrow(vgl)
+  if(is.null(jahr)) jahr <- 1:ncol(vgl)
+  return(vgl[region,jahr])
+}
+vergleichszins <- function(jahr=NULL){
+  # This function returns a matrix containing the Eigenkapital-Zinssaetze for the ZA. Optionally, regions and years can be chosen.
+  # The following code is for import of data.
+  #t1 <- read.cb("col")
+  #colnames(t1) <- substr.rev(colnames(t1),1,4)
+  #t1 <- as.matrix(t1)
+  #dput(t1)
+  vgl <- structure(c(2.81, 3.02, 3.95, 3.36, 3.22, 2.63, 2.73, 2.11, 2.5, 
+                     2.91, 2.93, 2.22, 1.65, 1.48, 0.66, 0.94, 0.73), .Dim = c(1L, 17L),
+                   .Dimnames = list(NULL, c("1998", "1999", "2000", "2001", 
+                                            "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", 
+                                            "2010", "2011", "2012", "2013", "2014")))
+  if(is.null(jahr)) jahr <- 1:ncol(vgl)
+  return(vgl[,jahr,drop=FALSE])
+}
 
 find.fun <- function(pattern){
   # This function finds all functions in the workspace that contain a certain pattern.
   allfun <- as.character( lsf.str( envir=environment(find.fun) ) )
   choose <- which(grepl(paste0(pattern,collapse="|"), allfun ))
   return(allfun[choose])
+}
+
+find.obj <- function(pattern){
+  # This function finds all objects in the workspace that contain a certain pattern.
+  allobj <- as.character( ls( envir=environment(find.fun) ) )
+  choose <- which(grepl(paste0(pattern,collapse="|"), allobj ))
+  return(allobj[choose])
 }
 
 list.all.package.functions <- function(package, all.names = FALSE, pattern) {
@@ -536,10 +558,22 @@ printzeros <- function(x, zero.sign=".") {
 l <- match.fun(length)
 cn <- match.fun(colnames)
 rn <- match.fun(rownames)
+dn <- match.fun(dimnames)
 nc <- match.fun(ncol)
 nr <- match.fun(nrow)
 su <- function(x) sort(unique(x))
-h <- function(x, n=6)  if(length(dim(x))==3) return(x[1:n,,]) else return(head(x,n))
+h <- function(x, n=6) {
+  if(length(dim(x))==3) {
+    return(x[1:n,,])
+  } else {
+    if(is.data.frame(x)) {
+      x <- rbind(paste0("<", substr( sapply(x[1,],function(x)mode(x)), 1,3), ">"),x[1:n,])
+      rownames(x) <- 0:n
+      return(x)
+    }
+    return(head(x,n))
+  }
+}
 
 ch <- function(x){
   # Look shortly at the most important properties of a matrix / data.frame
@@ -603,11 +637,97 @@ sort.MK.colnames <- function(data, order=c("zeile","spalte")){
   }
 }
 
+
+
+MKcol <- function(string) {if(is.null(dim(string))) substr(string,6,9) else substr(colnames(string),6,9)}
+MKrow <- function(string) {if(is.null(dim(string))) substr(string,11,16) else substr(colnames(string),11,16)}
+
+MKsort <- function(data, order=c("zeile","spalte")){
+  order <- match.arg(order)
+  cn.data <- colnames(data)
+  change_vec <- substr(cn.data,1,1)=="P" & nchar(cn.data)>=4 & !is.na(is.numeric(substr(cn.data,2,4)))
+  data.keep <- data[ , !change_vec, drop=FALSE ]
+  data.change <- data[ , change_vec, drop=FALSE ]
+  cn.data.change <- colnames(data.change)
+  if(order=="zeile") {
+    return( cbind( data.keep, data.change[, order(MKtab(cn.data.change),MKrow(cn.data.change),MKcol(cn.data.change)) ]) )
+  } else {
+    return( cbind( data.keep, data.change[, order(MKtab(cn.data.change),MKcol(cn.data.change),MKrow(cn.data.change)) ] ) )
+  }
+}
+MKsort.colnames <- function(data, order=c("zeile","spalte")){
+  order <- match.arg(order)
+  cn.data <- colnames(data)
+  change_vec <- substr(cn.data,1,1)=="P" & nchar(cn.data)>=4 & !is.na(is.numeric(substr(cn.data,2,4)))
+  cn.keep <- cn.data[!change_vec]
+  cn.change <- cn.data[change_vec]
+  if(order=="zeile") {
+    return( c(cn.keep, cn.change[ order(MKtab(cn.change), MKrow(cn.change), MKcol(cn.change)) ] ) )
+  } else {
+    return( c(cn.keep, cn.change[ order(MKtab(cn.change), MKcol(cn.change),MKrow(cn.change)) ] ) )
+  }
+}
+
 wait <- function(secs) {
   Sys.sleep(secs)
 }
 
 #### CHANGE OBJECT STRUCUTRE ####
+
+coerce.dimnames <- function(array, sep.sign="_"){
+  # This function brings the dimnames of an array into the array itself
+  # Example
+  # , , x
+  #   a       b       c      
+  # 1 "1_a_x" "1_b_x" "1_c_x"
+  # 2 "2_a_x" "2_b_x" "2_c_x"
+  # 3 "3_a_x" "3_b_x" "3_c_x"
+  
+  dn1 <- dimnames(array)
+  dn1.1 <- dn1[[1]]
+  dn1.2 <- dn1[[2]]
+  
+  res0 <- paste( rep(dn1.1, length(dn1.2)) , rep(dn1.2, each=length(dn1.1)) , sep=sep.sign)
+  if(length(dn1)>2){
+    for(i in 3:length(dn1)){
+      dn1.1 <- res0
+      dn1.2 <- sort(unique(dn1[[i]]))
+      res0 <- paste( rep(dn1.1, length(dn1.2)) , rep(dn1.2, each=length(dn1.1)) , sep=sep.sign)
+    }
+  }
+  res1 <- array
+  res1[] <- res0
+  return(res1)
+}
+
+merge.matrices <- function(..., fill="", nbreak=0, integrate.dimnames=FALSE) {
+  # Diese Funktion vergleicht die Anzahl Spalten aller gegebenen Matrizen, gleicht sie an und verbindet alle Matrizen in einer einzigen.
+  # Mit fill kann gewaehlt werden, was fuer ein Zeichen fuer das Auffuellen der zusaetzlichen Spalten verwendet wird.
+  # nbreak gibt an, wie viele Zeilen zwischen zwei Ursprungs-Matrizen eingefuegt werden.
+  # Mit integrate.dimnames kann man die dimnames in die End-Matrix integrieren, was mittels dimnames.to.mat() geschieht.
+  li <- list(...)
+  li <- lapply(li,function(x)if(is.null(dim(x))) as.matrix(x) else x)
+  if(integrate.dimnames) li <- lapply(li, function(x) dimnames.to.mat(x))
+  ncolmax <- max(unlist(lapply(li,function(x) ncol(x) )))
+  res <- do.call("rbind", 
+                 lapply( li,function(x) {
+                   if(ncol(x)<ncolmax) x <- cbind(x,array(fill,dim=c(nrow(x),ncolmax-ncol(x))))
+                   if(nbreak==0) x else rbind(x,matrix(fill,nrow=nbreak,ncol=ncol(x)))
+                 }))
+  if(nbreak>0) res <- res[ -c((nrow(res)-nbreak+1):nrow(res)), ]
+  return(res)
+}
+dimnames.to.mat <- function(x){
+  # Diese Funktion integriert die Spalten- und Reihennamen einer Matrix in die Matrix selbst. Also quasi als Werte.
+  # Wird gebraucht fuer Funktion merge.matrices()
+  if(is.null(dim(x))) x <- as.matrix(x)
+  if(is.null(dimnames(x))) return(x)
+  if(is.null(rownames(x))) rownames(x) <- rep("",nrow(x))
+  if(is.null(colnames(x))) colnames(x) <- rep("",ncol(x))
+  res <- rbind( c("", colnames(x)), cbind(rownames(x),x) )
+  dimnames(res) <- NULL
+  return(res)
+}
 
 if(FALSE){
   data <- as.data.frame(t(array(1:100,c(10,10))))
@@ -657,13 +777,14 @@ change.col.order <- function(data,old,new){
 }
 ####
 
-
 rep.1b1 <- function(vector,times){
-  if(length(times)>1) {
+  if(length(times)==1) {
+    return(rep(vector,each=times))
+    #return(as.vector(   apply(matrix(vector,ncol=1),1,function(x)rep(x,times))   )) 
+  } else {
     if(length(vector)!=length(times)) stop("If length(times)>1 then condition length(vector)==length(times) must hold.")
     return(unlist(   apply(matrix(c(vector,times),ncol=2),1,function(x)rep(x[1],x[2])) ))
   }
-  return(as.vector(   apply(matrix(vector,ncol=1),1,function(x)rep(x,times))   )) 
 }
 # Performance-Vergleich zwischen mapply und apply. Apply ist deutlich schneller.
 # vector <- 1:10e3
@@ -671,16 +792,31 @@ rep.1b1 <- function(vector,times){
 # system.time(t1 <- mapply(function(vector,times)rep(vector,times), vector, times) )
 # system.time(t1 <- apply(matrix(c(vector,times),ncol=2),1,function(x)rep(x[1],x[2])) )
 
-
+if(FALSE){
+  x <- data.frame(c("a","b","c"),1:3)
+  times <- 6
+  rep.rows(x,times)
+  rep.rows.1b1(x,times)
+}
+rep.rows <- function(x, times){
+  return( eval(parse(text=paste0("rbind(",paste0(rep("x",times),collapse=","),")"))) )
+}
+rep.rows.1b1 <- function(x, times) {
+  res <- eval(parse(text=paste0("rbind(",paste0(rep("x",times),collapse=","),")")))
+  if(nrow(x)>1) newo <- order( rep(1:nrow(x), times) ) else newo <- 1:times
+  res <- res[newo,,drop=FALSE]
+  rownames(res) <- NULL
+  return(res)
+}
 ####
-rep.rows.1b1 <- function(x, times){
+if(FALSE) rep.rows.1b1_OLD_DELETE <- function(x, times){
   ncol.x <- ncol(x)
   res <- do.call("rbind", lapply(as.data.frame(t(x)),function(x) matrix(rep(x,times),ncol=ncol.x,byrow=TRUE) ))
   rownames(res) <- rep(rownames(x), times); colnames(res) <- colnames(x)
   return(res)
 }
 ####
-rep.rows <- function(x, times){
+if(FALSE) rep.rows_OLD_DELETE  <- function(x, times){
   ncol.x <- ncol(x)
   res <- do.call("rbind", lapply(as.data.frame(t(x)),function(x) matrix(rep(x,times),ncol=ncol.x,byrow=TRUE) ))
   rownames(res) <- rep(rownames(x), times); colnames(res) <- colnames(x)
@@ -1034,72 +1170,142 @@ if(FALSE){
   summary.long(data)
   summary.long(data[,1,drop=FALSE])
 
-  x <- data; quant=10;digits=2;na.rm=TRUE;margin=2;reverse.quantiles=FALSE
+  x <- data; quant=10;digits=2;na.rm=TRUE;margin=2;reverse=FALSE
 }
-summary.long <- function(x,quant=10,digits=2,na.rm=TRUE,margin=2,reverse.quantiles=FALSE,...) {
+summary.long <- function(x,quant=10,digits=2,na.rm=TRUE,margin=2,reverse=FALSE,...) {
   # Gives a "long" summary with 11 quantiles from 0 to 1 (default).
   # margin is only used when a dataframe/matrix is given. Then apply() is used.
   # The argument matrixinput is only used inside the function and should not be used
   if(!is.null(dim(x))) {
-    if(is.matrix(x))     return( apply(x,2,function(x)summary.long(x,quant=quant,digits=digits,na.rm=TRUE,margin=2,reverse.quantiles=TRUE, ...))  )
-    if(is.data.frame(x)) return( as.data.frame( lapply(x,function(x)summary.long(x,quant=quant,digits=digits,na.rm=TRUE,margin=2,reverse.quantiles=TRUE, ...)) ,stringsAsFactors=FALSE) )
+    if(is.matrix(x))     return( apply(x,2,function(x)summary.long(x,quant=quant,digits=digits,na.rm=TRUE,margin=2,reverse=TRUE, ...))  )
+    if(is.data.frame(x)) return( as.data.frame( lapply(x,function(x)summary.long(x,quant=quant,digits=digits,na.rm=TRUE,margin=2,reverse=TRUE, ...)) ,stringsAsFactors=FALSE) )
   }
-  if(is.list(x)) return(lapply(x,function(x)summary.long(x,quant=quant,digits=digits,na.rm=TRUE,margin=2,reverse.quantiles=TRUE, ...)))
+  if(is.list(x)) return(lapply(x,function(x)summary.long(x,quant=quant,digits=digits,na.rm=TRUE,margin=2,reverse=TRUE, ...)))
   
   if(!is.numeric(x)) x <- rep(0, length(quant+1))
   
   result <- numeric()
   quants <- seq(0,1,length.out=quant+1)
-  if(reverse.quantiles) quants <- rev(quants)
+  if(reverse) quants <- rev(quants)
   result <- round( quantile(x=x, probs=quants, na.rm=na.rm, ...), digits=digits)
   names(result) <- paste0(round(100*quants,digits=2), "%")
   return(result)
 }
 
-####
-if(FALSE){
-  data <- cbind(1:1000, 100:1099)
-  #data <- as.data.frame(data)
-  colnames(data) <- c("asbasdf","asdfgawer")
-  data <- data.frame(asbasdf=1:1000, asdfgawer=100:1099, rep("a", 1000))
+summary.quart <- function(x,digits=2,na.rm=TRUE,margin=2,reverse=FALSE,...){
+  # Gives a specified summary with Quantiles: Min., 5%, 25%, Median, Mean, 75%, 95%, Max
+  # margin is only used when a dataframe/matrix is given. Then apply() is used.
   
-  weights <- rnorm(1000,1,0); weights[weights<0] <- 0
-  index <- list(sample(c(1,2),1000,replace=TRUE))
-  #index <- list(sample(c(1,2),1000,replace=TRUE), sample(c(3,4),1000,replace=TRUE))
-  #index <- NULL
-  na.rm <- TRUE
-  mean.weight(data,weights,index)
-  mean.weight(data[,1,drop=FALSE],weights,index)
-  mean.weight(data[,2,drop=FALSE],weights,index)
+  if(!is.null(dim(x))) {
+    if(is.matrix(x))     return( apply(x,2,function(x)summary.quart(x,digits=digits,na.rm=na.rm,margin=margin,reverse=TRUE,...))  )
+    if(is.data.frame(x)) return( as.data.frame( lapply(x,function(x)summary.quart(x,digits=digits,na.rm=na.rm,margin=margin,reverse=TRUE,...)) ,stringsAsFactors=FALSE) )
+  }
+  if(is.list(x)) return(lapply(x,function(x)summary.quart(x,digits=digits,na.rm=na.rm,margin=margin,reverse=TRUE,...)))
+  
+  if(!is.numeric(x)) x <- rep(0, length(quant+1))
+  
+  result <- numeric()
+
+  probs <- c(0, 0.05, 0.25, 0.5, 0.75, 0.95, 1)
+  result <- round( quantile(x=x, probs=probs, na.rm=na.rm, ...), digits=digits)
+  result <- c(result[1:4], "Mean"=mean(x, na.rm=na.rm), result[5:7])
+  names(result) <- c("Min.","5%","25%","Median","Mean","75%","95%","Max.")
+  #names(result) <- paste0(round(100*probs,digits=2), "%")
+  
+  if(reverse) result <- rev(result)
+  
+  return(result)
 }
 
-mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE){
+####
+if(FALSE){
+  # Beispieldaten vorbereiten
+  data <- data.frame(1:1000, 100:1099, NA)
+  colnames(data) <- c("Variable_1","Variable_2", "I(Variable_1/Variable_2)")
+  data[,"Variable_1_pro_Variable_2"] <- data[,"Variable_1"]/ data[,"Variable_2"]
+  na.rm=TRUE; digits=2
+  weights <- rnorm(1000,40,20); weights[weights<0] <- 0
+  
+  # Rechnung mit keinem Index
+  index <- NULL
+  mean.weight(data,weights,index)
+  
+  # Rechnung mit 1-Dimensionalem Index (koennte z.B. das Jahr sein)
+  index <- list(sample(c(2012,2013),1000,replace=TRUE))
+  mean.weight(data,weights,index)
+  
+  # Rechnung mit 2-Dimensionalem Index z.B. Jahr x Region
+  index <- list(sample(c("1_Tal","2_Huegel","3_Berg"),1000,replace=TRUE), sample(c(2012,2013),1000,replace=TRUE))
+  mean.weight(data,weights,index)
+  
+  # Rechnung ohne Index
+  index <- NULL
+  mean.weight(data,weights,index)
+  
+  gb <- load.gb()
+  gb[,"I((LE-eigenZinsanspruch)/JAE_FamAK)"] <- 0
+  mean.weight(data=gb[,c("I((LE-eigenZinsanspruch)/JAE_FamAK)","LE","eigenZinsanspruch","JAE_FamAK")],
+              weights=gb[,"Gewicht"],
+              index=gb[,"Jahr"],
+              edit.I.colnames=TRUE,del.I.help.columns=TRUE)
+}
+
+mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE, edit.I.colnames=TRUE, del.I.help.columns=FALSE){
+  # This function calculates the weighted mean of all variables in a possibly indexed data.frame or matrix.
+  
+  # data = data of which the weighted means should be calculated. Can be data.frame, matrix or vector
+  #        If any colname of data contains an expression like I(Var_A/Var_B), then the the "weighted mean of the ratio" is calculated.
+  #        This is done by building a model.matrix() of the result matrix.
+  # weights = weights for the weighted mean calculation
+  # index = index in the same structure as used in tapply(). Can be a vector or list of vectors.
+  # digits = digits for rounding the results
+  # na.rm = na action
+  # edit.I.colnames = Should the colnames containing expressions with I() be edited, such that I() won't be there anymore? TRUE/FALSE
+  
+  
   if(!is.list(index)) index <- list(index)
   
   # Im Falle, dass !is.null(dim(data)) folgt eine rekursive Funktionsdefinition!
   if(!is.null(dim(data))) {
-    # Interne Funktion um ".1" am Schluss der Namen zu löschen (unschön, da das wegen tapply(...,rep(1,..)) passiert)
-    substr.rev <- function(char, start, end, reverse=FALSE) {
-      # Reverse substring
-      
-      if(any(start>end)) stop("All start must be smaller equal end.")
-      
-      nchar_char <- nchar(char)
-      res <- substr(char, nchar_char-end+1, nchar_char-start+1)
-      if(reverse) {
-        res <- sapply(lapply(strsplit(res, NULL), function(x)rev(x)), function(x)paste(x, collapse=""))
-      }
-      return(res)
-    }
     
     # Wenn !is.null(dim(data))
     # & es keinen oder nur einen Index gibt:
     if(is.null(index) || length(index)==1) {
       if(is.matrix(data)) {
         result <- apply(data, 2, function(x)mean.weight(x, weights, index, digits, na.rm) )
+        if(is.null(dim(result))) result <- t(as.matrix(result))
       } else if(is.data.frame(data)) {
-        result <- as.data.frame( lapply(data, function(x)mean.weight(x, weights, index, digits, na.rm)) ,stringsAsFactors=FALSE )
+        result <- sapply(data, function(x)mean.weight(x, weights, index, digits, na.rm))
+        if(is.null(dim(result))) result <- t(as.matrix(result))
+        #result <- as.data.frame( lapply(data, function(x)mean.weight(x, weights, index, digits, na.rm)) ,stringsAsFactors=FALSE )
       }
+      # Wieder die alten Colnames vergeben
+      colnames(result) <- colnames(data)
+
+      # Falls eine Expression mit I() in einem der colnames ist, werden diese Kennzahlen neu berechnet.
+      # Konkret wird statt "weighted mean of ratio" das "ratio of weighted means" berechnet.
+      cn.res <- colnames(result)
+      icols <- grepl("I\\(", cn.res)
+      if(any(icols)){
+        result <- as.data.frame(result)
+        if(any(cn.res%in%c("_","."))) stop("When using I() colnames _ and . are not allowed.")
+        form <- paste0("1:nrow(result) ~ -1 +", paste0(cn.res, collapse=" + "))
+        result <- model.matrix(formula(form), data=result)
+        attributes(result)$assign <- NULL
+        # Wenn in Einstellungen so gewählt, werden die Berechneten Kennzahls-Spaltennamen so veraendert, dass das I() nicht mehr vorkommt.
+        if(edit.I.colnames){
+          colnames(result)[icols] <- substr( cn.res[icols], 3, nchar(cn.res[icols])-1 )
+        }
+        if(del.I.help.columns){
+          delnames <- unlist(strsplit(colnames(result)[icols],"-| |\\/|\\*|\\+"))
+          delnames <- gsub("I\\(|\\(|)","",delnames)
+          result <- result[,!colnames(result)%in%delnames,drop=FALSE]
+        }
+      }
+      
+      # Resultat ausgeben.
+      return(result)
+      
       
       # Wenn !is.null(dim(data))
       # & 2 Indexe eingegeben wurden:
@@ -1117,15 +1323,26 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE)
         dimnames(res.list[[i]]) <- list(su.index1, su.index2)
       }
       names(res.list) <- colnames(data)
-      result <- res.list
+      
+      # Falls eine Expression mit I() in einem der colnames ist, werden diese Kennzahlen neu berechnet.
+      # Konkret wird statt "weighted mean of ratio" das "ratio of weighted means" berechnet.
+      cn.res <- names(res.list)
+      icols <- grepl("I\\(", cn.res)
+      if(any(icols)){
+        if(any(cn.res%in%c("_","."))) stop("When using I() colnames _ and . are not allowed.")
+        for(i in 1:sum(icols)){
+          res.list[[ cn.res[icols][i] ]] <- with(res.list, eval(parse(text=cn.res[icols][i])) )
+        }
+        # Wenn in Einstellungen so gewählt, werden die Berechneten Kennzahls-Spaltennamen so veraendert, dass das I() nicht mehr vorkommt.
+        if(edit.I.colnames){
+          names(res.list)[icols] <- substr( cn.res[icols], 3, nchar(cn.res[icols])-1 )
+        }
+      }
+      return(res.list)
+      
     } else if(length(index)>2) {
       stop("more than 3 indexes not possible if data is a matrix/data.frame. Please enter data as vector.")
     }
-  
-    # Falls !is.null(dim(data)) werden am Ende für das Ergebnis "result" noch die Namen verschönert. Das .1 wird gelöscht, falls es wegen tapply() gemacht wurde.
-    colnames.result <- colnames(result)
-    if(!is.null(colnames.result)) if( all(substr.rev(colnames.result,1,2)==".1") ) colnames(result) <- substr(colnames.result,1,nchar(colnames.result)-2)
-    return(result)
   }
   
   # Tatsächliche mean.weight() Funktion.
@@ -1145,9 +1362,9 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE)
   }
   if(!all(length(weights)==length.index)) stop("length(weights)!=length(index)")
   
-  sum.variable.weights <- tapply(data*weights,index,function(x)sum(x,na.rm=na.rm))
-  sum.weights <- tapply(weights,index,function(x)sum(x,na.rm=na.rm))
-  result <- sum.variable.weights/sum.weights
+  # Resultat =   Summe ( Werte * Gewichte )     /    Summe( Gewichte )
+  result <-  tapply(data*weights,index,function(x)sum(x,na.rm=na.rm)) / tapply(weights,index,function(x)sum(x,na.rm=na.rm))
+  # Falls gewuenscht, runden & Ergebnis ausgeben.
   if(!is.null(digits)) result <- round(result, digits)
   return(result)
 }
@@ -1234,8 +1451,8 @@ add.means <- function(data, margin=c(1,2), front.back=c(1,2), method=c("arith","
 }
 ####
 
-gb.diffs <- function(x,cols=list(c("2012","2013"),c("2004","2013")),
-                     short.names=list(c("12","13"),c("04","13")), digits=2) {
+gb.diffs <- function(x,cols=list(c("2013","2014")), # cols=list(c("2013","2014"),c("2005","2014"))
+                     short.names=list(c("13","14")), digits=2, percdigits=1) { # short.names=list(c("13","14"),c("05","14"))
   # This function calculates the Grundlagenberichts-differences that are mostly used in the
   # Medienmitteilung and the Hauptbericht
   # First, calculate weighted means with the function mean.weights()
@@ -1251,6 +1468,7 @@ gb.diffs <- function(x,cols=list(c("2012","2013"),c("2004","2013")),
     tp <- cols[[i]][2]
     tm <- cols[[i]][1]
     temp <- cbind( x[,tp]-x[,tm], (x[,tp]/x[,tm]-1)*100 )
+    temp[,2] <- round(temp[,2], percdigits)
     if(is.null(short.names)){
       colnames(temp) <- c(paste0(tp,"-",tm), paste0(tp,"/",tm))
     } else {
@@ -1296,7 +1514,7 @@ if(FALSE){
 }
 
 
-tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, sep.sign="_", vector.result=TRUE){
+tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, vector.result=FALSE, sep.sign="_"){
   # This function puts the result of tapply(X,INDEX,FUN) into a fixed given vector with names=names.result.
   # This is especially useful if some entries are missing in INDEX but you want them to be displayed as well!
   # Otherwise they would be missing in the result of the tapply() function.
@@ -1372,6 +1590,8 @@ tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, sep
   if(is.list(INDEX) & !vector.result){
     # Hier Ergebnis-Berechnung
     res0 <- tapply(X,INDEX,FUN)
+    if(!is.na(missing.value)) res0[is.na(res0)] <- missing.value
+    
     nres0 <- unlist(dimnames(res0))
     nres1 <- unlist(names.result)
     # Warnung ausgeben, falls nicht alle Ergebnisse ausgegeben werden wegen zu kurzem names.result
@@ -1411,6 +1631,8 @@ tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, sep
     # Resultate-Berechnung im Falle von Vektor-Ergebnisstruktur
   } else{
     res0 <- tapply(X,INDEX,FUN)
+    if(!is.na(missing.value)) res0[is.na(res0)] <- missing.value
+    
     # Warnung ausgeben, falls nicht alle Ergebnisse ausgegeben werden wegen zu kurzem names.result
     if(any(!names(res0)%in%names.result))
       warning(paste0("For some entries in X no corresponding entries in names.result were given. The resulting array is incomplete!\n", paste(names(res0)[ !names(res0)%in%names.result ], collapse=" ") ))
@@ -1435,12 +1657,13 @@ tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, sep
 #X=round(runif(100,1,15)); names.result=1:5;
 #table.fixed(X, names.result=1:5)
 #table.fixed(round(runif(100,1,15)), round(runif(100,1,15)), names.result=list(1:20, 5:15), vector.result=FALSE)
-table.fixed <- function(..., names.result=NULL, vector.result=TRUE) {
+table.fixed <- function(..., names.result=NULL, vector.result=FALSE, sep.sign="_") {
   # This function puts the result of table(X) into a fixed given vector with names=names.result.
   # It is a wrapper function for tapply.fixed().
   # For information on the arguments see tapply.fixed()
   INDEX <- list(...)
-  tapply.fixed(X=rep(1,length(INDEX[[1]])), INDEX=INDEX, FUN=function(x)length(x), names.result=names.result, missing.value=0, vector.result=vector.result)  
+  if(is.list(INDEX[[1]])) INDEX <- INDEX[[1]]
+  tapply.fixed(X=rep(1,length(INDEX[[1]])), INDEX=INDEX, FUN=function(x)length(x), names.result=names.result, missing.value=0, vector.result=vector.result, sep.sign=sep.sign)  
 }
 
 
@@ -1506,6 +1729,50 @@ if(FALSE) tapply.fixed_OLD.DELETE <- function(X, INDEX, FUN, names.result=sort(u
 
 
 #### OTHER ####
+
+is.finite.data.frame <- function(x){
+  # Error in is.finite(df) : default method not implemented for type 'list'
+  return(as.data.frame(lapply(x,function(x)is.finite(x))))
+}
+
+transmm <- function(x, gsub=FALSE, excel.format=FALSE){
+  # Translate Merkmals-Nummern in Namen.
+  if(!exists("transmm_list", envir=globalenv())) transmm_list <<- 
+    as.matrix(read.table(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/SekDaten/Sonst/MML/Data_out/MML_Namen_Nummern_full.txt"), sep="\t", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA")))
+  
+  # Langsame Version, die aber auch String-Plaetze erwischt, die nicht genau wie das Merkmal heissen: z.B. P340_0100_10000.1 oder P340_0100_10000+P440_0200_10002
+  if(gsub){
+    # i <- which(transmm_list[,"number"]=="P100_1500_02100")
+    for(i in 1:nrow(transmm_list)){
+      x <- gsub(transmm_list[i,"number"], transmm_list[i,"name"], x)
+    }
+    # Schnelle Version mit Matching
+  } else {
+    x <- replace.values(transmm_list[,"number"], transmm_list[,"name"], x)
+  }
+  if(excel.format){
+    filt <- substr(x,1,1)%in%c("=","+","-","/","*")
+    x[filt] <- paste0(" ",x[filt])
+  }
+  return(x)
+}
+
+repl.aou <- function(x){
+  # Funktion, um äöü in Text wiederherzustellen. Wird bei read.table umgeschrieben.
+  x <- gsub("Ã¤","ä",x)
+  x <- gsub("Ã¶","ö",x)
+  return( gsub("Ã¼","ü",x) )
+}
+
+set.args <- function(string){
+  # This function reads a string of arguments looking like:
+  # y=y, trt=grouping, sig=sig, sig.level=sig.level ,digits=digits, median.mean="mean", ranked=ranked, print.result=FALSE
+  # and sets the variables accordingly in the clobal environment.
+  
+  string <- gsub("\\=","<<-",string)
+  string <- gsub(",",";",string)
+  eval(parse(text=string))
+}
 
 #hms_to_sec(c("22:06:02","22:06:02"))
 #sec_to_hms(hms_to_sec(c("22:06:02","22:06:02")))
@@ -1827,7 +2094,7 @@ if(FALSE){
   point.symbol <- c("CIRCLE","BACKWARD_CLOSED_ARROW","BACKWARD_OPEN_ARROW", "FORWARD_CLOSED_ARROW", "FORWARD_OPEN_ARROW")[1]; point.size=2.5; point.lwd=0.5; point.col.in="red"; point.col.out="black"; point.opacity=0.7; del.tmp.file=TRUE
   
   create.googlemaps.markers(N, E, map.type="HYBRID", point.opacity=1, #point.symbol=sample(c("CIRCLE","BACKWARD_CLOSED_ARROW","BACKWARD_OPEN_ARROW", "FORWARD_CLOSED_ARROW", "FORWARD_OPEN_ARROW"), length(N), replace=TRUE),
-                            point.size= 2+2*scale.extreme(1:n), point.col.in=color.gradient(1:n), cat.html=FALSE )
+                            point.size= 2+2*scale.extreme(1:n), point.col.in=color.gradient(1:n), cat.html=FALSE , del.tmp.file=TRUE)
 }
 
 create.googlemaps.markers <- function(N, E, labels="", N.center=NULL, E.center=NULL, zoom=9, map.type=c("HYBRID","ROADMAP","SATELLITE","TERRAIN"), angle=0,
@@ -2005,26 +2272,22 @@ create.googlemaps.markers <- function(N, E, labels="", N.center=NULL, E.center=N
   #### Skript ist fertig
   
   # Temporäre Datei erstellen
-  write.table(text4, "googlemaps_tmp.html", col.names=FALSE, row.names=FALSE, quote=FALSE)
+  write.table(text4, paste0(Sys.getenv("TMP"),"\\googlemaps_tmp.html"), col.names=FALSE, row.names=FALSE, quote=FALSE)
   # Öffnen
-  browseURL("googlemaps_tmp.html")
+  browseURL(paste0(Sys.getenv("TMP"),"\\googlemaps_tmp.html"))
   
   if(!del.tmp.file){ # length(unique(labels))>1 & labels[1]!="" | 
-    cat("File is stored in the folder:   ", getwd(),"/\n", sep="")
+    cat("File is stored in the folder:   ", Sys.getenv("TMP"),"\\\n", sep="")
     cat("                    filename:   googlemaps_tmp.html\n" )
-    cat("Use\nfile.remove('googlemaps_tmp.html')\nto delete the file when you don't need it anymore\n")
+    cat("Use\nfile.remove(paste0(Sys.getenv('TMP'),'\\\\googlemaps_tmp.html'))\nto delete the file when you don't need it anymore\n")
     
     # Wenn keine Labels gesetzt wurden, macht es keinen Sinn, die Datei länger zu behalten.
     # Es wird 8 Sekunden gewartet, bis der Browser die Datei sicher geöffnet hat. Dann wird die temporäre Datei wieder gelöscht.
   } else {
-    t0 <- as.numeric(substr(Sys.time(), 15,16))*60 + as.numeric(substr(Sys.time(), 18,19))
-    while(as.numeric(substr(Sys.time(), 15,16))*60 + as.numeric(substr(Sys.time(), 18,19)) - t0 <= 5){
-      # Zeit schinden
-      a <- 1+1
-    }
-    file.remove('googlemaps_tmp.html')
+    Sys.sleep(8)
+    if( file.remove(paste0(Sys.getenv('TMP'),'\\googlemaps_tmp.html')) ) cat("File was removed. If you want to use it, set argument del.tmp.file=TRUE")
   }
-  }
+}
 
 if(FALSE){
   N <- 47.07343; E <- 7.68218; language="de"
@@ -2620,6 +2883,41 @@ check.group.sd <- function(data,grouping=NULL,test=c("all","any",factor=10)[1],r
 #}
 #
 #
+
+
+clean.number.format <- function(dat, to.numeric=TRUE) {
+  # This funciton cleans wrongly formatted data. E.g. from 1.000,00 to 1000.00
+  # dat = the data.frame/matrix to be formatted
+  # to.numeric = should numeric columns that where originally interpreted as characters be coerced to numeric()?
+  
+  dat <- as.matrix(dat)
+  # Schauen, wo sonstiger Text drinsteht
+  let <- c("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", 
+           "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z")
+  col <- !apply(dat,2,function(x)any(grepl( paste(let,collapse="|"), x )))
+  
+  
+  # Falsche , und Tausender-Trennzeichen korrigieren
+  dat[,col] <- apply(dat[,col],2,function(x){
+    if( any(grepl(".",x)&grepl(",",x)) )  # Schritt 1: Format 1.000,00 -> 1000,00
+      x <- gsub("\\.","",x)
+    x <- gsub(" |'","", # Schritt 2: Format 1 000.00 oder 1'000.00 -> 1000.00
+              gsub(",",".",x) ) # Schritt 3: Format 1000,00 -> 1000.00
+  })
+  
+  dat <- as.data.frame(dat, stringsAsFactors=FALSE)
+  # Debugging:
+  #for(i in 1:ncol(dat[,col])){
+  #  if(is( tryCatch(as.numeric(dat[,col][,i]),error=function(e)e,warning=function(w)w), "warning")) {
+  #    cat(colnames(dat[,col])[i], "----------------\n")
+  #    print(dat[,col][,i])
+  #  }
+  #}
+  dat[,col] <- as.data.frame(lapply(dat[,col],function(x)as.numeric(x)))
+  
+  return(dat)
+}
+
 if(FALSE){
   x <- cbind(ID=as.character(1:25), BZ=LETTERS[1:25], 1:25)
   char.cols.to.num(x)
@@ -2836,14 +3134,29 @@ if(FALSE){
 }
 ###
 equal.n.decimals <- function(x, add=0, add.dot=TRUE, margin=2) {
+  # This function formats all numbers in a column to the same number of digits. Output is given as character colums for export in Excel.
+  # --- IMPORTANT: CELLS IN EXCEL MUST BE FORMATTED AS TEXT! ---
+  # If scientific notation is displayed (1e+05), use option(scipen=999). Default option in R is option(scipen=0.)
   if(!is.null(dim(x))) {
-    if(is.matrix(x)) return(apply(x,margin,function(x)equal.n.decimals(x=x, add=add, add.dot=add.dot, margin=margin)))
-    if(is.data.frame(x)) return( as.data.frame( lapply(x,function(x)equal.n.decimals(x=x, add=add, add.dot=add.dot, margin=margin)) ,stringsAsFactors=FALSE) )
+    if(is.matrix(x)) {
+      res <- apply(x,margin,function(x)equal.n.decimals(x=x, add=add, add.dot=add.dot, margin=margin))
+      rownames(res) <- rownames(x)
+      return(res)
+    }
+    if(is.data.frame(x)) {
+      res <-  as.data.frame( lapply(x,function(x)equal.n.decimals(x=x, add=add, add.dot=add.dot, margin=margin)) ,stringsAsFactors=FALSE)
+      rownames(res) <- rownames(x)
+      return(res)
+    }
   }
   if(is.list(x)) return(lapply(x,function(x)equal.n.decimals(x=x, add=add, add.dot=add.dot, margin=margin)))
   
   # Funktioniert auch fuer character Argumente!
   #if(!is.numeric(x)) return(x)
+  if(is.numeric(x)) {
+    xtest <- x[!is.na(x)]
+    if(any(round(xtest,5)!=xtest)) warning("The function may not work with unrounded values.")
+  }
   
   n.char.x <- nchar(x)
   x2 <- strsplit(as.character(x), "")
@@ -2862,6 +3175,7 @@ equal.n.decimals <- function(x, add=0, add.dot=TRUE, margin=2) {
     for(i in sort.unique.n.add) x.new[n.add==i] <- paste0(x[n.add==i], " " ,paste0(rep(add,i),collapse="") )
   }
   x.new[n.add==0] <- x[n.add==0]
+  x.new[is.na(x)] <- NA
   names(x.new) <- names(x)
   return(x.new)  
 }
@@ -2879,8 +3193,8 @@ if(FALSE){
 }
 equal.length <- function(x, add=0, where=c("beginning","end"), minlength=0, margin=2) {
   if(!is.null(dim(x))) {
-    if(is.matrix(x)) return(apply(x,margin,function(x)equal.length(x=x, add=add, where=where, margin=margin)))
-    if(is.data.frame(x)) return( as.data.frame( lapply(x,function(x)equal.length(x=x, add=add, where=where, margin=margin)) ,stringsAsFactors=FALSE) )
+    if(is.matrix(x)) return(apply(x,margin,function(x)equal.length(x=x, add=add, where=where, minlength=minlength, margin=margin)))
+    if(is.data.frame(x)) return( as.data.frame( lapply(x,function(x)equal.length(x=x, add=add, where=where, minlength=minlength, margin=margin)) ,stringsAsFactors=FALSE) )
   }
   if(is.list(x)) return(lapply(x,function(x)equal.length(x=x, add=add, where=where, margin=margin)))
   
@@ -3023,7 +3337,7 @@ if(FALSE){
 
 
 ####
-match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE){
+match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE,check.duplicated=TRUE){
   # This function matches two data frames by id.
   # If wished (by default) also no matches are kept.
   
@@ -3065,7 +3379,7 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE){
   if(any(id1.double)|any(id2.double)){
     
     prov.return <- list()
-    if(any(id1.double)){
+    if(check.duplicated & any(id1.double)){
       stop("There are duplicated IDs in id1")
       # Veraltet. Wird nicht mehr zurueckgegeben.
       cat("There are duplicated IDs in id1. See function output and return one of each pair.\n")
@@ -3073,7 +3387,7 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE){
       prov.return$id1 <- id1[ prov.return$which.id1.duplicated ]
       prov.return$df1 <- data.frame(id1=id1[prov.return$which.id1.duplicated],df1[prov.return$which.id1.duplicated,,drop=FALSE])
     }
-    if(any(id2.double)){
+    if(check.duplicated & any(id2.double)){
       stop("There are duplicated IDs in id2")
       # Veraltet. Wird nicht mehr zurueckgegeben.
       cat("There are duplicated IDs in id2. See function output and return one of each pair.\n")
@@ -3358,10 +3672,17 @@ balanced.panel.filtering <- function(criterium, data, id.vec, year.vec, output=c
 #cbind(data, sum=rowSums(data), id=id.vec, year=year.vec, filter=balanced.panel.filtering(a+b<110, data, id.vec, year.vec))
 
 if(FALSE){
-  x <- round( runif(100)*100 )
-  id <- rep(1:50, 2)
-  year <- rep.1b1(c(0,1),50)
-  YEAR=sort(unique(year)); baseyear=min(YEAR); geometric=FALSE; absolute.diff=TRUE; filter=FALSE; filter.level=c(1/3,3); return.N=FALSE; 
+  #x <- round( runif(100)*100 )
+  #id <- rep(1:50, 2)
+  #year <- rep.1b1(c(0,1),50)
+  gb <- load.gb()
+  x <- gb[,"rohPara_tot"]
+  id <- gb[,"ID"]
+  year <- gb[,"Jahr"]
+  weights <- gb[,"Gewicht"]
+  YEAR=sort(unique(year));
+  baseyear=min(YEAR); geometric=FALSE; absolute.diff=TRUE; filter=FALSE; filter.level=c(1/3,3); return.N=FALSE; 
+  
   # Debugging
   mean(x[year==1]) - mean(x[year==0])
   mean(x[year==1]) / mean(x[year==0])
@@ -3369,9 +3690,239 @@ if(FALSE){
   mean.geom(x[year==1]) - mean.geom(x[year==0])
   mean.geom(x[year==1]) / mean.geom(x[year==0])
   balanced.panel.development(x,id,year,YEAR=sort(unique(year)),baseyear=min(YEAR),geometric=TRUE,absolute.diff=TRUE,filter=FALSE,filter.level=c(1/3,3),return.N=FALSE)
+  
+  # Weighted
+  w <- c(1:10)
+  x <- sample(1:100,10,replace=TRUE)
+  mean( x[1:5]-x[6:10] )
+  mean( (x*w)[1:5]-(x*w)[6:10] )
+  weighted.mean( x[1:5]-x[6:10], w[6:10] )
 }
 ####
-balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyear=min(YEAR),geometric=TRUE,absolute.diff=FALSE,filter=TRUE,filter.level=c(1/3,3),return.N=FALSE){
+# Daten zur Kontrolle der Funktion:
+# LE Typ 54, vergleichbare 2013/2014, UNGEWICHTET: 2013:61433, 2014:70187, Diff:8754   Werte nicht vergleichbar, gewichtet, 2013:58133, 2014:66865, Diff:8732
+balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyear=min(YEAR),weights=NULL,geometric=TRUE,absolute.diff=FALSE,absolute.number=c("no","comparable_baseyear","all_baseyear"),filter=TRUE,filter.level=c(1/3,3),return.N=FALSE){
+  # Note that there is a safety copy of this function just below.
+  # weights are not implemented for geometric means!!!
+  
+  # This function calculates an index of an unbalanced time series.
+  # This can be useful if you want to follow the delevoptment of yields but the time horizon
+  # is so long that a balanced panel over the whole period has 0 observations.
+  # The function calculates relative changes of every pair of year (which builds some kind of 2-year balanced panel).
+  # The changes from year to year are then multiplied over the hole period ( geometric=TRUE ) or summed up ( geometric=FALSE ).
+  # x:               data like e.g. yield
+  # id:              Vector of IDs
+  # year:            Vector of year (same length as ID)
+  # YEAR:            Years that should be selected
+  # baseyear:        The baseyear in which the index has value 1
+  # weights:         optional weights for the calculations
+  # geometric:       See description above
+  # absolute.diff:   Should absolute differences instead of relative differences be calculated?
+  # absolute.number: Should absolute numbers instead of relative changes be calculated? If yes, which mean should be calculated in the baseyear?
+  #                  The mean of the comparable observations in baseyear and baseyear+1 (comparable_baseyear) or the mean of all observations in the baseyear (all_baseyear)?
+  # filter:          Should extreme changes (that are probalby not realistic) be filtered out?
+  # filter.level:    If yes, which change-factor is the threshold to filter out c(upper,lower)
+  # return.N:        Should the number of observations in each year be calculated instead of the index?
+  
+  if(is.data.frame(x) | is.list(x)) return( sapply(x,function(x)balanced.panel.development(x=x,id=id,year=year,YEAR=YEAR,baseyear=baseyear,weights=weights, geometric=geometric, absolute.diff=absolute.diff, absolute.number=absolute.number, filter=filter,filter.level=c(1/3,3),return.N=return.N)) )
+  if(is.matrix(x)) return( apply(x,2,                function(x)balanced.panel.development(x=x,id=id,year=year,YEAR=YEAR,baseyear=baseyear,weights=weights, geometric=geometric, absolute.diff=absolute.diff, absolute.number=absolute.number, filter=filter,filter.level=c(1/3,3),return.N=return.N)) )
+  
+  # weights wird w genannt, damit es im Code einfacher einzubauen ist
+  weighted <- !is.null(weights)
+  if(weighted){
+    w <- weights
+    if(length(x)!=length(w)) stop("length(x)!=length(weights)")
+  }
+  rm(weights)
+  
+  absolute.number <- match.arg(absolute.number)
+  
+  if(filter) warning("You have chosen filter=TRUE which excludes extreme values from analysis.")
+  if(geometric & absolute.diff) warning("The combination of mean.geom and absoulte difference is rather unusual!")
+  if(geometric & weighted) warning("Weighting is not implemented for geometric means.")
+  if(absolute.number%in%c("comparable_baseyear","all_baseyear")) absolute.diff <- TRUE
+  if(length(x)!=length(id))   stop("length(x)!=length(id)")
+  if(length(x)!=length(year)) stop("length(x)!=length(year)")
+  if(!baseyear%in%YEAR) stop("baseyear must be in the range of YEAR")
+  if(any(!YEAR%in%year)) warning("the years ", YEAR[!YEAR%in%year]," are used in YEAR but do not exist in year")
+  
+  YEAR <- sort(YEAR)
+  d.means <- numeric()
+  N <- numeric(length(YEAR)); names(N) <- YEAR; N[N==0] <- NA;
+  
+  i <- 1
+  # Start loop over all YEAR
+  for(i in 1:(length(YEAR)-1)) {
+    # Making a balanced panel for 2 years
+    ids <- id[year%in%c(YEAR[i],YEAR[i+1])]
+    table.ids <- table(ids)
+    if(any(table.ids>2)) {
+      output <- names(table.ids)[table.ids>2]
+      print(output)
+      invisible(output)
+      stop("Some ids occur several times in the same year.")
+    }
+    ids.final <- names(table.ids)[table.ids==2]
+    year12 <- id%in%ids.final & year%in%c(YEAR[i],YEAR[i+1])
+    # Choosing the first and the second year of the balanced panel seperately
+    year1 <- year12 & year%in%YEAR[i]
+    year2 <- year12 & year%in%YEAR[i+1]
+    if(FALSE){ # Test, if it worked
+      print(table( year[year12] )) 
+      print(all(table(id[year12])==2))
+    }
+    
+    # Calculate the number of observations for the first year.
+    if(return.N){
+      if(i==1){
+        year1.temp <- year1
+        is.na.year1 <- is.na(x[year1.temp])
+        year1.temp[is.na.year1] <- FALSE
+        N[1] <- sum(year1.temp)
+      }
+    }
+    
+    # Filtering of extreme Values is always done with relative changes.
+    if(filter) {
+      d <- x[year2][order(id[year2])]   /   x[year1][order(id[year1])]
+      keep <- d<filter.level[1] | d>filter.level[2]
+      keep[is.na(keep)] <- TRUE
+    } else {
+      keep <- rep(TRUE, length(x))
+    }
+    
+    if(geometric){
+      # Calculate the relative differences between the years.
+      # Important: The values have to be ordered such that always the same observations are compared
+      d.means[i] <- mean.geom(x[year2][order(id[year2])][keep]) / mean.geom(x[year1][order(id[year1])][keep])
+      
+    } else {
+      # Calculate the absolute differences between the years.
+      if(weighted) {
+        d.means[i] <- weighted.mean(x[year2][order(id[year2])][keep], w[year2][order(id[year2])][keep],na.rm=TRUE) -
+          weighted.mean(x[year1][order(id[year1])][keep], w[year1][order(id[year1])][keep],na.rm=TRUE)
+      } else {
+        d.means[i] <- mean(x[year2][order(id[year2])][keep],na.rm=TRUE) - mean(x[year1][order(id[year1])][keep],na.rm=TRUE)
+      }
+      
+      # If the absolute number is whised (absolute.number==TRUE), the mean of the according year has to be calculated with the comparable observations
+      # Falls so gewaehlt, den Mittelwert der Vergleichbaren im Baseyear berechnen.
+      if(absolute.number=="comparable_baseyear"){
+        if(YEAR[i]==baseyear){
+          if(weighted){
+            mean.baseyear <- weighted.mean(x[year1][order(id[year1])][keep], w[year1][order(id[year1])][keep],na.rm=TRUE)
+          } else {
+            mean.baseyear <- mean(x[year1][order(id[year1])][keep],na.rm=TRUE)
+          }
+        }
+      }
+    }
+    
+    # Calculate the number of observations that were used to build the difference
+    if(return.N) N[i+1] <- sum(!is.na(d[[i]]))
+  }
+  # END OF THE LOOP
+  
+  # Bei geometric ist der Wert im 1. Jahr ist der Ausgangswert. Also 1.
+  # Bei arithmecid 0
+  if(geometric){
+    d.means <- c(1,d.means)
+  } else {
+    d.means <- c(0,d.means)
+  }
+  
+  if(return.N) return(N)
+  
+  if(geometric){
+    # Bisher wird jeweils die Veränderung zum Vorjahr wiedergegeben.
+    # Nun müssen die Werte noch miteinander multipliziert werden, damit sich der Verlauf von Anfang an ergibt.
+    index <- numeric(length(d.means)); names(index) <- YEAR
+    for(i in 1:length(d.means)) index[i] <- prod(d.means[1:i])
+    
+    # Alt
+    # Alle Zahlen durch den Index im Index-Jahr dividieren, sodass dort der 1-Punkt ensteht.
+    #index <- index/index[names(index)==baseyear]
+    # Debugging
+    # mean.geom(x[year==2012])
+    # mean.geom(x[year==2013])
+    
+    # Der Inex wird im Jahr 1 = 0 gesetzt. Dann Der Mittelwert im Index-Jahr subtrahiert, sodass dort der 0-Punkt ensteht.
+    if(absolute.diff){
+      mean.year1 <- mean.geom(x[year1],na.rm=TRUE)
+      index <- index*mean.year1 - mean.year1
+      index <- index-index[names(index)==baseyear]
+      # Der Inex wird im Jahr 1 = 1 gesetzt. Dann alle Zahlen durch den Index im Index-Jahr dividiert, sodass dort der 1-Punkt ensteht.
+    } else {
+      index <- index/index[names(index)==baseyear]
+    }
+  
+
+  } else { # if(!geometric)
+    
+    # Bisher wird jeweils die Veränderung zum Vorjahr wiedergegeben.
+    # Nun müssen die Werte noch addiert werden, damit sich der Verlauf von Anfang an ergibt.
+    index <- numeric(length(d.means)); names(index) <- YEAR
+    for(i in 1:length(d.means)) index[i] <- sum(d.means[1:i])
+    
+    # Choose again the balanced Panel of the first year. Then put all numbers in to relation to that mean.
+    ids <- id[year%in%c(YEAR[1],YEAR[1+1])]
+    table.ids <- table(ids)
+    ids.final <- names(table.ids)[table.ids==2]
+    year12 <- id%in%ids.final & year%in%c(YEAR[1],YEAR[1+1])
+    # Choosing the first and the second year of the balanced panel seperately
+    year1 <- year12 & year%in%YEAR[1]
+    year2 <- year12 & year%in%YEAR[1+1]
+    if(FALSE){
+      # So bildet man am Anfang nur den Mean, der Vergleichbaren Betriebe von Jahr 1 und Jahr 2, von denen auch die Differenz berechnet wird.
+      is.na.year2 <- is.na(x[year2])
+      year2[is.na.year2] <- FALSE
+      year1.new <- year1 & year2
+      #length(year1); length(year2) # Kontrolle
+      mean.year1 <- mean(x[year1.new],na.rm=TRUE)
+    }
+    # So bildet man am Anfang den Mean, aller Vergleichbaren Betriebe von Jahr 1 und Jahr 2
+    if(weighted) {
+      mean.year1 <- weighted.mean(x[year1],w[year1],na.rm=TRUE)
+    } else {
+      mean.year1 <- mean(x[year1],na.rm=TRUE)
+    }
+      
+    # Der Index wird relativiert durch den Mean des ersten Jahres.
+    index <- (index+mean.year1)
+    
+    # Debugging
+    # mean(x[year==2012])
+    # mean(x[year==2013])
+    
+    # Der Inex wird im Jahr 1 = 0 gesetzt. Dann Der Mittelwert im Index-Jahr subtrahiert, sodass dort der 0-Punkt ensteht.
+    if(absolute.diff){
+      index <- index-mean.year1
+      index <- index-index[names(index)==baseyear]
+      # Wenn absolute Werte, nicht differenzen gegeben werden sollen, dann vom baseyear den mean addieren
+      # Falls so gewaehlt, den Mittelwert der Vergleichbaren im Baseyear addieren.
+      if(absolute.number=="comparable_baseyear") {
+        index <- index + mean.baseyear
+        # Falls so gewaehlt, den Mittelwert der aller Beobachtungen im Baseyear addieren.
+      } else if(absolute.number=="all_baseyear") {
+        choose_baseyear <- year==baseyear
+        if(weighted) {
+          index <- index + weighted.mean(x[choose_baseyear],w[choose_baseyear],na.rm=TRUE)
+        } else {
+          index <- index + mean(x[choose_baseyear],na.rm=TRUE)
+        }
+      }
+      # Der Inex wird im Jahr 1 = 1 gesetzt. Dann alle Zahlen durch den Index im Index-Jahr dividiert, sodass dort der 1-Punkt ensteht.
+    } else {
+      index <- index/mean.year1
+      index <- index/index[names(index)==baseyear]
+    }
+  } # End if
+  
+  if(any(is.na(index)) & geometric) cat("Note that the geometric mean can only be calculated if all numbers are positive.\n")
+  return(index)
+}
+
+if(FALSE) balanced.panel.development_ALT_OHNE_WEIGHTS <- function(x,id,year,YEAR=sort(unique(year)),baseyear=min(YEAR),geometric=TRUE,absolute.diff=FALSE,filter=TRUE,filter.level=c(1/3,3),return.N=FALSE){
   # This function calculates an index of an unbalanced time series.
   # This can be useful if you want to follow the delevoptment of yields but the time horizon
   # is so long that a balanced panel over the whole period has 0 observations.
@@ -3393,6 +3944,8 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
   
   if(is.data.frame(x) | is.list(x)) return( sapply(x,function(x)balanced.panel.development(x=x,id=id,year=year,YEAR=YEAR,baseyear=baseyear, geometric=geometric, absolute.diff=absolute.diff, filter=filter,filter.level=c(1/3,3),return.N=return.N)) )
   if(is.matrix(x)) return( apply(x,2,function(x)balanced.panel.development(x=x,id=id,year=year,YEAR=YEAR,baseyear=baseyear, geometric=geometric, absolute.diff=absolute.diff, filter=filter,filter.level=c(1/3,3),return.N=return.N)) )
+
+  if(is.null(weights)) weights <- rep(1,length(x))
   if(length(x)!=length(id))   stop("length(x)!=length(id)")
   if(length(x)!=length(year)) stop("length(x)!=length(year)")
   if(!baseyear%in%YEAR) stop("baseyear must be in the range of YEAR")
@@ -3480,8 +4033,8 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
     } else {
       index <- index/index[names(index)==baseyear]
     }
-  
-
+    
+    
   } else { # if(!geometric)
     d <- c(list(0),d)
     d.means <- unlist( lapply(d,function(x)mean(x,na.rm=TRUE)) )
@@ -3530,6 +4083,7 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
   if(any(is.na(index)) & geometric) cat("Note that the geometric mean can only be calculated if all numbers are positive.\n")
   return(index)
 }
+
 # Überprüfung der Funktion #
 if(FALSE){
   x <- dat[,"yi_Weizen"]
@@ -3564,7 +4118,7 @@ if(FALSE){
 ####
 #x <- rnorm(100); selection.levels <- 0.1; method=c("<= x <", "< x <=")[1]; include.min.max=TRUE; give.names=TRUE
 #group.by.fix.scale(x,c(0),c("<= x <", "< x <="),FALSE)
-group.by.fix.scale <- function(x, selection.levels, method=c("<= x <", "< x <="), include.min.max=FALSE, give.names=FALSE, names.sep="-"){
+group.by.fix.scale <- function(x, selection.levels, method=c("<= x <", "< x <="), include.min.max=FALSE, give.names=FALSE, names.digits=2, names.sep="-"){
   # This function returns a grouping according to the chosen absolute selection.levels.
   # If include.min.max=TRUE depending on the method the minimum (maximum) point is included with the <= sign instead of <
   # Otherwise if you give exactely the min(x) and max(x) one of both would be excluded.
@@ -3582,26 +4136,26 @@ group.by.fix.scale <- function(x, selection.levels, method=c("<= x <", "< x <=")
   if(method=="<= x <")  {
     for(i in 1:(length.selection.levels-2)) {
       grouping[ x >= selection.levels[i] & x < selection.levels[i+1] ] <- i
-      if(give.names) names(grouping)[ x >= selection.levels[i] & x < selection.levels[i+1] ] <- paste(zapsmall(c(selection.levels[i],selection.levels[i+1])),collapse=names.sep)
+      if(give.names) names(grouping)[ x >= selection.levels[i] & x < selection.levels[i+1] ] <- paste(zapsmall(round(c(selection.levels[i],selection.levels[i+1]),names.digits) ),collapse=names.sep)
     }
     if(include.min.max){
       grouping[ x >= selection.levels[length.selection.levels-1] & x <= selection.levels[length.selection.levels] ] <- length.selection.levels-1
-      if(give.names) names(grouping)[ x >= selection.levels[length.selection.levels-1] & x <= selection.levels[length.selection.levels] ] <- paste(zapsmall(c(selection.levels[length.selection.levels-1],selection.levels[length.selection.levels])),collapse=names.sep)
+      if(give.names) names(grouping)[ x >= selection.levels[length.selection.levels-1] & x <= selection.levels[length.selection.levels] ] <- paste(zapsmall(round(c(selection.levels[length.selection.levels-1],selection.levels[length.selection.levels]),names.digits) ),collapse=names.sep)
     } else {
       grouping[ x >= selection.levels[length.selection.levels-1] & x < selection.levels[length.selection.levels] ] <- length.selection.levels-1
-      if(give.names) names(grouping)[ x >= selection.levels[length.selection.levels-1] & x < selection.levels[length.selection.levels] ] <- paste(zapsmall(c(selection.levels[length.selection.levels-1],selection.levels[length.selection.levels])),collapse=names.sep)
+      if(give.names) names(grouping)[ x >= selection.levels[length.selection.levels-1] & x < selection.levels[length.selection.levels] ] <- paste(zapsmall(round(c(selection.levels[length.selection.levels-1],selection.levels[length.selection.levels]),names.digits) ),collapse=names.sep)
     }
   } else  if(method=="< x <=")  {
     if(include.min.max){
       grouping[ x >= selection.levels[1] & x <= selection.levels[2] ] <- 1
-      if(give.names) names(grouping)[ x >= selection.levels[1] & x <= selection.levels[2] ] <- paste(zapsmall(c(selection.levels[1],selection.levels[2])),collapse=names.sep)
+      if(give.names) names(grouping)[ x >= selection.levels[1] & x <= selection.levels[2] ] <- paste(zapsmall(round(c(selection.levels[1],selection.levels[2]),names.digits) ),collapse=names.sep)
     } else {
       grouping[ x > selection.levels[1] & x <= selection.levels[2] ] <- 1
-      if(give.names) names(grouping)[ x > selection.levels[1] & x <= selection.levels[2] ] <- paste(zapsmall(c(selection.levels[1],selection.levels[2])),collapse=names.sep)
+      if(give.names) names(grouping)[ x > selection.levels[1] & x <= selection.levels[2] ] <- paste(zapsmall(round(c(selection.levels[1],selection.levels[2]),names.digits) ),collapse=names.sep)
     }
     for(i in 2:(length(selection.levels-1)))  {
       grouping[ x > selection.levels[i] & x <= selection.levels[i+1] ] <- i
-      if(give.names) names(grouping)[  x > selection.levels[i] & x <= selection.levels[i+1] ] <- paste(zapsmall(c(selection.levels[i],selection.levels[i+1])),collapse=names.sep)
+      if(give.names) names(grouping)[  x > selection.levels[i] & x <= selection.levels[i+1] ] <- paste(zapsmall(round(c(selection.levels[i],selection.levels[i+1]),names.digits) ),collapse=names.sep)
     }
   }
   
@@ -3611,7 +4165,7 @@ group.by.fix.scale <- function(x, selection.levels, method=c("<= x <", "< x <=")
 
 ####
 
-group.by.quantiles <- function(x, selection.levels=seq(0,1,0.1), method=c("<= x <", "< x <="), include.min.max=TRUE, weights=NULL){
+group.by.quantiles <- function(x, selection.levels=seq(0,1,0.1), method=c("<= x <", "< x <="), include.min.max=TRUE, give.names=FALSE, names.digits=2, names.sep="-", weights=NULL){
   # Groupy data by quantiles.
   # This is a wrapper for group.by.fixed scale with slightly altered interface.
   
@@ -3637,7 +4191,7 @@ group.by.quantiles <- function(x, selection.levels=seq(0,1,0.1), method=c("<= x 
     if(max(selection.levels.rel)==1) selection.levels.abs[which.max(selection.levels.rel)] <- max(x)+1
   }
   
-  grouping <- group.by.fix.scale(x=x, selection.levels=selection.levels.abs, method=method, include.min.max=include.min.max)
+  grouping <- group.by.fix.scale(x=x, selection.levels=selection.levels.abs, method=method, include.min.max=include.min.max, give.names=give.names, names.digits=names.digits, names.sep=names.sep)
   return(grouping)
 }
 #group.by.quartiles(x)
@@ -3740,30 +4294,62 @@ na.replace <- function(x,grouping=NULL,sd=1,warnings=0.5) {
     }
   } else return(x)
 }
-#search <- c(1,2,3); replace <- c("a","b","c")
-replace.values <- function(search, replace, x) {
+
+#search <- c(1,2,3); replace <- c("a","b","c"); x <- c(NA, 0, 1, 1, 2, 3)
+#search <- c(9,10,11); replace <- c("a","b","c"); x <- c(NA, 0, 1, 1, 2, 3)
+#replace.values(search,replace,x)
+replace.values <- function(search, replace, x){
   # This function replaces all elements in argument search with the corresponding elements in argument replace.
   # Replacement is done in x.
+  
+  if(length(search)!=length(replace)) stop("length(search) must be equal length(replace)")
+  if(any(duplicated(search))) stop("There must be no duplicated entries in search.")
+  
+  if(is.matrix(x)){
+    return(apply(x,2,function(x)replace.values(search=search,replace=replace,x=x)))
+  } else if(is.data.frame(x)){
+    return(as.data.frame(lapply(x,function(x)replace.values(search=search,replace=replace,x=x)),stringsAsFactors=FALSE))
+  }
+  
+  xnew <- x
+  xnew <- replace[ match(x, search) ]
+  isna <- is.na(xnew)
+  xnew[isna] <- x[isna]
+  return(xnew)
+}
+
+#search <- c(1,2,3); replace <- c("a","b","c")
+if(FALSE) replace.values_OLD_DELETE <- function(search, replace, x) {
+  # This function replaces all elements in argument search with the corresponding elements in argument replace.
+  # Replacement is done in x.
+  
   if(length(search)!=length(replace)) stop("length(search) must be equal length(replace)")
   # Delete search & replace entries that are not in x
   keep <- search%in%x
-  search <- search[keep]
-  replace <- replace[keep]
-  # Prepare result vector and replace values.
-  y <- vector(mode(x))
-  allind <- rep(FALSE, length(x))
-  for(i in 1:length(search)) {
-    ind1 <- x==search[i]
-    y[ind1] <- replace[i]
-    allind <- allind | ind1
+  if(sum(keep)>0){
+    search <- search[keep]
+    replace <- replace[keep]
+    # Prepare result vector and replace values.
+    y <- vector(mode(x))
+    allind <- rep(FALSE, length(x))
+    for(i in 1:length(search)) {
+      ind1 <- x==search[i]
+      y[ind1] <- replace[i]
+      allind <- allind | ind1
+    }
+    # Fill empty places that were not in search and replace with the old values in x.
+    y[!allind] <- x[!allind]
+    
+    # If there are no entries to replace, return original vector.
+  } else {
+    y <- x
   }
-  y[!allind] <- x[!allind]
   return(y)
 }
 
 #### CSV MANIPULATION & READ IN####
 # x <- matrix(1:10); nrowmax=10000; ncolmax=10000; folder=NULL; view(x)
-view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000, folder=NULL, quote=FALSE, na="NA", ...){
+view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000, folder=NULL, quote=FALSE, na="NA", openfolder=FALSE, ...){
   # This function creates a CSV file from a data.frame/matrix and opens it with the default CSV-opening-program
   # of the computer.
   #
@@ -3780,7 +4366,7 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
   if(is.null(dim(x))) {
     x <- as.matrix(x)
   }
-  if(is.null(colnames(x))) colnames(x) <- "x"
+  if(is.null(colnames(x))) colnames(x) <- paste0("V",1:ncol(x))
   
   if(nrows<0) nrows <- nrow(x)
   if(ncols<0) ncols <- ncol(x)
@@ -3792,24 +4378,14 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
   
   
   # Define paths
-  # If is.null(folder), wird versucht, in den Unterordnern von C:/Users/.../Documents/ ein File zu erzeugen.
-  # Wenn es gelingt, wird der erstmoegliche Folder ausgewaehlt, um nachher darin das temporaere CSV-File abzuspeichern.
+  # If is.null(folder), wird ein temporaerer Ordner im Windows-Dateisystem angelegt.
   if(is.null(folder)) {
-    dirs <- list.dirs(path="C:/Users/", recursive=FALSE)
-    dirs <- paste0(dirs,"/Documents/")
-    for(i in 1:length(dirs)){
-      # Break loop if file was created successfully.
-      if(! is( tryCatch( write.table( matrix(1), paste0(dirs[i],"wucklanpqal01jk.csvxyz")) ,
-                         error=function(e)e,warning=function(w)w), "warning") ) break
-    }
-    # Remove check-file & set folder.
-    file.remove( paste0(dirs[i],"wucklanpqal01jk.csvxyz") )
-    folder <- paste0( dirs[i], "Rview_tmp" )
+    folder <- paste0(Sys.getenv("TMP"), "\\Rview")
     suppressWarnings( dir.create(folder) )
   }  
   
   # Wenn am Schluss des Pfades kein "/" angefuegt wurde, wird dies gemacht:
-  if( !substr(folder,nchar(folder),nchar(folder))%in%c("/","\\") ) folder <- paste0(folder, "/")
+  if( !substr(folder,nchar(folder),nchar(folder))%in%c("/","\\") ) folder <- paste0(folder, "\\")
   pfad0 <- folder
   name <- "Rview_tmp"
   nr <- "01"
@@ -3840,6 +4416,14 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
     }
   }
   
+  # Rownames und colnames, die mit +, - oder = anfangen, mit ' am Anfang versehen, dass es von Excel richtig dargestellt wird
+  rn1 <- rownames(x)
+  cn1 <- colnames(x)
+  ind <- substr(rn1,1,1)%in%c("+","-","=")
+  if(any(ind)) rownames(x)[ind] <- paste0(" ",rn1[ind])
+  ind <- substr(cn1,1,1)%in%c("+","-","=")
+  if(any(ind)) colnames(x)[ind] <- paste0(" ",cn1[ind])
+  
   # Write CSV file & open.
   if(names=="row") {
     # If the first cell of the file is named "ID" Microsoft Excel warns that a SYLK file is opened. Therefore it is renamed.
@@ -3856,10 +4440,14 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
   }
   
   browseURL(pfad1)
+  if(openfolder) {
+    Sys.sleep(1)
+    browseURL(folder)
+  }
 }
 
 load.gb <- function() {
-  pfad1 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/_ZA/Ref/Data/Grundlagenbericht/GB.RData"
+  pfad1 <- "C:/Users/U80823148/_/Data/GB.RData"
   pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/GB/GB.RData"
   if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
   cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
@@ -3870,27 +4458,37 @@ load.gb <- function() {
 
 # id <- 72010409
 id.entschluesseln <- function(...){
-  pfad1 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/_ZA/Ref/Data/Grundlagenbericht/"
-  pfad2 <- "GB__allg_Einzel"
-  if(!file.exists(paste0(pfad1,pfad2,".RData"))) {
-    dat <- read.csv(paste0(pfad1,pfad2,".csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("NA","","#DIV/0","#DIV/0!", "#WERT", "#WERT!"))
-    save(dat, file=paste0(pfad1,pfad2,".RData") )
+  pfad1 <- "C:/Users/U80823148/_/Data/"
+  pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/_ZA/Ref/Data/Grundlagenbericht/"
+  
+  pfad3 <- "GB__allg_Einzel"
+  if(any(file.exists(c(paste0(pfad1,pfad3,".csv"), paste0(pfad1,pfad3,".RData"))))) pfad <- pfad1 else pfad <- pfad2
+  
+  # csv.to.rdata(paste0(pfad1,pfad2))
+  if(!file.exists(paste0(pfad,pfad3,".RData"))) {
+    dat <- read.csv(paste0(pfad,pfad3,".csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("NA","","#DIV/0","#DIV/0!", "#WERT", "#WERT!"))
+    save(dat, file=paste0(pfad,pfad3,".RData") )
   }
-  load( paste0(pfad1,pfad2,".RData") )
+  load( paste0(pfad,pfad3,".RData") )
   
   id <- c(...)
-  id <- id[!duplicated(id)]
-  if(length(id)==1){
-    res <- dat[dat[,"ID"]%in%id,"ID_unverschluesselt"]
-    return(res[!duplicated(res)])
-  } else {
-    res <- dat[dat[,"ID"]%in%id,c("ID","ID_unverschluesselt")]
-    return(res[!duplicated(res),])
-  }
+  res <- dat[match(id, dat[,"ID"]),"ID_unverschluesselt"]
+  return(res)
+  
+  #id <- id[!duplicated(id)]
+  #if(length(id)==1){
+  #  cbind(id,gb[,"ID_unverschluesselt"])
+  
+  #res <- dat[dat[,"ID"]%in%id,"ID_unverschluesselt"]
+  #return(res[!duplicated(res)])
+  #} else {
+  #res <- dat[dat[,"ID"]%in%id,c("ID","ID_unverschluesselt")]
+  #return(res[!duplicated(res),])
+  #}
 }
 
 #folder <- "P:/_ZA/Ref/Data/Grundlagenbericht/"; filenames=NULL;extra_filename=NULL; update.files=FALSE; save.file=TRUE; save.name="GB"; filetype=c("csv"); NAto0=TRUE; header=TRUE; colnamesrow=1; skiprows=colnamesrow+1
-merge.GB <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FALSE, save.file=TRUE, save.name="GB", filetype=c("csv"), NAto0=TRUE, header=TRUE, colnamesrow=1, skiprows=colnamesrow+1, ...){
+merge.gb <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FALSE, save.file=TRUE, save.name="GB", filetype=c("csv"), NAto0=TRUE, header=TRUE, colnamesrow=1, skiprows=colnamesrow+1, ...){
   # Grundlagenbericht importieren, indem die 6 csv Files nach der Vorlage der BO-Extraktionen "GB_A_Einzel, ..." eingelesen und aneinander gebunden werden.
   # Für aus BO exportierte csv die Einstellung colnamesrow=5 und skiprows=6 beibehalten.
   # Wenn die csv-Datei schon mit colname ist, colnamesrow=1 und skiprows=1 einstellen.
@@ -3908,6 +4506,8 @@ merge.GB <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FA
         xvector <- c("X",paste("X.",1:30,sep=""))
         na.cols <- colnames(gb)%in%xvector
         gb <- gb[,!na.cols]
+        if(colnames(gb)[1]!="ID")
+          if(colnames(gb)[1]=="X.ID") colnames(gb)[1] <- "ID" else stop("The first colname of the imported file is not ID or ?ID.")
       } else {
         headers <- read.csv(paste(fullnames[i],".csv",sep=""), sep=";", nrows=colnamesrow, stringsAsFactors=FALSE, header=FALSE, na.strings=c("NA","","#DIV/0","#DIV/0!", "#WERT", "#WERT!"))
         headers <- as.character(headers[colnamesrow,])
@@ -3916,6 +4516,8 @@ merge.GB <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FA
         gb <- read.csv(paste(fullnames[i],".csv",sep=""), sep=";", skip=skiprows, stringsAsFactors=FALSE, header=FALSE, na.strings=c("NA","","#DIV/0","#DIV/0!", "#WERT", "#WERT!"))
         gb <- gb[,!na.cols]
         colnames(gb) <- headers
+        if(colnames(gb)[1]!="ID")
+          if(colnames(gb)[1]=="X.ID") colnames(gb)[1] <- "ID" else stop("The first colname of the imported file is not ID or ?ID.")
       }
       gb <- gb[!is.na(gb[,1]),]
       # Falls manche Spalten Strings enthalten, werden diese in numeric umgewandelt.
@@ -3953,7 +4555,8 @@ merge.GB <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FA
   }
   # Prüfen, ob in allen Tabellen gleich viele Beobachtungen sind
   nrows <- do.call("c",lapply(gb.list,function(x)nrow(x)))
-  if(any(nrows!=nrows[1])) stop(paste("Not the same filters were selected for the different years. You created an unbalanced panel.\nnrows= ",paste(nrows,collapse=", ")))
+  if(any(nrows!=nrows[1]))  stop(paste0("Not the same year-filters were selected in the different csv files. You created an unbalanced panel.\n ",
+                                        paste(paste(filenames, nrows, sep=": "),collapse="\n ")))
   # Prüfen, ob ID und Jahr immer in der ersten Spalte stehen
   gb.names <- do.call("rbind",lapply(gb.list,function(x)colnames(x)[1:2]))
   if(any(c(gb.names[,1]!="ID", gb.names[,2]!="Jahr"))) stop("The first two columns of each Excel file must contain the ID and the accounting year. Names must be 'ID' and 'Jahr'")
@@ -4039,7 +4642,7 @@ merge.GB <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FA
   invisible(gb)
   cat("Job done!")
 }
-merge.gb <- function(...)  merge.GB(...) # wrapper function
+
 ####
 
 #filepath <- paste0(pfad,"Auswertung_Abschr_lang.csv")
@@ -4129,17 +4732,44 @@ remove.na.rowcols.of.csv <- function(filepath, print.info=FALSE){
   repair.csv(filepath=filepath, header=TRUE, remove.middle.rows.cols=TRUE, save.file=TRUE, print.info=print.info)
 }
 
-csv.to.rdata <- function(path, name="dat", ...){
+csv.to.rdata <- function(path, name="dat", clean.numb.format=FALSE, ...){
   # This function converts csv data to RData (which can be read in much faster)
   
-  # Remove .csv from string.
+  # Remove .csv or .RData from string.
   if( substr.rev(path,1,4)%in%c( ".csv", ".CSV") ) path <- substr(path,1,nchar(path)-4)
+  if( substr.rev(path,1,6)%in%c( ".RData", ".rdata" ) ) path <- substr(path,1,nchar(path)-6)
+  
   # Read in csv data
   assign(name, 
          read.csv(paste0(path, ".csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("NA","","#DIV/0","#DIV/0!", "#WERT", "#WERT!"))
   )
+  
+  # Clean number formats if there are 1'000 formats, if whished
+  if(clean.numb.format) assign(name, clean.number.format(get(name), ...) )
+  
   # Save RData
   eval(parse(text= paste0("save(",name,", file=",paste0("'", path, ".RData'") ,")")  ))
+}
+
+load2 <- function(file){
+  # This function loads an object and returns it, so you can assign it to an object of choice.
+  # The name of the originally stored object is not relevant anymore.
+  
+  load(file)
+  ret <- ls()[ls()!="file"]
+  if(length(ret)>1) stop(paste0("More than one object was loaded. The function only works with one object.\n",paste0(ret, collapse=", ")) )
+  eval(parse(text=paste0("return(",ret,")")))
+}
+
+read.xlsx <- function(filename, sheet=1, header=TRUE, create=FALSE){
+  # This function reads xls and xlsx files into a data.frame. Package XLConnect must be installed.
+  # Sheet can also be given as character. If all sheets of the workbook should be imported, use loadWorkbook()
+  # http://www.r-bloggers.com/read-excel-files-from-r/
+  options ( java.parameters = "-Xmx1024m ")
+  suppressWarnings(require(XLConnect))
+  
+  wb = loadWorkbook(filename)
+  return( readWorksheet(wb, sheet=sheet, header=header) )
 }
 
 #### CLUSTER ANALYSIS ####
@@ -5514,7 +6144,7 @@ string.to.formula <- function(y=NULL,x,intercept=TRUE,func=c("x","x^2","log(2)")
   }
   if(!intercept) form <- paste(form,"-1")
   if(!is.null(y)) form <- paste(y,"~",form)
-  if(return.formula) form <- formula(form)
+  if(return.formula) form <- formula(form, env=globalenv())
   return(form)
 }
 
@@ -6128,6 +6758,9 @@ kruskal2.for.kruskal.groups <- function(y, trt,alpha=0.05,p.adj = c("none","holm
 }
 
 ###
+
+#sig.groups( y=c(0,1,0,0,0,1,0,1,1,0,rep(3,10),rep(4,10)), trt=sample(c(0,1,2),30, replace=TRUE), sig=c(0.02,0.04,0.05), sig.level=0.05, digits=2, median.mean=c("mean","median","both")[2], ranked=c("no","character.left","character.right","mean","intern"), print.result=TRUE )
+
 sig.groups <- function(y, trt, sig, sig.level=0.05, digits=2, median.mean=c("mean","median","both"), ranked=c("no","character.left","character.right","mean","intern"), print.result=TRUE) {
   if(length(y)!=length(trt)) stop("length(y)!=length(trt)")
   ranked <- match.arg(ranked)
@@ -6266,6 +6899,7 @@ print.sig.groups <- function(x,...){
   a$summary <- x$summary
   print(a,...)
 }
+
 
 ####
 sig.groups.by.interval <- function(diffs=NULL,sig.true=NULL,comb=NULL,special.input=NULL,input.type=c("normal","malm.ci"),digits=2,ranked=c("no","character.left","character.right","intern"),print.result=TRUE) {
@@ -6419,7 +7053,8 @@ chisq.test.2groups <- function(y, trt) {
   
   return(result)
 }
-#y <- results[,"Lehre.minus.Ant04"]; trt <- results[,"Clusternummer"]; p.adj="holm"; perc=TRUE; digits=1; sig.level=0.05; median.mean=c("mean"); ranked=c("no"); print.result=TRUE# k1 <- kruskal.groups(y,trt); print.default(k1); k1
+#y <- sample(c(0,1),30, replace=TRUE); trt <- sample(c(1,2,3),30, replace=TRUE); p.adj="holm"; perc=TRUE; digits=1; sig.level=0.05; median.mean=c("mean"); ranked=c("no"); print.result=TRUE# k1 <- kruskal.groups(y,trt); print.default(k1); k1
+# y=dat[,"Out_soueringofmilk"]; trt=dat[,"reg"]
 #a <- chisq.groups(y,trt,p.adj="holm"); a
 chisq.groups <- function(y, trt, sig.level=0.05, p.adj="holm", perc=TRUE, digits=1, ranked=c("no","character.left","character.right","mean","intern"), print.result=TRUE ) {
   # Do the grouping (a, ab, b, bc,...) for grouped data (1,2,3,4,5,...) with binary categorial variables (0,1). For example a cluster analysis was conducted and now in every cluster there is a certain proportion of observations in the one category and in the other category.
@@ -6430,6 +7065,7 @@ chisq.groups <- function(y, trt, sig.level=0.05, p.adj="holm", perc=TRUE, digits
   
   grp <- sort(unique(grouping))
   comb <- combn(grp,2); comb.names <- apply(comb,2,function(x)paste(x,collapse="-"))
+  comb <- apply(comb,2,function(x)as.character(x))
   mean <- tapply(y,grouping,function(x)mean(x,na.rm=TRUE))
   tables <- table(list(grouping=grouping, proportion=y))
   
@@ -6440,13 +7076,19 @@ chisq.groups <- function(y, trt, sig.level=0.05, p.adj="holm", perc=TRUE, digits
   }
   sig <- p.adjust(sig, method=p.adj)
   # Same procedure as in the Kruskal-Wallis-Test: Multiple comparisons between pairs of groups are only done if there is any difference between all of the groups. IF all sig[] are set to 1, then the grouping c(a,a,a,a,...) is produced in the sig.group() function.
-  if(all.nonsig <- chisq.test(tables)$p.value>=sig.level) {
+  all.nonsig <- chisq.test(tables)$p.value>=sig.level
+  # Wenn nur 1 y-Wert gegeben wurde, sind die Werte zwangsläufig auch nicht unterschiedlich.
+  all.nonsig <- all.nonsig | length(sort(unique(y)))==1
+  
+  if(all.nonsig) {
     sig.orig <- sig
     sig[] <- 1
   }
   
   if(perc==TRUE) digits <- digits+2
-  char.grouping <- sig.groups(y, grouping, sig, sig.level=sig.level ,digits=digits, median.mean="mean", ranked=ranked, print.result=FALSE)
+  # set.args("y=y, trt=grouping, sig=sig, sig.level=sig.level ,digits=digits, median.mean='mean', ranked=ranked, print.result=FALSE")
+  char.grouping <- sig.groups(y=y, trt=grouping, sig=sig, sig.level=sig.level ,digits=digits, median.mean="mean", ranked=ranked, print.result=FALSE)
+  
   if(perc) char.grouping$summary[,c(1,2)] <- char.grouping$summary[,c(1,2)]*100
   char.grouping$summary <- char.grouping$summary[,c(1,3)]
   colnames(char.grouping$summary)[1] <- "prop."
@@ -6458,6 +7100,7 @@ chisq.groups <- function(y, trt, sig.level=0.05, p.adj="holm", perc=TRUE, digits
 }
 
 ####
+
 
 #sigdivar(aov.data, aov.factor, minsize=10)
 #data(mtcars); data <- mtcars; attach(data); cyl=factor(cyl); aov.factor <- cyl; aov.data <- as.matrix(data[,c(3:11)]); conf.level <- 0.01; a <- 1
@@ -9020,451 +9663,5 @@ dea.bias <- function(x,y,rts=c("vrs","crs","nirs","ndrs"),or=c("in","out","hyper
 ###
 
 #### DELETE FUNCTIONS ####
-if(FALSE){
-  ####
-  regressionen.ln.abschnitte.einzeln.DELETE <- function(data, columns=NULL, selection.variable, selection.levels, verhaeltnis=NULL) {
-    # directly return P-values out of Regression
-    
-    if(is.null(columns)) columns <- colnames(data)
-    if(!is.null(columns)) data <- data[,columns]
-    c.table <- matrix(nrow=length(selection.levels), ncol=length(columns)+1); rownames(c.table) <- c(1:nrow(c.table))
-    p.table <- matrix(nrow=length(selection.levels), ncol=length(columns)+1); rownames(p.table) <- c(1:nrow(p.table))
-    r.table <- matrix(nrow=length(selection.levels), ncol=length(columns)+1); rownames(r.table) <- c(1:nrow(r.table))
-    
-    for (i in 1:length(selection.levels)) {
-      if (i==length(selection.levels)) mean.data <- data[which(data[,selection.variable] > selection.levels[i]),] else  mean.data <- data[which(data[,selection.variable] > selection.levels[i] & data[,selection.variable] <= selection.levels[i+1]),]
-      
-      for (j in 2:length(columns))
-      {model <- lm(mean.data[,columns[j]] ~ mean.data[,selection.variable])
-       c.table[i,j] <- unname(model$coefficients[2])
-       p.table[i,j] <- extract.regression.p(model)
-       r.table[i,j] <- summary(model)$r.squared}
-      n <- nrow(mean.data); c.table[i, ncol(c.table)] <- n; p.table[i, ncol(p.table)] <- n; r.table[i, ncol(r.table)] <- n
-      rownames(c.table)[i] <- rownames(p.table)[i] <- rownames(r.table)[i] <- paste(round(selection.levels[i], digits=1), "<", selection.variable, "<=", round(selection.levels[i+1],digits=1))
-      #if (!is.null(verhaeltnis)) {verh <- mean[1,verhaeltnis[1]]/mean[1,verhaeltnis[2]]; mean <- cbind(mean,verh); colnames(mean)[ncol(mean)] <- paste(verhaeltnis[1], verhaeltnis[2], sep="/")}
-    }
-    colnames(c.table) <- c(columns, "N")
-    colnames(p.table) <- c(paste("P",columns, sep="_"), "N")
-    colnames(r.table) <- c(paste("R^2", columns, sep="_"), "N")
-    output <- list(c.table=c.table, p.table=p.table, r.table=r.table)
-    return(output)
-  }
-  
-  ####
-  ### Regression zusammen ###
-  regressionen.ln.abschnitte.DELETE <- function(form, data, selection.variable, selection.levels) { #dependent, explaining,
-    if (class(form)!="formula") stop("Please enter the fromula as form= formula(a ~ b + c + d ...)") # MUSS EIGENTLICH NICHT SEIN! formula = x~y geht auch!
-    # directly return P-values out of Regression
-    
-    s.list <- vector("list", (length(selection.levels)-1))    
-    c.matrix <- matrix(ncol=length(unname(lm(formula=form, data=as.data.frame(data))$coefficients))+2, nrow=(length(selection.levels)-1)) # +2 for Intercept, P, R
-    rownames(c.matrix) <- c(1:nrow(c.matrix))
-    
-    for (i in 1:(length(selection.levels)-1)) {
-      # if (i==(length(selection.levels)-1)) mean.data <- data[which(data[,selection.variable] > selection.levels[i]),] else
-      # aber in der ganzen Funktion (selection.levels-1) durch selection.levels ersetzen.
-      mean.data <- data[which(data[,selection.variable] > selection.levels[i] & data[,selection.variable] <= selection.levels[i+1]),]
-      model <- lm(formula=form, data=as.data.frame(mean.data))
-      
-      s.list[[i]] <- summary(model)
-      c.matrix[i,1:length(unname(model$coefficients))] <- unname(model$coefficients)
-      c.matrix[i,length(unname(model$coefficients))+1] <- extract.regression.p(model)
-      c.matrix[i,length(unname(model$coefficients))+2] <- summary(model)$r.squared
-      #c.matrix[i,length(unname(model$coefficients))+3] <- if (extract.regression.p(model)<=0.001) {"***"} else if (extract.regression.p(model)<=0.01) {"**"} else if (extract.regression.p(model)<=0.05) {"*"} else if (extract.regression.p(model)<=0.1) {"."} else if (extract.regression.p(model)<=1) {" "}
-      rownames(c.matrix)[i] <- names(s.list)[[i]] <-  paste(round(selection.levels[i], digits=1), "<", selection.variable, "<=", round(selection.levels[i+1],digits=1))
-    }
-    colnames(c.matrix) <- c(names(model$coefficients), "P", "R^2")
-    result <- list(model=s.list,coefficients=c.matrix)
-    return(result)
-  }
-  #regressionen.ln.abschnitte(form=formula(DABS_LN ~ DABS_JAE_FamAK+DABS_JAE_FremdAK+DABS_Kosten_ArbDritte+DABS_JAE_NE), data=aaa.alle, selection.variable="DABS_LN", selection.levels=c(1,2,3,4))
-  #data <- aaa.alle
-  #form=formula(DABS_LN ~ DABS_JAE_FamAK+DABS_JAE_FremdAK+DABS_Kosten_ArbDritte+DABS_JAE_NE)
-  #selection.variable="DABS_LN"
-  #selection.levels=c(1,2,3,4)
-  
-  
-  ####
-  clusterassignment.random.old.DELETE <- function(data, clustering) {
-    nclust <- max(clustering)
-    clustersizes <- matrix(0, nrow=nclust)
-    for(i in 1:nclust)
-      clustersizes[i] <- apply(data[clustering==i,1, drop=FALSE],2,length)
-    clustersizes.column <- matrix(nrow=nrow(data), ncol=1)
-    for (i in 1:nrow(data))
-      clustersizes.column[i,] <- clustersizes[clustering[i]]
-    data.npc <- cbind(data, clustersizes.column); colnames(data.npc)[ncol(data.npc)] <- "clustersize"
-    rownames(data.npc) <- c(1:nrow(data.npc))
-    
-    cluster <- vector("list", nclust)
-    for (i in 1:nclust){
-      smpl <- sample(nrow(data.npc), clustersizes[i])
-      cluster[[i]] <- data.npc[smpl,1:(ncol(data.npc)-1)]
-      names(cluster)[[i]] <- paste("Cluster", i)
-      data.npc <- data.npc[-smpl,]
-    }
-    if(nrow(data.npc)!=0) cat("random assignment didn't work properly")
-    return(cluster)  
-  }
-  #data=aaa.alle; clustering=aaa.cut
-  #zufaellig <- clusterassignment.random(data=aaa.alle, clusterin=aaa.cut)
-  
-  #scale.own.new <- function(data,range=1,center=NULL,rowcol=row){
-  #  if(dim(data)==NULL) {
-  #    range.old <- max(data)-min(data)# -1
-  #    verh <- range/range.old
-  #    data.new <- data*verh
-  #    if(!is.null(center)) data.new <- data.new - (max(data.new)-range/2) + center
-  #  }
-  #  else {
-  #    if(rowcol=row) {
-  #      range.orig <- range
-  #      range <- rep(range,nrow(data))
-  #      range.old <- apply(data,1,function(x) max(data)-min(data))
-  #      verh <- range/range.old
-  #      data.new <- data*verh
-  #      if(!is.null(center)) {
-  #        minus <- apply(data.new,1,function(x) max(x)-range.orig/2 )
-  #        data.new <- data.new - minus
-  #        data.new <- data.new + center
-  #      }
-  #    }
-  #    }
-  #  return(data.new)
-  #}
-  ####
-  
-  ####
-  highly.correlated.old.DELETE <- function(data,level=0.8,digits) {
-    # Explanation: This function returns a table of variables which correlate more than the specified level.
-    # use result= to specify if colnames or colnumbers are returned.
-    corrs <- cor(data)
-    diag(corrs) <- 0
-    select.corrs <- row(corrs)-col(corrs)
-    highly.corr <- which(abs(corrs[])>level&select.corrs>0)
-    Variable1 <- Variable2 <- character(0)
-    Correlation <- numeric(0)
-    for(i in 1:length(highly.corr)) {
-      Variable1[i] <- rownames(corrs)[highly.corr[i]-floor(highly.corr[i]/ncol(data)-10^(-10))*ncol(data)]
-      Variable2[i] <- colnames(corrs)[1+floor(highly.corr[i]/ncol(data)-10^(-10))]
-      Correlation[i] <- round(corrs[highly.corr[i]],digits) }
-    if(length(Variable1)<1) {result <- NA
-    } else  result <- data.frame(list(Variable1,Variable2,Correlation));  colnames(result) <- c("Variable 1","Variable 2","Correlation")
-    return(result)
-  }
-  #data <- datas[spaltenauswahl];level<-0.9;digits<-2
-  
-  
-  ###
-  #validation.stats(aaa.mat, method="mclust", lower=2, upper=3, modelName="VEV") 
-  #lower <- 2; upper <- 3; x <- aaa.mat; method="mclust"
-  validation.stats.old.DELETE <- function(x=NULL, method=NULL, nclust=2:30, distance="euclidean", modelName=NULL, nstart=1000, outputfolder=NULL, filename=1:ncol(x), plot=TRUE, table.export=TRUE, rank.output=FALSE, count=FALSE){
-    # Einbauen: eine andere Darstellung der Verringerung der within-cluster SS (erklaert in Bacher et al. 2010 Clusteranalyse: Anwendungsordientierte Einfuehrung.)
-    # Idee: Pre = 1 - WSS(k clusters) / WSS( k-1 clusters)
-    # somit sieht man die prozentuale verringerung der within cluster SS bei erhoehung der Clusterzahl.
-    require(fpc)
-    require(MASS)
-    lower <- min(nclust); upper <- max(nclust)
-    if(lower-upper==0) stop("You have to compare at least 2 different number of clusters (e.g. nclust=3:4)")
-    if (method=="mclust") require(mclust)
-    if (method=="mclust" & is.null(modelName)) cat("Unless you specify the exact model for mclust, the Mclust function will determine the best model for each number of clusters seperately (by using the BIC measure). If you decide to work with a certain number of clusters (after the validation.stats), check which model was used in validation.stats for the specific number of clusters by using the function Mclust(data, G=nclust). It will return the respective model. \nCalculating...\n")
-    if (any(c(!is.logical(plot) , !is.logical(table.export) , !is.logical(rank.output) , !is.logical(count)))) stop("plot, table.export, rank.output and count must be logical (TRUE/FALSE)")
-    if (!is.null(outputfolder)) {pdf(paste(outputfolder,"test.",method,".",lower,"-",upper,".",paste(colnames(x)[filename],collapse = "."),".pdf", sep=""), width=30, height=5); dev.off()
-                                 unlink(paste(outputfolder,"test.",method,".",lower,"-",upper,".",paste(colnames(x)[filename],collapse = "."),".pdf", sep=""), recursive = FALSE, force = TRUE)}
-    
-    aaa.alle.df <- as.data.frame(x)
-    original.matrix <- x
-    distance.matrix <- dist(x, method=distance)
-    performancemeasures <- c("average.within <", "average.between >", "wb.ratio <", "within.cluster.ss <", "avg.silwidth [-1,1] >", "pearsongamma [0,1] >", "ch dissimilarities >")
-    
-    i <- max(lower,2)             # i entspricht nclust in cutree!
-    while (i <= upper)
-    {
-      aaa.cut <- if (method=="kmeans") kmeans(original.matrix, centers=i, nstart=nstart, iter.max=100)$cluster else if (method=="mclust") Mclust(original.matrix, G=i, modelNames= if (is.null(modelName)) Mclust(original.matrix)$modelName else modelName)$classification else cutree(hclust(distance.matrix, method=method),k=i)
-      clstats <- cluster.stats( distance.matrix, aaa.cut)
-      outputline <- c(i, clstats$average.within, clstats$average.between, clstats$wb.ratio, clstats$within.cluster.ss, clstats$avg.silwidth, clstats$pearsongamma, clstats$ch)
-      
-      ### Dem Dataframe die Spalte hinzufuegen, die fuer jeden Betrieb die Clusternummer angibt.
-      aaa.alle.zugeteilt <- cbind(aaa.alle.df, aaa.cut)
-      colnames(aaa.alle.zugeteilt)[ncol(aaa.alle.zugeteilt)] <- "Clusternummer"
-      
-      ### Diskriminanzanalyse
-      aaa.spaltenauswahl.lda <- lda(aaa.alle.zugeteilt[,1:ncol(aaa.alle.zugeteilt)-1], aaa.alle.zugeteilt[,"Clusternummer"])
-      aaa.spaltenauswahl.lda.predict <- predict(aaa.spaltenauswahl.lda, aaa.alle.zugeteilt[,1:ncol(aaa.alle.zugeteilt)-1])$class
-      crosstable <- table(aaa.spaltenauswahl.lda.predict, aaa.alle.zugeteilt[,"Clusternummer"])
-      summe <- 0
-      crosstable.overall <- crosstable
-      for (ab in 1:ncol(crosstable.overall))
-      {crosstable.overall[ab,ab] <- 0
-       summe <- summe + sum(crosstable.overall[ab,])}
-      n.false <- summe
-      prop.false <- n.false / nrow(aaa.alle.zugeteilt)
-      
-      outputmatrix <- round( matrix( c(outputline, prop.false), nrow=1), digits=3)
-      rownames(outputmatrix) <- paste("k=",i,sep="")
-      assign(paste("outputmatrix.n.",i,sep=""), outputmatrix)
-      
-      if (i!=2) { assign(  paste("outputmatrix.n.",i,sep="")   ,rbind( get(paste("outputmatrix.n.",(i-1),sep="")), get(paste("outputmatrix.n.",i,sep="")) )) }
-      if (count) cat(i,"/",upper,"\n")
-      i <- i+1
-    }
-    outputmatrix <- get(paste("outputmatrix.n.",i-1,sep=""))
-    colnames(outputmatrix) <- c( "nclust", performancemeasures, "Fehlklassifizierungen <")
-    
-    ### Tabellenausgabe als 
-    if (!is.null(outputfolder)) { if(table.export==TRUE){write.table(outputmatrix, file=paste(outputfolder,"table.",method,".",lower,"-",upper,".",paste(colnames(original.matrix)[filename],collapse = "."),".csv", sep=""), sep=";", dec=".", col.names=NA)} }
-    
-    ### Output als PDF
-    if (!is.null(outputfolder)) {
-      pdf(paste(outputfolder,"graph.",method,".",lower,"-",upper,".",paste(colnames(original.matrix)[filename],collapse = "."),".pdf", sep=""), width=30, height=5)
-      #pdf(paste(outputfolder,"validation.stats.output",colnames(original.matrix),method,lower,"-",upper," (automatic).pdf", sep="", collapse = ""), width=30, height=5)
-      # aus cluster.stat ()
-      par(mfrow=c(1,length(performancemeasures)+1), mar=c(4,4,2,0.5))
-      for (a in 1:length(performancemeasures))
-      {
-        plot( outputmatrix[,1], outputmatrix[,performancemeasures[a]], type="n", xlab=colnames(outputmatrix)[1], ylab=performancemeasures[a])
-        lines( outputmatrix[,1], outputmatrix[,performancemeasures[a]], type="p")
-        lines( outputmatrix[,1], outputmatrix[,performancemeasures[a]], type="l")
-      }
-      # Plot fuer Fehlklassifizierungen
-      plot( outputmatrix[,1], outputmatrix[,ncol(outputmatrix)], type="n", xlab=colnames(outputmatrix)[1], ylab="Fehlklassifizierungen <")
-      lines( outputmatrix[,1], outputmatrix[,ncol(outputmatrix)], type="p")
-      lines( outputmatrix[,1], outputmatrix[,ncol(outputmatrix)], type="l")
-      title(main=method)
-      dev.off()
-    }
-    
-    ### Plots
-    # aus cluster.stat ()
-    if(plot==TRUE){
-      dev.new(width=30, height=5)
-      par(mfrow=c(1,length(performancemeasures)+1), mar=c(4,4,2,0.5))
-      for (a in 1:length(performancemeasures))
-      {
-        plot( outputmatrix[,1], outputmatrix[,performancemeasures[a]], type="n", xlab=colnames(outputmatrix)[1], ylab=performancemeasures[a])
-        lines( outputmatrix[,1], outputmatrix[,performancemeasures[a]], type="p")
-        lines( outputmatrix[,1], outputmatrix[,performancemeasures[a]], type="l")
-      }
-      # Plot fuer Fehlklassifizierungen
-      plot( outputmatrix[,1], outputmatrix[,ncol(outputmatrix)], type="n", xlab=colnames(outputmatrix)[1], ylab="Fehlklassifizierungen <")
-      lines( outputmatrix[,1], outputmatrix[,ncol(outputmatrix)], type="p")
-      lines( outputmatrix[,1], outputmatrix[,ncol(outputmatrix)], type="l")
-      title(main=method)
-    }
-    
-    ### Rangklassifizierungen
-    #klass.vektor <-  c("wb.ratio <", "within.cluster.ss <", "avg.silwidth [-1,1] >", "pearsongamma [0,1] >", "ch dissimilarities >", "Fehlklassifizierungen <")
-    klass.vektor <-  c(performancemeasures[5:7], "Fehlklassifizierungen <")
-    rang.matrix <- outputmatrix[ , c("nclust",klass.vektor)]
-    rang.matrix[,"avg.silwidth [-1,1] >"]  <- rang.matrix[,"avg.silwidth [-1,1] >"] * (-1)
-    rang.matrix[,"ch dissimilarities >"]  <- rang.matrix[,"ch dissimilarities >"] * (-1)
-    rang.matrix[,"pearsongamma [0,1] >"]  <- rang.matrix[,"pearsongamma [0,1] >"] * (-1)
-    
-    for (i in 1:length(klass.vektor))
-    { rang.matrix <- rang.matrix[order (rang.matrix[,klass.vektor[i]]) , ]
-      assign( paste("rang.vektor", i,sep=""), 1:nrow(outputmatrix) )
-      rang.matrix <- cbind(rang.matrix, get(paste("rang.vektor", i,sep="")))
-      #colnames(rang.matrix)[ncol(rang.matrix)] <- paste("k",i,sep="")
-      colnames(rang.matrix)[ncol(rang.matrix)] <- paste("Rang",klass.vektor[i],sep=".")
-    }
-    
-    rang.mittel <- rep(0, nrow(rang.matrix))
-    for (i in 1:nrow(rang.matrix))
-    { rang.mittel[i] <- sum( rang.matrix[ i , (ncol(rang.matrix)-length(klass.vektor)+1):ncol(rang.matrix)] )   /   length(klass.vektor) }
-    rang.matrix <- cbind(rang.matrix, rang.mittel)
-    colnames(rang.matrix)[ncol(rang.matrix)] <- "rang.mittel"
-    rang.matrix <- rang.matrix[order (rang.matrix[,"rang.mittel"]) , ]
-    rang.matrix <- rang.matrix[ , c(1,(ncol(rang.matrix)-length(klass.vektor)):ncol(rang.matrix))]
-    #rang.matrix.info <- paste( c("k[1,2,3,4] means", klass.vektor), collapse = " , " )
-    #message <- "Ergebnisse unter validation.stats.output$ abrufbar."
-    
-    ### Tabellenausgabe als 
-    if (!is.null(outputfolder)) { if(rank.output==TRUE){write.table(rang.matrix, file=paste(outputfolder,"rank.",method,".",lower,"-",upper,".",paste(colnames(original.matrix)[filename],collapse = "."),".csv", sep=""), sep=";", dec=".", col.names=NA)} }
-    
-    result <- list(table = outputmatrix, ranks=rang.matrix)
-    return(result)
-  }
-  
-  #### "See also gruppieren nach merkmal"
-  means.by.interval.DELETE <- function(variables,data,selection.variable,selection.levels){
-    data <- data[,c(selection.variable,variables)]
-    c.matrix <- matrix(ncol=length(variables)+1, nrow=(length(selection.levels)-1))
-    group.sizes <- rep(NA, (length(selection.levels)-1))
-    rownames.vector <- rep(NA,(length(selection.levels)-1))
-    
-    for (i in 1:(length(selection.levels)-1)) {
-      # if (i==(length(selection.levels)-1)) mean.data <- data[which(data[,selection.variable] > selection.levels[i]),] else
-      # aber in der ganzen Funktion (selection.levels-1) durch selection.levels ersetzen.
-      mean.data <- data[which(data[,selection.variable] > selection.levels[i] & data[,selection.variable] <= selection.levels[i+1]),]
-      c.matrix[i,] <- apply(mean.data,2,mean)
-      group.sizes[i] <- nrow(mean.data)
-      rownames.vector[i] <- paste(round(selection.levels[i], digits=1), "<", selection.variable, "<=", round(selection.levels[i+1],digits=1))
-    }
-    c.matrix <- cbind(group.sizes, c.matrix)
-    rownames(c.matrix) <- rownames.vector
-    colnames(c.matrix) <- c("N",selection.variable,variables)
-    return(c.matrix)
-  }
-  #testdata <- cbind(c(1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5),c(1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5)); colnames(testdata) <- c("selection","values")
-  #means.ln.abschnitte("values",testdata,"selection",c(0.5,1.5,2.5,3.5,4.5))
-  
-  #### Simple Version for 1 variable
-  density.overlap.DELETE <- function(data,grouping,cols=NULL,bw="nrd0",xlab="",...) {
-    # Plot several densities in one plot
-    if(is.null(cols)) cols <- c("red","darkgreen","blue","cyan","green","gray87","yellowgreen","steelblue1","orchid1","purple","orange","yellow")
-    datas <- dens <-densx <- densy <- list()
-    grp <- sort(unique(grouping))
-    
-    for(i in grp) {
-      datas[[i]] <- data[grouping==i]
-      de <- density(datas[[i]],bw=bw)
-      dens[[i]] <- de
-      densx[[i]] <- de$x
-      densy[[i]] <- de$y
-    }
-    
-    xlim <- ylim <- numeric()
-    xlim[1] <- min(calldensx <- do.call("c",densx))
-    xlim[2] <- max(calldensx)
-    ylim[1] <- min(calldensy <- do.call("c",densy))
-    ylim[2] <- max(calldensy)
-    
-    plot(dens[[grp[1]]],xlim=xlim,ylim=ylim,col=cols[grp[1]],xlab=xlab,...)#,main="Dens. Plot",xlab="Efficiency");
-    for(i in grp[2:length(grp)]) lines(dens[[i]],col=cols[i])
-  }
-  
-  #### without splitting possibility
-  histogram.multi.old.DELETE <- function(data,grouping,plotrows=3,mar=c(2,2.6,2,0.4),bins=10,cols=NULL,transparency=1/4,main=NULL,xlab="") {
-    if(is.null(cols)) cols <- c("red","darkgreen","blue","cyan","green","gray87","yellowgreen","steelblue1","orchid1","purple","orange","yellow")
-    colsrgb <- col2rgb(cols, alpha = 1)
-    colsrgb <- colsrgb/255
-    colsrgb[4,] <- transparency
-    
-    if(is.null(dim(data))) data <- matrix(data,ncol=1)
-    if(ncol(data)==1) {
-      plotrows <- 1
-      if(all(mar%in%c(2,2.6,2,0.4))) mar <- par()$mar
-    }
-    
-    if(is.null(main)) main <- colnames(data) else if(length(main)==1) main <- rep(main,ncol(data))
-    if(length(xlab)==1) xlab <- rep(xlab,ncol(data))
-    grp <- sort(unique(grouping))
-    mar.orig <- par()$mar
-    mfrow.orig <- par()$mfrow
-    
-    nvariables <- ncol(data)
-    par(mar=mar, mfrow=c(plotrows,if(nvariables%%plotrows==0) nvariables/plotrows else floor(nvariables/plotrows)+1 ))   # %% gibt Rest wieder
-    
-    h <- breaks <- mids <- counts <- list()
-    for(i in 1:ncol(data)){
-      #h <- list()
-      for(j in grp){
-        hi <- hist(data[grouping==j,i],plot=FALSE)
-        h[[j]] <- hi
-        breaks[[j]] <- hi$breaks
-      }
-      nbreaks <- seq(min(break.call<-do.call("c",breaks)), max(break.call), length.out=bins)
-      for(j in grp) {
-        hi <- hist(data[grouping==j,i],breaks=nbreaks,plot=FALSE)
-        h[[j]] <- hi
-        mids[[j]] <- hi$mids
-        counts[[j]] <- hi$counts
-      }
-      
-      binwidth <- h[[1]]$mids[2] - h[[1]]$mids[1]
-      xlim <- c(min(mids.call<-do.call("c",mids))-binwidth, max(mids.call)+binwidth)
-      ylim <- c(min(counts.call<-do.call("c",counts)), max(counts.call))
-      
-      col <- rgb(colsrgb[1,grp[1]],colsrgb[2,grp[1]],colsrgb[3,grp[1]],alpha=colsrgb[4,grp[1]])
-      plot(h[[grp[1]]], col=col, xlim=xlim, ylim=ylim, main=main[i],xlab=xlab[i])
-      for(j in grp[2:length(grp)]){
-        col <- rgb(colsrgb[1,j],colsrgb[2,j],colsrgb[3,j],alpha=colsrgb[4,j])
-        plot(h[[j]], col=col, xlim=xlim, ylim=ylim, add=TRUE)
-      }
-    }
-    par(mfrow=mfrow.orig,mar=mar.orig)
-  }
-  #### without splitting possibility
-  density.multi.old.DELETE <- function(data,grouping,bw="nrd0",na.rm=TRUE,cols=NULL,xlab="",main=NULL,mar=c(2,2.6,2,0.4),plotrows=3,...) {
-    # Plot several densities in one plot
-    if(is.null(cols)) cols <- c("red","darkgreen","blue","cyan","green","gray87","yellowgreen","steelblue1","orchid1","purple","orange","yellow")
-    grp <- sort(unique(grouping))
-    if(is.null(dim(data))) data <- matrix(data,ncol=1)
-    if(ncol(data)==1) {
-      plotrows <- 1
-      if(all(mar%in%c(2,2.6,2,0.4))) mar <- par()$mar
-    }
-    if(is.null(main)) main <- colnames(data) else if(length(main)==1) main <- rep(main,ncol(data))
-    if(length(xlab)==1) xlab <- rep(xlab,ncol(data))
-    nvariables <- ncol(data)
-    
-    mar.orig <- par()$mar
-    mfrow.orig <- par()$mfrow
-    par(mar=mar, mfrow=c(plotrows,if(nvariables%%plotrows==0) nvariables/plotrows else ceiling(nvariables/plotrows) ))
-    
-    dens <- densx <- densy <- list()
-    for(i in 1:ncol(data)) {
-      for(j in grp) {
-        de <- density(data[grouping==j,i],bw=bw,na.rm=na.rm)
-        dens[[j]] <- de
-        densx[[j]] <- de$x
-        densy[[j]] <- de$y
-      } 
-      
-      xlim <- ylim <- numeric()
-      xlim[1] <- min(calldensx <- do.call("c",densx))
-      xlim[2] <- max(calldensx)
-      ylim[1] <- min(calldensy <- do.call("c",densy))
-      ylim[2] <- max(calldensy)
-      
-      plot(dens[[grp[1]]],xlim=xlim,ylim=ylim,col=cols[grp[1]],xlab=xlab[i],main=main[i],...)#,main="Dens. Plot",xlab="Efficiency");
-      for(j in grp[2:length(grp)]) lines(dens[[j]],col=cols[j])
-    }
-    par(mar=mar.orig,mfrow=mfrow.orig)
-  }
-  
-  ###
-  mean.weight.DELETE <- function(data,weights=NULL,index=NULL,digits=3,round=c("signif.equally","round","signif"),na.rm=TRUE, ...){
-    round <- match.arg(round)
-    is.null.dim.data <- is.null(dim(data))
-    is.null.index <- is.null(index)
-    is.null.weights <- is.null(weights)
-    
-    if(is.null.dim.data){
-      if(is.null.weights) weights <- rep(1,length(data))
-      if(is.null.index) index <- rep(1,length(data))
-      data.w <- data*weights
-      data.sums <- tapply(data.w,index,function(x)sum(x,na.rm=TRUE))
-      weight.sums <- tapply(weights,index,function(x)sum(x,na.rm=TRUE))
-      means <- data.sums / weight.sums
-      if(is.null.index) means <- unname(means)
-    } else {
-      if(is.null.weights) weights <- rep(1,nrow(data))
-      if(is.null.index) index <- rep(1,nrow(data))
-      data.w <- data*weights
-      data.sums <- as.data.frame(apply(data.w,2,function(x)tapply(x,index,function(x)sum(x,na.rm=TRUE))))
-      weight.sums <- tapply(weights,index,function(x)sum(x,na.rm=TRUE))
-      means <- data.sums / weight.sums
-      if(is.null.index) {
-        means <- t(means)
-        rownames(means) <- "mean"
-      }
-    }
-    
-    if(!is.null(digits)) if(round=="round") {
-      means <- round(means,digits)
-    } else if(round=="signif") {
-      means <- signif(means,digits)
-    } else {
-      #if(is.null.dim.data){
-      means <- signif.equally(means,digits, ...)
-      #} else {
-      #  means <- apply(means,2,function(x)signif.equally(x,digits, ...))
-      #}
-    }
-    
-    return(means)
-  }
-}
 
 cat("**********************************************************************\nFunctions loaded\n**********************************************************************\n")
