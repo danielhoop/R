@@ -16,6 +16,7 @@
 
 # -- Source locally --
 # source("O:/Sites/TA/Transfer/hpda/R/func.R")
+# if(!exists("load.gb")) source("O:/Sites/TA/Transfer/hpda/R/func.R")
 # source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/func.R")
 #
 # -- GitHub --
@@ -108,12 +109,13 @@ if(FALSE){
   pch=20; cors=c("no","upper","lower")[2]; abline01=TRUE; pointscol="black"; smoothcol="red"; ablinecol="chartreuse4"; digits=2
   x <- cor.data
 }
-pairs.smooth <- function(x, pch=20, cors=c("no","upper","lower"), abline01=TRUE, pointscol="black", smoothcol="red", ablinecol="chartreuse4", digits=2, ...){
+pairs.smooth <- function(x, pch=20, cors=c("no","upper","lower"), cor.method=c("pearson", "kendall", "spearman"), abline01=TRUE, pointscol="black", smoothcol="red", ablinecol="chartreuse4", digits=2, ...){
   cors <- match.arg(cors)
+  cor.method <- match.arg(cor.method)
   panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)  {
     usr <- par("usr"); on.exit(par(usr))
     par(usr = c(0, 1, 0, 1))
-    r <- round( cor(x, y), digits=digits) # abs(cor(x, y))
+    r <- round( cor(x, y, method=cor.method), digits=digits) # abs(cor(x, y))
     txt <- format(c(r, 0.123456789), digits=digits)[1]
     txt <- paste(prefix, txt, sep="")
     if(missing(cex.cor)) cex.cor <- 2#0.5/strwidth(txt)
@@ -467,6 +469,7 @@ vergleichslohn <- function(region=NULL, jahr=NULL){
   if(is.null(jahr)) jahr <- 1:ncol(vgl)
   return(vgl[region,jahr])
 }
+
 vergleichszins <- function(jahr=NULL){
   # This function returns a matrix containing the Eigenkapital-Zinssaetze for the ZA. Optionally, regions and years can be chosen.
   # The following code is for import of data.
@@ -474,11 +477,15 @@ vergleichszins <- function(jahr=NULL){
   #colnames(t1) <- substr.rev(colnames(t1),1,4)
   #t1 <- as.matrix(t1)
   #dput(t1)
-  vgl <- structure(c(2.81, 3.02, 3.95, 3.36, 3.22, 2.63, 2.73, 2.11, 2.5, 
-                     2.91, 2.93, 2.22, 1.65, 1.48, 0.66, 0.94, 0.73), .Dim = c(1L, 17L),
-                   .Dimnames = list(NULL, c("1998", "1999", "2000", "2001", 
-                                            "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", 
-                                            "2010", "2011", "2012", "2013", "2014")))
+  
+  vgl <- structure(c(4.53, 4.71, 4.24, 4.04, 4, 5.13, 6.4, 6.23, 6.42, 
+                     4.58, 4.93, 4.57, 4, 3.4, 2.81, 3.02, 3.95, 3.36, 3.22, 2.63, 
+                     2.73, 2.11, 2.5, 2.91, 2.93, 2.22, 1.65, 1.48, 0.66, 0.94, 0.73
+  ), .Dim = c(1L, 31L), .Dimnames = list(NULL, c("1984", "1985", 
+                                                 "1986", "1987", "1988", "1989", "1990", "1991", "1992", "1993", 
+                                                 "1994", "1995", "1996", "1997", "1998", "1999", "2000", "2001", 
+                                                 "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", 
+                                                 "2010", "2011", "2012", "2013", "2014")))
   if(is.null(jahr)) jahr <- 1:ncol(vgl)
   return(vgl[,jahr,drop=FALSE])
 }
@@ -585,28 +592,25 @@ ch <- function(x){
 }
 ####
 
-####
-narows <- function(x){
-  apply(x,1,function(x)all(is.na(x)))
+naF <- function(x){
+  x[is.na(x)] <- FALSE
+  return(x)
 }
-####
-
-nacols <- function(x){
-  apply(x,2,function(x)all(is.na(x)))
+naT <- function(x){
+  x[is.na(x)] <- TRUE
+  return(x)
 }
-####
-
-minmax <- function(x,na.rm=TRUE){
-  c(min(x,na.rm=na.rm),max(x,na.rm=na.rm))
+na0 <- function(x){
+  x[is.na(x)] <- 0
+  return(x)
 }
-###
-
-
 
 
 
 #### Funktionen, mit denen einfach die Tabellennr. Spaltennr. Zeilennr. etc. aus den Spaltenüberschriften des Merkmals
 #### Katalogs rausgelesen werden können.
+
+# REFERENZBETRIEBE
 MKtab <- function(string) {if(is.null(dim(string))) substr(string,1,4) else substr(colnames(string),1,4)}
 MKspalte <- function(string) {if(is.null(dim(string))) substr(string,6,9) else substr(colnames(string),6,9)}
 MKzeile <- function(string) {if(is.null(dim(string))) substr(string,11,15) else substr(colnames(string),11,15)}
@@ -638,7 +642,7 @@ sort.MK.colnames <- function(data, order=c("zeile","spalte")){
 }
 
 
-
+# System ZA2015
 MKcol <- function(string) {if(is.null(dim(string))) substr(string,6,9) else substr(colnames(string),6,9)}
 MKrow <- function(string) {if(is.null(dim(string))) substr(string,11,16) else substr(colnames(string),11,16)}
 
@@ -700,26 +704,9 @@ coerce.dimnames <- function(array, sep.sign="_"){
   return(res1)
 }
 
-merge.matrices <- function(..., fill="", nbreak=0, integrate.dimnames=FALSE) {
-  # Diese Funktion vergleicht die Anzahl Spalten aller gegebenen Matrizen, gleicht sie an und verbindet alle Matrizen in einer einzigen.
-  # Mit fill kann gewaehlt werden, was fuer ein Zeichen fuer das Auffuellen der zusaetzlichen Spalten verwendet wird.
-  # nbreak gibt an, wie viele Zeilen zwischen zwei Ursprungs-Matrizen eingefuegt werden.
-  # Mit integrate.dimnames kann man die dimnames in die End-Matrix integrieren, was mittels dimnames.to.mat() geschieht.
-  li <- list(...)
-  li <- lapply(li,function(x)if(is.null(dim(x))) as.matrix(x) else x)
-  if(integrate.dimnames) li <- lapply(li, function(x) dimnames.to.mat(x))
-  ncolmax <- max(unlist(lapply(li,function(x) ncol(x) )))
-  res <- do.call("rbind", 
-                 lapply( li,function(x) {
-                   if(ncol(x)<ncolmax) x <- cbind(x,array(fill,dim=c(nrow(x),ncolmax-ncol(x))))
-                   if(nbreak==0) x else rbind(x,matrix(fill,nrow=nbreak,ncol=ncol(x)))
-                 }))
-  if(nbreak>0) res <- res[ -c((nrow(res)-nbreak+1):nrow(res)), ]
-  return(res)
-}
 dimnames.to.mat <- function(x){
   # Diese Funktion integriert die Spalten- und Reihennamen einer Matrix in die Matrix selbst. Also quasi als Werte.
-  # Wird gebraucht fuer Funktion merge.matrices()
+  # WICHTIG: Dies Funktion wird gebraucht fuer Funktion merge.matrices()
   if(is.null(dim(x))) x <- as.matrix(x)
   if(is.null(dimnames(x))) return(x)
   if(is.null(rownames(x))) rownames(x) <- rep("",nrow(x))
@@ -728,6 +715,28 @@ dimnames.to.mat <- function(x){
   dimnames(res) <- NULL
   return(res)
 }
+
+merge.matrices <- function(..., fill="", nbreak=0, integrate.dimnames=FALSE) {
+  # Diese Funktion vergleicht die Anzahl Spalten aller gegebenen Matrizen, gleicht sie an und verbindet alle Matrizen in einer einzigen.
+  # Mit fill kann gewaehlt werden, was fuer ein Zeichen fuer das Auffuellen der zusaetzlichen Spalten verwendet wird.
+  # nbreak gibt an, wie viele Zeilen zwischen zwei Ursprungs-Matrizen eingefuegt werden.
+  # Mit integrate.dimnames kann man die dimnames in die End-Matrix integrieren, was mittels dimnames.to.mat() geschieht.
+  li <- list(...)
+  li <- lapply(li,function(x){
+    if(is.null(x)) x <- fill
+    if(is.null(dim(x))) return(t(as.matrix(x))) else return(x)
+  })
+  if(integrate.dimnames) li <- lapply(li, function(x) dimnames.to.mat(x))
+  ncolmax <- max(unlist(lapply(li,function(x) ncol(x) )))
+  res <- do.call("rbind", 
+                 lapply( li,function(x) {
+                   if(ncol(x)<ncolmax) x <- cbind(x,array(fill,dim=c(nrow(x),ncolmax-ncol(x))))
+                   if(nbreak==0) x else rbind(x,matrix(fill,nrow=nbreak,ncol=ncol(x)))
+                 }))
+  if(nbreak>0) res <- res[ -c((nrow(res)-nbreak+1):nrow(res)), , drop=FALSE]
+  return(res)
+}
+
 
 if(FALSE){
   data <- as.data.frame(t(array(1:100,c(10,10))))
@@ -1250,7 +1259,7 @@ if(FALSE){
               edit.I.colnames=TRUE,del.I.help.columns=TRUE)
 }
 
-mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE, edit.I.colnames=TRUE, del.I.help.columns=FALSE){
+mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE, edit.I.colnames=TRUE, del.I.help.columns=FALSE, I.help.columns=NULL){
   # This function calculates the weighted mean of all variables in a possibly indexed data.frame or matrix.
   
   # data = data of which the weighted means should be calculated. Can be data.frame, matrix or vector
@@ -1297,8 +1306,12 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
           colnames(result)[icols] <- substr( cn.res[icols], 3, nchar(cn.res[icols])-1 )
         }
         if(del.I.help.columns){
-          delnames <- unlist(strsplit(colnames(result)[icols],"-| |\\/|\\*|\\+"))
-          delnames <- gsub("I\\(|\\(|)","",delnames)
+          if(!is.null(I.help.columns)){
+            delnames <- I.help.columns
+          } else {
+            delnames <- unlist(strsplit(colnames(result)[icols],"-| |\\/|\\*|\\+"))
+            delnames <- gsub("I\\(|\\(|)","",delnames)
+          }
           result <- result[,!colnames(result)%in%delnames,drop=FALSE]
         }
       }
@@ -1527,6 +1540,7 @@ tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, vec
   # vector.result = Should the result be presentet in a vector (one dimension) or in a multidimensional array?
   
   if(!is.null(dim(X))) stop("This function only works for vectors! dim(X) must be NULL!")
+  if(length(INDEX)==1) vector.result=TRUE
   
   # Falls names.result eine Liste ist, werden alle moeglichen Kombinationen der Listenplaetze
   # zusammengestelt und damit ein Vektor erstellt
@@ -1598,7 +1612,8 @@ tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, vec
     if(any(!nres0%in%nres1))
       warning(paste0("For some entries in X no corresponding entries in names.result were given. The resulting array is incomplete!\n", paste(nres0[!nres0%in%nres1], collapse=" ") ))
     # Aufwaendige Uebertragung nur machen, wenn es wirklich fehlende Eintraege in res0 gibt
-    if(length(res0)!=length(nres1) || names(res0)!=nres1){
+    # ALTE Bedingung: if(length(res0)!=length(nres1) || names(res0)!=nres1){
+    if(length(res0)!=length(nres1) || length(names(res0))==0 || any(names(res0)!=nres1)){
       # Ergebnis-Strukturen fuer Matching vorbereiten.
       su.index1 <- sort(unique(INDEX[[1]]))
       su.index2 <- sort(unique(INDEX[[2]]))
@@ -1730,13 +1745,26 @@ if(FALSE) tapply.fixed_OLD.DELETE <- function(X, INDEX, FUN, names.result=sort(u
 
 #### OTHER ####
 
+is.dir <- function(path) {
+  return( file.info(path)$isdir )
+}
+
 is.finite.data.frame <- function(x){
   # Error in is.finite(df) : default method not implemented for type 'list'
   return(as.data.frame(lapply(x,function(x)is.finite(x))))
 }
+is.numeric.data.frame <- function(x) {
+  return(as.data.frame(lapply(x,function(x)is.numeric(x)),stringsAsFactors=FALSE))
+}
+as.numeric.data.frame <- function(x) {
+  return(as.data.frame(lapply(x,function(x)as.numeric(x)),stringsAsFactors=FALSE))
+}
 
-transmm <- function(x, gsub=FALSE, excel.format=FALSE){
-  # Translate Merkmals-Nummern in Namen.
+transl.mm <- function(x, gsub=FALSE, excel.format=FALSE){
+  # Diese Funktion uebersetzt die Merkmalsnummern der Merkmalsliste ZA2015 in die Zeilen-Bezeichnungen laut REX.
+  # Wenn gsub=TRUE findet suche in Strings statt, statt ganze Character-Vektorplaetze zu uebersetzen.
+  # Wenn excel.forma=TRUE wird davor noch ein Abstand gemacht, falls am Anfang ein Rechenoperations-Zeichen steht.
+  
   if(!exists("transmm_list", envir=globalenv())) transmm_list <<- 
     as.matrix(read.table(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/SekDaten/Sonst/MML/Data_out/MML_Namen_Nummern_full.txt"), sep="\t", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA")))
   
@@ -1757,11 +1785,64 @@ transmm <- function(x, gsub=FALSE, excel.format=FALSE){
   return(x)
 }
 
+
+transl.EB.MML <- function(x, inverse=FALSE) {
+  # Diese Funktion übersetzt die Merkmalsbezeichnungen zwischen Online-Erhebungsbogen und Merkmalsliste-ZA2015
+  # if inverse=TRUE in andere Richtung: MML2015 -> EB
+  
+  if(!exists("uebers_tab", envir=globalenv())){
+    pfad_uebers <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/1863/1_Entwicklungsphase_2013/1_AG Merkmalsliste/Umbenennung_UID_Reglen_Alle_Merkmale_uebersetzt.csv"
+    uebers_tab <<- read.table(pfad_uebers, sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
+  }
+  if(!inverse) col_in <- 1 else col_in <- 2
+  if(!inverse) col_ou <- 2 else col_ou <- 1
+  return(uebers_tab[match(x,uebers_tab[,col_in]),col_ou])
+}
+
 repl.aou <- function(x){
   # Funktion, um äöü in Text wiederherzustellen. Wird bei read.table umgeschrieben.
   x <- gsub("Ã¤","ä",x)
   x <- gsub("Ã¶","ö",x)
   return( gsub("Ã¼","ü",x) )
+}
+
+#x <- "Differenz = PrivatbezÃ¼ge fÃ¼r Privatkosten"
+repl.utf8 <- function(x) {
+  # This function recodes UTF8 (e.g. Ã¶ to ö) by using a translation matrix & gsub()
+  
+  pfad_utf8 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/zz_Vers/UTF8-ANSI/utf8-ansi.csv"  
+  if(!exists("utf8ansi", envir=globalenv())){
+    # Uebersetzungstabelle utf8 & ANSI laden und vorbereiten
+    utf8ansi <- as.matrix(read.table(pfad_utf8, sep=";", header=TRUE))
+    # Leerzeichen entfernen.
+    utf8ansi <- apply(utf8ansi,2,function(x)gsub(" ","",x))
+    # Nach Anzahl Zeichen in UTF-8 Codierung sortieren, sonst gibt's bei gsub im Loop probleme
+    utf8ansi <- utf8ansi[order(nchar(utf8ansi[,"utf8"]),decreasing=TRUE),]
+    # Fuer Debugging hier x definieren.
+    # x <- utf8ansi[,"utf8"]
+    #? muss speziell codiert werden, damit es mit gsub funktioniert.
+    utf8ansi <- apply(utf8ansi,2,function(x)gsub("\\?","\\\\\\?",x))
+    # Diejenigen Codiereungen, die aus nur 1 Buchstaben bestehen, separat behandeln. Nicht verdichten
+    utf8ansi_singlechar <- utf8ansi[nchar(utf8ansi[,3])==1,]
+    utf8ansi <- utf8ansi[nchar(utf8ansi[,3])>1,]
+    # Matrix verdichten, damit weniger Loops durchlaufen werden muessen
+    utf8ansi.orig <- utf8ansi
+    un1 <- sort(unique(utf8ansi[,"sign"]))
+    utf8ansi <- utf8ansi[numeric(),c("sign","utf8")]
+    
+    for(i in 1:length(un1)){
+      utf8ansi <- rbind(utf8ansi, c(un1[i], paste0(utf8ansi.orig[utf8ansi.orig[,"sign"]==un1[i],"utf8"],collapse="|")) )
+    }
+    utf8ansi <- rbind(utf8ansi,utf8ansi_singlechar[,c("sign","utf8")])
+  }
+  
+  # Hier Uebersetzung
+  for(i in 1:nrow(utf8ansi)){
+    x <- gsub(utf8ansi[i,"utf8"],utf8ansi[i,"sign"], x)
+  }
+  # Ergebnis ausgeben
+  #utf8ansi <<- rbind(utf8ansi,utf8ansi_singlechar[,c("sign","utf8")])
+  return(x)
 }
 
 set.args <- function(string){
@@ -2918,6 +2999,24 @@ clean.number.format <- function(dat, to.numeric=TRUE) {
   return(dat)
 }
 
+clean.data.columns <- function(dat){
+  # This function deletes duplicated columns and removes some part of the colnames that result from SQL execution with Java (instead of BO).
+  
+  # Leere datlten entfernen
+  dat <- dat[,!substr(colnames(dat),1,3)%in%paste0("X.",0:9)]
+  # Doppelte datlten entfernen
+  dat <- dat[,!colnames(dat)%in%paste0(rep(colnames(dat),each=10),".",0:9)]
+  # Teile von datltennahmen entfernen
+  colnames(dat) <- gsub(pattern=paste0(
+    c(paste0("SUM\\.BM_BE_WERT_",c("01","02","03","04","05","06","07","08","09",10:99),"\\."),
+      paste0("SUM\\.RM_BE_WERT_",c("01","02","03","04","05","06","07","08","09",10:99),"\\."),
+      "\\.GEWICHT\\.GEWICHT\\."),
+    collapse="|"),replacement="",
+    x=colnames(dat))
+  # Fertige Datei ausgeben.
+  return(dat)
+}
+
 if(FALSE){
   x <- cbind(ID=as.character(1:25), BZ=LETTERS[1:25], 1:25)
   char.cols.to.num(x)
@@ -2951,6 +3050,12 @@ char.cols.to.num <- function(x, checkrows=NULL, stringsAsFactors=FALSE){
   rownames(res) <- rn
   colnames(res) <- cn
   return(res)
+}
+
+numeric.cols <- function(x, checkrows=100) {
+  return(unname(
+    sapply(x,function(x) !is( tryCatch(as.numeric(x[1:checkrows]),error=function(e)e,warning=function(w)w), "warning") )
+  ))
 }
 
 
@@ -3634,7 +3739,7 @@ balanced.panel <- function(id, year, YEAR, output=c("logical","ID")){
   if(output=="logical") {
     return( id%in%IDs.final & year%in%YEAR ) 
   } else {
-    warning("This output only serves to show which IDs are in all years. It could however be, that they are in other years too. E.g. you choose YEAR=c(0,1,2), some IDs could be in all years c(0,1,2) but also in year 3. If you want to filter only the relevant IDs AND years choose output='logical'")
+    warning("This output only serves to show which IDs are in all years. However, it is possible that they are in other years too. E.g. you choose YEAR=c(0,1,2), some IDs could be in all years c(0,1,2) but also in year 3. If you want to filter only the relevant IDs AND years choose output='logical'")
     return(IDs.final)
   }
 }
@@ -4298,9 +4403,10 @@ na.replace <- function(x,grouping=NULL,sd=1,warnings=0.5) {
 #search <- c(1,2,3); replace <- c("a","b","c"); x <- c(NA, 0, 1, 1, 2, 3)
 #search <- c(9,10,11); replace <- c("a","b","c"); x <- c(NA, 0, 1, 1, 2, 3)
 #replace.values(search,replace,x)
-replace.values <- function(search, replace, x){
+replace.values <- function(search, replace, x, no.matching.NA=FALSE){
   # This function replaces all elements in argument search with the corresponding elements in argument replace.
   # Replacement is done in x.
+  # if no.matching.NA=TRUE, values that could not be replaced will be NA instead of the old value.
   
   if(length(search)!=length(replace)) stop("length(search) must be equal length(replace)")
   if(any(duplicated(search))) stop("There must be no duplicated entries in search.")
@@ -4313,8 +4419,10 @@ replace.values <- function(search, replace, x){
   
   xnew <- x
   xnew <- replace[ match(x, search) ]
-  isna <- is.na(xnew)
-  xnew[isna] <- x[isna]
+  if(!no.matching.NA){
+    isna <- is.na(xnew)
+    xnew[isna] <- x[isna]
+  }
   return(xnew)
 }
 
@@ -4354,6 +4462,7 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
   # of the computer.
   #
   # x = data.frame/matrix
+  # names = dimnames to be saved in the file. "col"=colnames, "rowcol"=rownames&colnames, "row"=rownames, "no"=no dimnames
   # nrows = maximum number of rows    to be saved (for higher speed with large datasets)
   #         if n=-1, all rows will be displayed.-> see also the help for read.table()
   # ncols = maximum number of columns to be saved (for higher speed with large datasets)
@@ -4361,6 +4470,7 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
   #          If NULL an accessible folder in C:/Users/.../Documents will be created automatically.
   # quote = should quotes be written into the csv File? -> see also the help for write.table()
   # na = how should NA values be displayed in the csv File? -> see also the help for write.table()
+  # openfolder = Should the folder with all temporary files be opened after having created the file?
   
   names <- match.arg(names)
   if(is.null(dim(x))) {
@@ -4444,6 +4554,16 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
     Sys.sleep(1)
     browseURL(folder)
   }
+}
+
+load.spa <- function() {
+  pfad1 <- "C:/Users/U80823148/_/Data/SpE.RData"
+  pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/BO/alldata/SpE.RData"
+  if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
+  cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
+  cat(pfad, "\n", sep="")
+  load(paste0(pfad))
+  return(spa)
 }
 
 load.gb <- function() {
@@ -4630,6 +4750,14 @@ merge.gb <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FA
                      gb.list[, (which(colnames(gb.list)%in%"Kanton")+1):ncol(gb.list) ], stringsAsFactors=FALSE)
   }
   
+  # Ersetzen von Umlauten
+  uml0 <- c("Ä", "Ö", "Ü", "ä", "ö", "ü")
+  uml1 <- c("Ae","Oe","Ue","ae","oe","ue")
+  for(i in 1:length(uml0)){
+    colnames(gb.list) <- gsub(uml0[i],uml1[i],colnames(gb.list))
+  }
+  
+  # Speichern
   if(save.file) {
     cat("Saving CSV-file...\n")
     if(any(filenames%in%save.name)) save.path <- paste(folder,save.name, "2.csv",sep="") else save.path <- paste(folder,save.name,".csv",sep="")
@@ -4732,7 +4860,7 @@ remove.na.rowcols.of.csv <- function(filepath, print.info=FALSE){
   repair.csv(filepath=filepath, header=TRUE, remove.middle.rows.cols=TRUE, save.file=TRUE, print.info=print.info)
 }
 
-csv.to.rdata <- function(path, name="dat", clean.numb.format=FALSE, ...){
+csv.to.rdata <- function(path, name="dat", clean.numb.format=FALSE, clean.dat.columns=FALSE, update.csv=FALSE, ...){
   # This function converts csv data to RData (which can be read in much faster)
   
   # Remove .csv or .RData from string.
@@ -4741,14 +4869,18 @@ csv.to.rdata <- function(path, name="dat", clean.numb.format=FALSE, ...){
   
   # Read in csv data
   assign(name, 
-         read.csv(paste0(path, ".csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("NA","","#DIV/0","#DIV/0!", "#WERT", "#WERT!"))
+         read.csv(paste0(path, ".csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
   )
   
+  # Clean columns, if wished
+  if(clean.dat.columns) assign(name, clean.data.columns(get(name), ...) )
   # Clean number formats if there are 1'000 formats, if whished
   if(clean.numb.format) assign(name, clean.number.format(get(name), ...) )
   
   # Save RData
   eval(parse(text= paste0("save(",name,", file=",paste0("'", path, ".RData'") ,")")  ))
+  # Update CSV, if wished
+  if(update.csv) write.table(get(name), file=paste0(path, ".csv"), sep = ";", eol = "\n", quote=FALSE, col.names=TRUE, row.names=FALSE) # Nur COLnames
 }
 
 load2 <- function(file){
