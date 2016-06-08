@@ -60,7 +60,7 @@ browseURL("https://support.rstudio.com/hc/communities/public/questions/200658363
 tools:::httpdPort
 
 ###### Packages ######
-# Use Version control Systems! # Load project and klick down in the right corner onto the project. then go to the links of stackoverflow
+# Alle installierten Packages wieder installieren mit Funktionen save.packages() & recover.R.installation()
 detach("package:gplots") # Package von Workspace entfernen.
 install.packages("fortunes")
 install.packages("nnls") # Positive Coefficient regressions
@@ -90,6 +90,7 @@ install.packages("mvoutlier") # Multivariate Outlier Detection.
 install.packages("car") # Compagnion to applied Regresson
 install.packages("Ryacas") # Package, um Funktionen abzuleiten
 #  car::scatterplot(y~year|country,  boxplots=FALSE, smooth=TRUE,  reg.line=FALSE, data=Panel)
+install.packages("rpanel") # Package, um mit Buttons R-Funktionen auszufuehren. Oder in Bilder zu zeichnen.
 
 # Fuer zip-files repos=NULL setzten. type nicht setzen!
 install.packages('P:/Software/R/packages/earth_3.2-7.zip', repos=NULL) # '', nicht ""!
@@ -99,6 +100,9 @@ install.packages("P:/Software/R/packages/bzip2-1.0.6.tar.gz", repos=NULL, type='
 install.packages("curl"); library(curl)
 curl_download('http://www.systematicportfolio.com/SIT.tar.gz', 'sit',mode = 'wb',quiet=T)
 install.packages('sit', repos = NULL, type='source')
+# Installieren inoffizieller Packages von github
+install.packages("devtools")
+devtools::install_github("kassambara/r2excel") # Ergibt Fehler.
 
 
 ## Warum funktioniert die Installation von Packages nicht bei tar.gz?!
@@ -199,6 +203,7 @@ aaa <- aaa[,!apply(aaa,2,function(x)all(is.na(x)))];   aaa<-aaa[!apply(aaa,1,fun
 #Entfernen von duplizierten Spalten
 testframe <- testframe[,!duplicated(lapply(testframe, summary))]
 
+
 ################## Erstellen ##################
 
 ### Zufallszahlen
@@ -297,6 +302,21 @@ pmatch(a,b)
 a <- c(1,2,3,4); b <- c(2,4,6,8)
 pracma::cross(a,b)
 
+################## Data Manipulation ##################
+
+# Base R apply functions (from a presentation given by Hadley):
+
+# ***********************************************************
+# Output>     |  array      data frame    list        nothing
+#............................................................
+# Input       |**********************************************
+# array       |  apply      .             .           .
+# data frame  |  .          aggregate     by          .
+# list        |  sapply     .             lapply      .
+# n replic.   |  replicate  .             replicate   .
+# func. arg.  |  mapply     .             mapply      .
+
+
 ################## Data / Import / Export  ##################
 ### Data
 
@@ -322,6 +342,7 @@ list.files("P:/", "_")
 write.table(export, file=paste0("pfad.csv"), sep = ";", eol = "\n", quote=FALSE, col.names=TRUE, row.names=FALSE) # Nur COLnames
 write.table(export, file=paste0("pfad.csv"), sep = ";", eol = "\n", quote=FALSE, col.names=FALSE, row.names=TRUE) # Nur ROWnames
 write.table(export, file=paste0("pfad.csv"), sep = ";", eol = "\n", quote=FALSE, col.names=NA) # Colnames & Rownames
+write.table(export, file=paste0("pfad.csv"), sep = ";", eol = "\n", quote=FALSE, col.names=FALSE, row.names=FALSE) # KEINE Colnames oder Rownames
 
 # Image schreiben
 save.image("pfad.RData")
@@ -338,6 +359,13 @@ own.datname <- dat; rm(dat)
 # 1. Reihe beinhaltet Colnames. Von 1. Reihe in colnames transferieren
 #dat <- read.csv(paste0("pfad.csv"), sep=";", header=FALSE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!")); colnames(dat) <- dat[1,]; dat <- dat[2:nrow(dat),]
 #own.datname <- dat; rm(dat)
+
+# Excel xls oder xlsx Formate einlesen
+# http://www.r-bloggers.com/read-excel-files-from-r/
+# gdata (kein Support fuer xlsx)
+source("https://gist.github.com/schaunwheeler/5825002/raw/3526a15b032c06392740e20b6c9a179add2cee49/xlsxToR.r")
+xlsxToR = function("myfile.xlsx", header = TRUE)
+  
 
 
 # Image einlesen
@@ -563,6 +591,9 @@ dF1 <- density(F1);
 dF2 <- density(F2);
 plot(dF1,xlim=c(min(dF1$x,dF2$x),max(dF1$x,dF2$x)),ylim=c(min(dF1$y,dF2$y),max(dF1$y,dF2$y)),col="red",main="Dens. Plot",xlab="Efficiency");lines(dF2,col="darkgreen")
 
+# Anzahl Tickmarks (Ticks) automatisch erhoehen.
+plot(1:10, 1:10, lab=c(10,10,12))
+
 #par(mar=c(5, 4, 4, 2.5) + 0.1, cex=1); plot(main="NE, FaAK & FrAK", xlab="Jahr", ylab="", x=years,y=verlne, type="l",lty=1, yaxt="n")
 #axis(2,cex=par(cex=0.8)$cex); mtext("Veraenderung Arbeitstage",side=2,line=2.5); par(cex=1)
 #par(new=T); plot(x=years, y=verlfr, type="l", lty=2, xaxt="n",yaxt="n",xlab="",ylab=""); axis(4,cex=par(cex=0.8)$cex); par(cex=1)
@@ -609,9 +640,27 @@ dev.new(width=30, height=18)  # Alternativ in pdf(width=.., height=..) einfuegen
 pairs(data)
 scatterplotMatrix(data)
 # oder ähnlich: The diagonal shows the kernel density.
-library(ggplot2)
 plotmatrix(with(iris, data.frame(Sepal.Length, Sepal.Width, Petal.Length, Petal.Width)))
 plot(density(iris[,"Sepal.Length"]))
+
+
+# Zusammengefasste Werte in ggplot2 plotten (z.B. resultat von mean.weights)
+# Daten koennten in etwa so aussehn:
+mw1 <- structure(c(70501.18728733, 79077.00623248, 55479.72870416, 59665.83888847, 
+            61760.4748543, 52834.84461067, 58902.64913118, 62835.58593476, 
+            51441.17820976, 68637.82798599, 78428.86472092, 57302.78946271, 
+            70605.16571968, 81331.37941756, 60441.80134763), .Dim = c(3L, 5L),
+          .Dimnames = list(c("11_Ackb", "12_Spez", "21_VM"), c("2004", "2005", "2006", "2007", "2008")))
+
+#print(mw1)
+#            2004     2005     2006     2007     2008     2009     2010     2011     2012      2013     2014
+#11_Ackb 70501.19 59665.84 58902.65 68637.83 70605.17 66307.57 58962.59 71257.07 60744.29  59815.13 64691.41
+#12_Spez 79077.01 61760.47 62835.59 78428.86 81331.38 99246.96 79875.91 85920.25 69146.78  70727.35 82769.92
+#21_VM   55479.73 52834.84 51441.18 57302.79 60441.80 55207.44 52847.33 57313.91 54619.06  58173.59 67058.73
+library(ggplot2)
+ggplot(data=wide.to.long.df(rownames(mw1), mw1), aes(x=index2,y=value,color=index1,linetype=index1,group=index1,size=1))) +
+  geom_line() + geom_point() + scale_size(range=c(0.1, 2), guide=FALSE)
+
 
 # Punkte in einem Scatterplot identifizieren
 plot(x<-c(1,2,3,4,5), y<-c(1,2,3,4,5))
@@ -806,7 +855,8 @@ grep("land|GVE", colnames.x) # Mehrere Strings gleichzeitig suchen
 file.choose()        # Pfad per Mausklick suchen, nicht eintippen.
 
 attach(anova.data) # So koennen Variablen und Faktoren einfach ueber den Variablennamen genannt werden. kein anova.data[,...] oder anova.data$... noetig.
-      detach()
+detach(...)
+
 # Posting my data in forum
 dput()
 
@@ -825,3 +875,25 @@ with()
                     lot2 = c(69,35,26,21,18,16,13,12,12)),
         list(summary(glm(lot1 ~ log(u), family = Gamma)),
              summary(glm(lot2 ~ log(u), family = Gamma))))
+
+# Datum formatieren - help siehe auch help(DateTimeClasses)
+# - Einlesen ohne Zeit
+strptime("21.4.2015", "%d.%m.%Y")
+# - Einlesen mit Zeit
+strptime("17.10.2014 17:00:00", "%d.%m.%Y %H:%M:%S")
+# - Ausgeben mit Zeit
+date <- strptime("17.10.2014 17:00:00", "%d.%m.%Y %H:%M:%S")
+strftime(date, "%d.%m.%Y %H:%M:%S")
+
+# Schauen, ob sich Elemente in einer Spalte als Expression evaluieren lassen.
+# Wenn nicht, dann sind es character columns.
+#x <- dat_colnames[,1]; y <- "100-2"
+charcols <- apply(dat_colnames,2,function(x){
+  apply(matrix(x),1,function(y){
+    if(is.na(y)) {
+      return(FALSE)
+    } else {
+      is( tryCatch(eval(parse(text=y)),error=function(e)e,warning=function(w)w), "error")
+    }
+  })
+})
