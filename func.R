@@ -6,14 +6,14 @@
 
 # Functions for the ZA data
 # -------------------------
-# mean.weight (in combination with extract.I.vars)
+# mean.weight (in combination with extract.I.vars & create.I.cols)
 # median.weight (as wrapper for quantile.weight)
 # group.by.wtd.quantiles (in combination with mean.weight -> to calculate weighted means of upper and lower income quartile)
 # load.spa, load.gb, load.agis (quickly load data)
 # vergleichslohn, vergleichszins (quickly load data)
 # id.entschluesseln
 # merge.gb
-# find.gb.col (gbc), find.spa.col, find.col (qickly find column names with string pattern)
+# find.gb.col (gbc), find.spa.col, find.col (quickly find column names with string pattern)
 # harmonize.agis.colnames (because BFS has changed column names each year in the past)
 
 # -- Source locally --
@@ -441,7 +441,7 @@ color.gradient <- function(x, colors=c("red","yellow","green"), colsteps=100) {
 save.packages <- function(){
   # This function saves all installed R-Packages to a file.
   # Use function recover.R.installation() to recover all packages.
-  pkg_list <- installed.packages()[is.na(installed.packages()[ , "Priority"]), 1]
+  pkg_list <- rownames(installed.packages()) #installed.packages()[is.na(installed.packages()[ , "Priority"]), 1]
   save(pkg_list, file=paste0(Sys.getenv("TMP"),"/R_Migration_Package_List.Rdata") )
 }
 
@@ -468,6 +468,12 @@ list.all.package.functions <- function(package, all.names = FALSE, pattern) {
     all.names = all.names,
     pattern = pattern
   )
+}
+
+require.package <- function(...){
+  # This function checks if a packages is installed. If not, it is first installed, then loaded.
+  if(!deparse(substitute(...)) %in% rownames(installed.packages())) install.packages( deparse(substitute(...)) )
+  require(...)
 }
 
 vergleichslohn <- function(region=NULL, jahr=NULL){
@@ -1240,32 +1246,10 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
       cn.res <- cn.res.orig <- colnames(result)
       icols <- substr(cn.res,1,2)=="I("
       if(any(icols)){
+        if(!is.null(digits)) stop("When rounding (digts!=NULL) and using I() columns, the results might not be accurate")
         result <- as.data.frame(result)
-        # Verbotene Zeichen suchen und ersetzen
-        #if(any(cn.res%in%c("_",".","NA"))) stop("When using I() colnames '_' and '.' and 'NA' are not allowed.")
-        replcn1 <- cn.res[cn.res%in%c("_",".","NA")]
-        replcn2 <- cn.res[ icols & substr.rev(cn.res,1,2)%in%paste0(".",1:9) ]
-        replcn <- c(replcn1,replcn2)
-        if(length(replcn)>0) {
-          colnames(result)[cn.res%in%replcn] <- apply(matrix(1:length(replcn)),1,function(x)paste0(sample(c(letters,LETTERS),10,replace=TRUE),collapse=""))
-          cn.res <- colnames(result)
-        }
-        # Model Matrix berechnen
-        form <- paste0("1:nrow(result) ~ -1 +", paste0(cn.res, collapse=" + "))
-        na.action <- options()[["na.action"]]
-        options(na.action="na.pass")
-        result <- model.matrix(formula(form), data=result)
-        options(na.action=na.action)
-        attributes(result)$assign <- NULL
-        attributes(result)$contrasts <- NULL
-        # Doppelte Formeln suchen und ersetzen
-        if(length(replcn2)>0) {
-          colnames(result) <- cn.res <-  cn.res.orig
-          colsset <- match(replcn2,cn.res.orig)
-          colsget <- match(substr(replcn2,1,nchar(replcn2)-2),cn.res.orig)
-          result[,colsset] <- result[,colsget]
-          colnames(result)[colsset] <- cn.res.orig[colsget]; cn.res <- colnames(result)
-        }
+        # Wert der I() columns berechnen
+        result <- calc.I.cols(result)
         # Wenn in Einstellungen so gewählt, werden die Berechneten Kennzahls-Spaltennamen so veraendert, dass das I() nicht mehr vorkommt.
         # Sonst urspruengliche Namen Nehmen. Ist noetig, weil model.matrix() die Spaltennamen veraendert (Abstaende einbaut).
         if(edit.I.colnames){
@@ -1311,7 +1295,8 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
       cn.res <- names(res.list)
       icols <- grepl("I\\(", cn.res)
       if(any(icols)){
-        if(any(cn.res%in%c("_","."))) stop("When using I() colnames _ and . are not allowed.")
+        if(!is.null(digits)) stop("When rounding (digts!=NULL) and using I() columns, the results might not be accurate")
+        #if(any(cn.res%in%c("_","."))) stop("When using I() colnames _ and . are not allowed.")
         for(i in 1:sum(icols)){
           res.list[[ cn.res[icols][i] ]] <- with(res.list, eval(parse(text=cn.res[icols][i])) )
         }
@@ -1369,8 +1354,9 @@ extract.I.vars <- function(vars, formula=FALSE){
   return(vars_all)
 }
 
-create.I.vars <- function(data, I.vars, non.I.value=NA){
-  # This function creates variables in a data.frame that do not exist yet.
+#gb <- load.gb(); data <- gb; I.vars <- c("I(ArbVerdFamilie/JAE_FamAK)", "I(LE+NE_tot)", "JAE_FamAK"); non.I.value=NA
+create.I.cols <- function(data, I.vars, non.I.value=NA_integer_){
+  # This function creates columns in a data.frame that do not exist yet.
   # If they are written as I(), their value is filled with the right value.
   # Arguments
   # data = data.frame to which columns should be added
@@ -1382,15 +1368,21 @@ create.I.vars <- function(data, I.vars, non.I.value=NA){
   data[,I.vars_new] <- non.I.value
   
   # Calculate the value of the I.vars.colums
-  form <- paste0("1:nrow(data) ~ -1 +", paste0(colnames(data), collapse=" + "))
-  na.action <- options()[["na.action"]]
-  options(na.action="na.pass")
-  data <- model.matrix(formula(form), data=data)
-  options(na.action=na.action)
-  attributes(data)$assign <- NULL
-  attributes(data)$contrasts <- NULL
+  data <- calc.I.cols(data)
   
   # Return result
+  return(data)
+}
+
+#gb <- load.gb(); data <- gb; data[,c("I(ArbVerdFamilie/JAE_FamAK)", "I(LE+NE_tot)","NA")] <- 1
+#h(calc.I.cols(data))
+calc.I.cols <- function(data) {
+  # The function alculates the value of all columns with I() in a data.frame and returns the whole data.frame
+  i_cols <- colnames(data)
+  i_cols <- i_cols[substr(i_cols,1,2)=="I(" & substr.rev(i_cols,1,1)==")"]
+  for(i in 1:length(i_cols)){
+    data[[i_cols[i]]] <- with(data, eval(parse(text=i_cols[i])) )
+  }
   return(data)
 }
 
@@ -1410,8 +1402,11 @@ quantile.weight <- function(x, weights=NULL, index=NULL, probs=0.5, na.rm=TRUE) 
   
   # Recursive function definition if x is given as matrix, data.frame or list
   if(!is.null(dim(x))) {
-    if(is.matrix(x))     return( apply(x,2,function(x)quantile.weight(x=x,weights=weights,index=index,probs=probs,na.rm=na.rm))  )
-    if(is.data.frame(x)) return( as.data.frame( lapply(x,function(x)quantile.weight(x=x,weights=weights,index=index,probs=probs,na.rm=na.rm)) ,stringsAsFactors=FALSE) )
+    cn_x <- colnames(x)
+    if(is.matrix(x)) res <-  apply(x,2,function(x)quantile.weight(x=x,weights=weights,index=index,probs=probs,na.rm=na.rm))
+    if(is.data.frame(x)) res <- as.data.frame( lapply(x,function(x)quantile.weight(x=x,weights=weights,index=index,probs=probs,na.rm=na.rm)) ,stringsAsFactors=FALSE)
+    colnames(res) <- cn_x
+    return(res)
   }
   if(is.list(x)) return( lapply(x,function(x)quantile.weight(x=x,weights=weights,index=index,probs=probs,na.rm=na.rm)) )
   
@@ -1599,7 +1594,7 @@ if(FALSE){
 }
 
 
-tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, vector.result=FALSE, sep.sign="_"){
+tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, vector.result=FALSE, sep.sign="_", warn=FALSE){
   # This function puts the result of tapply(X,INDEX,FUN) into a fixed given vector with names=names.result.
   # This is especially useful if some entries are missing in INDEX but you want them to be displayed as well!
   # Otherwise they would be missing in the result of the tapply() function.
@@ -1681,7 +1676,7 @@ tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, vec
     nres0 <- unlist(dimnames(res0))
     nres1 <- unlist(names.result)
     # Warnung ausgeben, falls nicht alle Ergebnisse ausgegeben werden wegen zu kurzem names.result
-    if(any(!nres0%in%nres1))
+    if(warn) if(any(!nres0%in%nres1))
       warning(paste0("For some entries in X no corresponding entries in names.result were given. The resulting array is incomplete!\n", paste(nres0[!nres0%in%nres1], collapse=" ") ))
     # Aufwaendige Uebertragung nur machen, wenn es wirklich fehlende Eintraege in res0 gibt
     # ALTE Bedingung: if(length(res0)!=length(nres1) || names(res0)!=nres1){
@@ -1721,7 +1716,7 @@ tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, vec
     if(!is.na(missing.value)) res0[is.na(res0)] <- missing.value
     
     # Warnung ausgeben, falls nicht alle Ergebnisse ausgegeben werden wegen zu kurzem names.result
-    if(any(!names(res0)%in%names.result))
+    if(warn) if(any(!names(res0)%in%names.result))
       warning(paste0("For some entries in X no corresponding entries in names.result were given. The resulting array is incomplete!\n", paste(names(res0)[ !names(res0)%in%names.result ], collapse=" ") ))
     # Aufwaendige Uebertragung nur machen, wenn es wirklich fehlende Eintraege in res0 gibt
     if(length(res0)!=length(names.result) || names(res0)!=names.result){
@@ -3610,10 +3605,9 @@ balanced.panel <- function(id, year, YEAR, output=c("logical","ID")){
   IDs <- do.call("c",IDs)
   table.IDs <- table(IDs)
   if(any(table.IDs>length(YEAR))) {
-    warning("The following observations occur several times in several years! Not able to create balanced panel.\n", call. = FALSE, immediate.=TRUE)
     return.error <- names(table.IDs)[table.IDs>length(YEAR)]
     mode(return.error) <- mode.id
-    return(return.error)
+    stop(paste0("The following observations occur several times in several years! Not able to create balanced panel.\n", paste0(return.error, collapse=", ")))
   }
   IDs.final <- names(table.IDs)[table.IDs==length(YEAR)]
   mode(IDs.final) <- mode.id  # Set back the mode to original value (instead of character from names(table())... )
@@ -4179,7 +4173,7 @@ write.table <- function(x, file, ...) {
 }
 
 # x <- matrix(1:10); nrowmax=10000; ncolmax=10000; folder=NULL; view(x)
-view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000, folder=NULL, quote=FALSE, na="NA", openfolder=FALSE, ...){
+view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000, folder=NULL, quote=FALSE, na="NA", sep=";", openfolder=FALSE, ...){
   # This function creates a CSV file from a data.frame/matrix and opens it with the default CSV-opening-program
   # of the computer.
   #
@@ -4225,6 +4219,7 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
   
   # Check if there are existing files in the folder
   fil <- list.files(pfad0)
+  fil <- fil[ substr(fil,nchar(fil)-3,nchar(fil))==".csv" ]
   # If there are no files in the folder, use the default save path.
   if(length(fil)==0){
     pfad1 <- paste0(pfad0, name, nr, csv)
@@ -4233,13 +4228,13 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
     fil <- paste0(pfad0, fil)
     suppressWarnings( try( file.remove( fil )  , silent=TRUE) )
     fil <- list.files(pfad0)
+    fil <- fil[ substr(fil,nchar(fil)-3,nchar(fil))==".csv" ]
     # If there are no files anymore use the default save path.
     if( length(fil)==0 ) {
       pfad1 <- paste0(pfad0, name, nr, csv)
     } else {
       # If there are sill files, read out the number of the newest file (with the highest number)
-      ncharfil <- nchar(fil)
-      mx <- max( as.numeric( substr(fil,ncharfil-5,ncharfil-4) ) )
+      mx <- max( as.numeric( substr(fil,nchar(fil)-5,nchar(fil)-4) ) )
       # Add 1 to the number of the file
       mxpl1 <- as.character( mx+1 )
       if(nchar(mxpl1)==1) mxpl1 <- paste0("0",mxpl1)
@@ -4260,15 +4255,15 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
   if(names=="row") {
     # If the first cell of the file is named "ID" Microsoft Excel warns that a SYLK file is opened. Therefore it is renamed.
     if(!is.null(rownames(x)[1]) & !is.na(rownames(x)[1])) if(rownames(x)[1]=="ID") rownames(x)[1] <- "lD"
-    write.table(x, file=pfad1, sep = ";", col.names=FALSE, row.names=TRUE, quote=quote, na=na, ...)
+    write.table(x, file=pfad1, sep=sep, col.names=FALSE, row.names=TRUE, quote=quote, na=na, ...)
   } else if (names=="col") {
     # If the first cell of the file is named "ID" Microsoft Excel warns that a SYLK file is opened. Therefore it is renamed.
     if(!is.null(colnames(x)[1]) & !is.na(colnames(x)[1])) if(colnames(x)[1]=="ID") colnames(x)[1] <- "lD"
-    write.table(x, file=pfad1, sep = ";", col.names=TRUE, row.names=FALSE, quote=quote, na=na, ...)
+    write.table(x, file=pfad1, sep=sep, col.names=TRUE, row.names=FALSE, quote=quote, na=na, ...)
   } else if (names=="rowcol") {
-    write.table(x, file=pfad1, sep = ";", col.names=NA)                    # Colnames & Rownames
+    write.table(x, file=pfad1, sep=sep, col.names=NA, quote=quote, na=na, ...)
   } else {
-    write.table(x, file=pfad1, sep = ";", col.names=FALSE, row.names=FALSE, quote=quote, na=na, ...)
+    write.table(x, file=pfad1, sep=sep, col.names=FALSE, row.names=FALSE, quote=quote, na=na, ...)
   }
   
   browseURL(pfad1)
@@ -4299,6 +4294,22 @@ load.spa <- function() {
   cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
   cat(pfad, "\n", sep="")
   load(pfad)
+  
+  # Testen ob alle plausibeln Betriebe aus 2015 im Datensatz sind
+  BHJ <- 2015
+  pfad_CRM_plaus_t0 <- paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/Liste_Plausible/B",BHJ,"/")
+  fold <- list.files(pfad_CRM_plaus_t0)
+  fold <- fold[grepl("Termin",fold)]
+  fold <- sort(fold[file.info(paste0(pfad_CRM_plaus_t0, fold))$isdir], decreasing=TRUE)[1]
+  plauslist <- read.table(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/Liste_Plausible/B",BHJ,"/",fold,"/Plausible_B",BHJ,".csv"),  sep=";", skip=1, header=TRUE, stringsAsFactors=FALSE, quote = "\"")
+  id_ok <- as.numeric( plauslist[plauslist[,"DB_einlesen"]=="Ja","Betriebsnummer"] )
+  id_not_in_DB <- id_ok[ !id_ok%in%spa[spa[,"JAHR"]==BHJ,"REK_ID"] ]
+  if(length(id_not_in_DB)>0) {
+    stop(paste0("Es gibt Betriebe, die laut OTRS-Liste eigentlich in die Datenbank gehoeren. Sie sind aber nicht im Datensatz drin! Anbei die REK_IDs:\n",
+                paste0(id_not_in_DB,collapse=", ")))
+  }
+  
+  # Datensatz ausgeben.
   return(spa)
 }
 
@@ -4519,6 +4530,11 @@ merge.gb <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FA
   cat("Job done!")
 }
 
+####
+mml.link <- function(){
+  # Merkmalsliste SpE & SpB oeffnen.
+  cat("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/1863/1_Entwicklungsphase_2013/1_AG Merkmalsliste/MML_v14.06-06.xlsm\n")
+}
 ####
 
 #filepath <- paste0(pfad,"Auswertung_Abschr_lang.csv")
