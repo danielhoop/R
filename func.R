@@ -11,10 +11,11 @@
 # group.by.wtd.quantiles (in combination with mean.weight -> to calculate weighted means of upper and lower income quartile)
 # load.spa, load.gb, load.agis (quickly load data)
 # vergleichslohn, vergleichszins (quickly load data)
-# id.entschluesseln
-# merge.gb
+# id.entschluesseln (decrypt IDs of Referenzbetriebe)
+# rekid.zaid (key between REK_ID[LINK] & ZA_ID[AGIS] )
 # find.gb.col (gbc), find.spa.col, find.col (quickly find column names with string pattern)
 # harmonize.agis.colnames (because BFS has changed column names each year in the past)
+# merge.gb
 
 # -- Source locally --
 # source("O:/Sites/TA/Transfer/hpda/R/func.R")
@@ -748,7 +749,8 @@ c.dimnames <- function(array, sep.sign="_"){
 dimnames.to.mat <- function(x){
   # Diese Funktion integriert die Spalten- und Reihennamen einer Matrix in die Matrix selbst. Also quasi als Werte.
   # WICHTIG: Dies Funktion wird gebraucht fuer Funktion merge.matrices()
-  if(is.null(dim(x))) x <- as.matrix(x)
+  #if(is.null(dim(x))) x <- as.matrix(x)
+  x <- as.matrix(x)
   if(is.null(dimnames(x))) return(x)
   if(is.null(rownames(x))) rownames(x) <- rep("",nrow(x))
   if(is.null(colnames(x))) colnames(x) <- rep("",ncol(x))
@@ -1222,6 +1224,7 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
   # edit.I.colnames = Should the colnames containing expressions with I() be edited, such that I() won't be there anymore? TRUE/FALSE
 
   if(!is.list(index)) index <- list(index)
+  #if(is.data.frame(index)) index <- as.list(index)
   
   # Im Falle, dass !is.null(dim(data)) folgt eine rekursive Funktionsdefinition!
   if(!is.null(dim(data))) {
@@ -1328,6 +1331,7 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
   } else {
     length.index <- sapply(index,function(x)length(x))
     if(any(length.index!=length.index[1])) stop("All vectors in the index have to have the same length!")
+    #print(length(weights)); print(length.index)
     if(!all(length(weights)==length.index)) stop("length(weights)!=length(index)")
     
     # NA Werte in weights uebertragen. Muss so sein, nicht mit na.rm innerhalb der Funktionen, da sonst data und weights evtl. nicht korrespondieren!!
@@ -3013,10 +3017,10 @@ clean.number.format <- function(dat, to.numeric=TRUE) {
 clean.data.columns <- function(dat){
   # This function deletes duplicated columns and removes some part of the colnames that result from SQL execution with Java (instead of BO).
   
-  # Leere datlten entfernen
+  # Leere Spalten entfernen
   dat <- dat[,!substr(colnames(dat),1,3)%in%paste0("X.",0:9)]
-  # Doppelte datlten entfernen
-  dat <- dat[,!colnames(dat)%in%paste0(rep(colnames(dat),each=10),".",0:9)]
+  # Doppelte Spalten entfernen
+  #dat <- dat[,!conames(dat)%in%paste0(rep(colnames(dat),each=10),".",0:9)]
   # Teile von datltennahmen entfernen
   colnames(dat) <- gsub(pattern=paste0(
     c(paste0("SUM\\.BM_BE_WERT_",c("01","02","03","04","05","06","07","08","09",10:99),"\\."),
@@ -3064,6 +3068,8 @@ char.cols.to.num <- function(x, checkrows=NULL, stringsAsFactors=FALSE){
 }
 
 numeric.cols <- function(x, checkrows=100) {
+  # Identify numeric columns
+  checkrows <- min(nrow(x),checkrows)
   return(unname(
     sapply(x,function(x) !is( tryCatch(as.numeric(x[1:checkrows]),error=function(e)e,warning=function(w)w), "warning") )
   ))
@@ -3250,7 +3256,7 @@ if(FALSE){
 }
 ###
 equal.n.decimals <- function(x, digits=2){
-  if(is.list(x)) {
+  if(is.data.frame(x)) {
     res <- equal.n.decimals(as.matrix(as.data.frame(x,stringsAsFactors=FALSE)), digits=digits)
     return(apply(res,2,function(x)gsub(" ","",x)))
   }
@@ -3591,12 +3597,14 @@ match.multiple.id.left <- function(id_left, id_right) {
   return(cbind(left=m_left,right=m_right))
 }
 
-balanced.panel <- function(id, year, YEAR, output=c("logical","ID")){
+balanced.panel <- function(id, year, YEAR, nYEARmin=length(unique(YEAR)), output=c("logical","ID")){
   # id: Vector of IDs
   # year: Vector of year (same length as ID)
   # YEAR: Years that should be selected
   # output: Logical vector or IDs?
   output <- match.arg(output)
+  YEAR <- unique(YEAR)
+  
   mode.id <- mode(id) # Save mode of id for later output
   IDs <- list()
   for(i in 1:length(YEAR)){
@@ -3609,7 +3617,7 @@ balanced.panel <- function(id, year, YEAR, output=c("logical","ID")){
     mode(return.error) <- mode.id
     stop(paste0("The following observations occur several times in several years! Not able to create balanced panel.\n", paste0(return.error, collapse=", ")))
   }
-  IDs.final <- names(table.IDs)[table.IDs==length(YEAR)]
+  IDs.final <- names(table.IDs)[table.IDs>=nYEARmin]
   mode(IDs.final) <- mode.id  # Set back the mode to original value (instead of character from names(table())... )
   if(output=="logical") {
     return( id%in%IDs.final & year%in%YEAR ) 
@@ -4154,21 +4162,26 @@ replace.values <- function(search, replace, x, no.matching.NA=FALSE, gsub=FALSE)
 #file <- "\\\\evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/Output/Test_write.table.fast/cost.csv"
 #system.time( w1rite.table(cost[1:1000,],file) ); system.time( utils::wr1ite.table(cost[1:1000,],file) )
 write.table <- function(x, file, ...) {
-  # This function writes tables much faster if they should be writton onto network drives.
-  # If a network drive is detected, it first creates a temporary file on the local hard drive. Then it copies the file from local to network drive.
-  create.new <- substr(file,1,1)%in%c("/","\\")
+  # This function writes tables much faster if they should be written onto network drives.
+  # If a network drive is detected and the file will be larger than approx. 300kb, it first creates a temporary file on the local hard drive.
+  # Then it moves the file from local to network drive.
+  create.new <- substr(file,1,1)%in%c("/","\\") && object.size(x)>1400000
   if(!create.new){
     utils::write.table(x=x, file=file, ...)
   } else {
     utils::write.table(x=1, file=file, ...) # First try to write a file. If not possible (e.g. because directory does not exist) this will return a error message.
-    folder <- paste0(Sys.getenv("TMP"), "\\RFastWrite\\")
-    suppressWarnings( dir.create(folder) )
-    file.remove(list.files(folder,full.names=TRUE))
-    file2 <- paste0(folder, paste0(sample(letters,4,replace=TRUE),collapse=""), ".csv" )
-    utils::write.table(x=x, file=file2, ...)
-    file.copy(file2, file, overwrite=TRUE)
-    file.remove(file2)
-    unlink(folder)
+    tryCatch({
+      folder <- paste0(Sys.getenv("TMP"), "\\RFastWrite\\")
+      suppressWarnings( dir.create(folder) )
+      file.remove(list.files(folder,full.names=TRUE))
+      file2 <- paste0(folder, paste0(sample(letters,4,replace=TRUE),collapse=""), ".csv" )
+      utils::write.table(x=x, file=file2, ...)
+      file.copy(file2, file, overwrite=TRUE)
+      suppressWarnings( file.remove(list.files(folder,full.names=TRUE)) )
+    }, error = function(e) {
+      stop("write.table has encountered an error. This is not the original write.table() function but an edited version by Daniel Hoop. It was optimized to save files on network drives.\nTry utils::write.table() to use the default function.")
+    } )
+    #unlink(folder)
   }
 }
 
@@ -4296,17 +4309,35 @@ load.spa <- function() {
   load(pfad)
   
   # Testen ob alle plausibeln Betriebe aus 2015 im Datensatz sind
-  BHJ <- 2015
-  pfad_CRM_plaus_t0 <- paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/Liste_Plausible/B",BHJ,"/")
-  fold <- list.files(pfad_CRM_plaus_t0)
-  fold <- fold[grepl("Termin",fold)]
-  fold <- sort(fold[file.info(paste0(pfad_CRM_plaus_t0, fold))$isdir], decreasing=TRUE)[1]
-  plauslist <- read.table(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/Liste_Plausible/B",BHJ,"/",fold,"/Plausible_B",BHJ,".csv"),  sep=";", skip=1, header=TRUE, stringsAsFactors=FALSE, quote = "\"")
-  id_ok <- as.numeric( plauslist[plauslist[,"DB_einlesen"]=="Ja","Betriebsnummer"] )
-  id_not_in_DB <- id_ok[ !id_ok%in%spa[spa[,"JAHR"]==BHJ,"REK_ID"] ]
-  if(length(id_not_in_DB)>0) {
-    stop(paste0("Es gibt Betriebe, die laut OTRS-Liste eigentlich in die Datenbank gehoeren. Sie sind aber nicht im Datensatz drin! Anbei die REK_IDs:\n",
-                paste0(id_not_in_DB,collapse=", ")))
+  if(TRUE){
+    BHJ <- 2015
+    pfad_CRM_plaus_t0 <- paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/Liste_Plausible/B",BHJ,"/")
+    fold <- list.files(pfad_CRM_plaus_t0)
+    fold <- fold[grepl("Termin",fold)]
+    fold <- sort(fold[file.info(paste0(pfad_CRM_plaus_t0, fold))$isdir], decreasing=TRUE)[1]
+    plauslist <- read.table(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/Liste_Plausible/B",BHJ,"/",fold,"/Plausible_B",BHJ,".csv"),  sep=";", skip=1, header=TRUE, stringsAsFactors=FALSE, quote = "\"")
+    id_ok <- as.numeric( plauslist[plauslist[,"DB_einlesen"]=="Ja","Betriebsnummer"] )
+    id_not_in_DB <- sort(id_ok[ !id_ok%in%spa[spa[,"JAHR"]==BHJ,"REK_ID"] ])
+    if(length(id_not_in_DB)>0) {
+      dat <- read.table(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/ErhbogTxtExport/nichtVerkn/B",BHJ,"/ID_nVerkn_B",BHJ,".csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
+      id_not_verkn <- sort(dat[dat[,1]%in%id_not_in_DB,1])
+      if(length(id_not_in_DB)!=length(id_not_verkn) || any(id_not_in_DB!=id_not_verkn)){
+        warning(paste0("Es gibt Betriebe, die laut OTRS-Liste eigentlich in die Datenbank gehoeren. Sie sind aber nicht im Datensatz drin! Anbei die REK_IDs:\n",
+                       paste0(id_not_in_DB,collapse=", "),
+                       "\nVon den oben genannten REK_ID, konnten die folgenden nicht mit AGIS verknuepft werden:\n",
+                       paste0(id_not_verkn,collapse=", ")))
+      }
+      
+      if(FALSE){
+        files <- list.files(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/ErhbogTxtExport/Rohdat/B",BHJ), recursive=TRUE)
+        files <- unique(files[substr.rev(files,1,4)==".txt"])
+        files <- lapply(strsplit(files,"/"),function(x)x[length(x)])
+        files <- substr(files,13,19)
+        cat("Diese IDs kommen nicht in den Rohdaten-Files vor:\n")
+        print(id_not_in_DB[!id_not_in_DB%in%files])
+      }
+      
+    }
   }
   
   # Datensatz ausgeben.
@@ -4334,6 +4365,12 @@ load.agis <- function(year=2014){
   }
 }
 
+rekid.zaid <- function(id, reverse=FALSE){
+  if(!exists("spa")) spa <- load.spa()
+  zaid <- colnames(spa)[colnames(spa)%in%c("BETRIEB","ZA_ID")][1]
+  if(!reverse) return(spa[spa[,"REK_ID"]%in%id, c("JAHR","REK_ID", zaid )])
+  if( reverse) return(spa[spa[, zaid   ]%in%id, c("JAHR","REK_ID", zaid )])
+}
 
 # id <- 72010409
 id.entschluesseln <- function(...){
