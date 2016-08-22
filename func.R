@@ -6,7 +6,7 @@
 
 # Functions for the ZA data
 # -------------------------
-# mean.weight (in combination with extract.I.vars & create.I.cols)
+# mean.weight (in combination with extract.I.vars & create.cols)
 # median.weight (as wrapper for quantile.weight)
 # group.by.wtd.quantiles (in combination with mean.weight -> to calculate weighted means of upper and lower income quartile)
 # load.spa, load.gb, load.agis (quickly load data)
@@ -43,15 +43,23 @@ if(FALSE) if(length(list.files("C:/Users/U80823148/"))>0) {
 
 #### Automatisches Kopieren auf W ####
 # Nicht auf anderen Computern (falls Script-Ausfuehrung ueber Laufwerk W:)
-if(length(list.files("C:/Users/U80823148/"))>0) {
+if(isTRUE(file.info("C:/Users/U80823148/")$isdir)) {
   pathP <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/"
   pathW <- "O:/Sites/TA/Transfer/hpda/R/"
-  file.remove(paste0(pathW,"func.R"))
-  file.copy(paste0(pathP,"func.R"), paste0(pathW,"func.R"))
-  file.remove(paste0(pathW,"Rhelp.R"))
-  file.copy(paste0(pathP,"Rhelp.R"), paste0(pathW,"Rhelp.R"))
-  rm(pathP, pathW)
-  cat("func.R and Rhelp.R copied from P to W\n")
+  pathFilesize <- paste0(pathP, "funcSize.txt")
+  filesize0 <- scan(pathFilesize, quiet=TRUE)
+  filesize1 <- file.size(paste0(pathP, "func.R"))
+  if(filesize0!=filesize1){
+    write(filesize1, file=pathFilesize)
+    file.remove(paste0(pathW,"func.R"))
+    file.copy(paste0(pathP,"func.R"), paste0(pathW,"func.R"))
+    file.remove(paste0(pathW,"Rhelp.R"))
+    file.copy(paste0(pathP,"Rhelp.R"), paste0(pathW,"Rhelp.R"))
+    rm(pathP, pathW)
+    cat("func.R and Rhelp.R copied from P to W\n")
+  } else {
+    cat("func.R did not change. Files not copied from P to W\n")
+  }
 }
 
 #### GRAPHICS ####
@@ -481,7 +489,7 @@ vergleichslohn <- function(region=NULL, jahr=NULL){
   
   # This function returns a matrix containing the Vergleichsloehne for the ZA. Optionally, regions and years can be chosen.
   # The following code is for import of data.
-  #t1 <- read.cb("rowcol")
+  #t1 <- read.cb("col")
   #colnames(t1) <- substr.rev(colnames(t1),1,4)
   #t1 <- as.matrix(t1)
   #dput(t1)
@@ -500,14 +508,16 @@ vergleichslohn <- function(region=NULL, jahr=NULL){
                      60204.096, 72560.964, 65853.648, 61448.472, 73279.212, 66993.936, 
                      62387.184, 73853.388, 67518.864, 62876.016, 74198.64, 66963, 
                      62587.68, 74786.352, 67493.4, 63083.424, 73712.4, 69108.396, 
-                     63839.772, 74298, 69657.42, 64346.94), .Dim = c(3L, 30L), .Dimnames = list(
-                       c("1", "2", "3"), c("1985", "1986", "1987", "1988", "1989", 
-                                           "1990", "1991", "1992", "1993", "1994", "1995", "1996", "1997", 
-                                           "1998", "1999", "2000", "2001", "2002", "2003", "2004", "2005", 
-                                           "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", 
-                                           "2014")))
+                     63839.772, 74298, 69657.42, 64346.94, 74010.864, 69035.04, 66239.904
+  ), .Dim = c(3L, 31L), .Dimnames = list(1:3, c("1985", "1986", 
+                                                 "1987", "1988", "1989", "1990", "1991", "1992", "1993", "1994", 
+                                                 "1995", "1996", "1997", "1998", "1999", "2000", "2001", "2002", 
+                                                 "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", 
+                                                 "2011", "2012", "2013", "2014", "2015")))
   if(is.null(region)) region <- 1:nrow(vgl)
   if(is.null(jahr)) jahr <- 1:ncol(vgl)
+  if(min(jahr)>1000) jahr <- as.character(jahr)
+  
   return(vgl[region,jahr])
 }
 
@@ -521,12 +531,12 @@ vergleichszins <- function(jahr=NULL){
   
   vgl <- structure(c(4.53, 4.71, 4.24, 4.04, 4, 5.13, 6.4, 6.23, 6.42, 
                      4.58, 4.93, 4.57, 4, 3.4, 2.81, 3.02, 3.95, 3.36, 3.22, 2.63, 
-                     2.73, 2.11, 2.5, 2.91, 2.93, 2.22, 1.65, 1.48, 0.66, 0.94, 0.73
-  ), .Dim = c(1L, 31L), .Dimnames = list(NULL, c("1984", "1985", 
+                     2.73, 2.11, 2.5, 2.91, 2.93, 2.22, 1.65, 1.48, 0.66, 0.94, 0.73, 0
+  ), .Dim = c(1L, 32L), .Dimnames = list(NULL, c("1984", "1985", 
                                                  "1986", "1987", "1988", "1989", "1990", "1991", "1992", "1993", 
                                                  "1994", "1995", "1996", "1997", "1998", "1999", "2000", "2001", 
                                                  "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", 
-                                                 "2010", "2011", "2012", "2013", "2014")))
+                                                 "2010", "2011", "2012", "2013", "2014","2015")))
   if(is.null(jahr)) jahr <- 1:ncol(vgl)
   return(vgl[,jahr,drop=FALSE])
 }
@@ -1250,25 +1260,8 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
       icols <- substr(cn.res,1,2)=="I("
       if(any(icols)){
         if(!is.null(digits)) stop("When rounding (digts!=NULL) and using I() columns, the results might not be accurate")
-        result <- as.data.frame(result)
         # Wert der I() columns berechnen
-        result <- calc.I.cols(result)
-        # Wenn in Einstellungen so gewählt, werden die Berechneten Kennzahls-Spaltennamen so veraendert, dass das I() nicht mehr vorkommt.
-        # Sonst urspruengliche Namen Nehmen. Ist noetig, weil model.matrix() die Spaltennamen veraendert (Abstaende einbaut).
-        if(edit.I.colnames){
-          colnames(result)[which(icols)] <- substr( cn.res[which(icols)], 3, nchar(cn.res[which(icols)])-1 )
-        } else {
-          colnames(result)[which(icols)] <- cn.res[which(icols)]
-        }
-        if(del.I.help.columns){
-          if(!is.null(I.help.columns)){
-            delnames <- I.help.columns
-          } else {
-            delnames <- unlist(strsplit(colnames(result)[icols],"-| |\\/|\\*|\\+"))
-            delnames <- gsub("I\\(|\\(|)","",delnames)
-          }
-          result <- result[,!colnames(result)%in%delnames,drop=FALSE]
-        }
+        result <- calc.I.cols(result, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns)
       }
       
       # Resultat ausgeben.
@@ -1300,13 +1293,7 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
       if(any(icols)){
         if(!is.null(digits)) stop("When rounding (digts!=NULL) and using I() columns, the results might not be accurate")
         #if(any(cn.res%in%c("_","."))) stop("When using I() colnames _ and . are not allowed.")
-        for(i in 1:sum(icols)){
-          res.list[[ cn.res[icols][i] ]] <- with(res.list, eval(parse(text=cn.res[icols][i])) )
-        }
-        # Wenn in Einstellungen so gewählt, werden die Berechneten Kennzahls-Spaltennamen so veraendert, dass das I() nicht mehr vorkommt.
-        if(edit.I.colnames){
-          names(res.list)[which(icols)] <- substr( cn.res[which(icols)], 3, nchar(cn.res[which(icols)])-1 )
-        }
+        res.list <- calc.I.cols(res.list, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns)
       }
       return(res.list)
       
@@ -1347,32 +1334,34 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
   return(result)
 }
 
-extract.I.vars <- function(vars, formula=FALSE){
+#vars <- c("a/ b", "A^B", "c,d", "ifelse(a==b, 1, 2)")
+extract.I.vars <- function(vars, keep.original=FALSE){
   # This function extracts all Variables in a I(a+b*c) formula seperately. This is useful in combination with the function mean.weight()
-  #vars_all <- unlist(strsplit(vars,"=|\\+|/|-|\\*|,|>|<|\\(|\\)"))   # Alle Kennzahlen die in einer Formel vorkommen
-  #vars_all <- unique(vars_all[!vars_all%in%c("","I")])
-  vars_all <- unlist(strsplit(vars,"-| |\\/|\\*|\\+"))
-  vars_all <- gsub("I\\(|\\(|)","",vars_all)
+  vars_all <- unlist(strsplit(vars,"-|/|\\*|\\+|\\^|,|=|ifelse"))
+  vars_all <- gsub("I\\(|\\(|)| ","",vars_all)
   vars_all <- unique(vars_all[!vars_all%in%c("")])
-  if(formula) vars_all <- c(vars_all, vars)
+  vars_all <- vars_all[is.na(suppressWarnings(as.numeric(vars_all)))]
+  if(keep.original) vars_all <- unique(c(vars, vars_all))
   return(vars_all)
 }
 
-#gb <- load.gb(); data <- gb; I.vars <- c("I(ArbVerdFamilie/JAE_FamAK)", "I(LE+NE_tot)", "JAE_FamAK"); non.I.value=NA
-create.I.cols <- function(data, I.vars, non.I.value=NA_integer_){
+#gb <- load.gb(); data <- gb; cols <- c("I(ArbVerdFamilie/JAE_FamAK)", "I(LE+NE_tot)", "JAE_FamAK"); non.I.value=NA
+create.cols <- function(data, cols, non.I.value=NA_integer_){
   # This function creates columns in a data.frame that do not exist yet.
   # If they are written as I(), their value is filled with the right value.
   # Arguments
-  # data = data.frame to which columns should be added
-  # I.vars = all new colums that should be created in data.frame. Can also be without I().
-  # non.I.value = The value that is filled into columns that don't have colnames I().
+  # data         data.frame to which columns should be added
+  # cols         all new colums that should be created in data.frame. Can also be without I().
+  # non.I.value  The value that is filled into columns that don't have colnames I().
   
-  # Create new I.vars columns
-  I.vars_new <- I.vars[!I.vars%in%colnames(data)]
-  data[,I.vars_new] <- non.I.value
+  # Create new columns
+  cols_new <- cols[!cols%in%colnames(data)]
+  data[,cols_new] <- non.I.value
   
-  # Calculate the value of the I.vars.colums
-  data <- calc.I.cols(data)
+  # Calculate the value of the new columns with I()
+  if(any(substr(cols,1,2)=="I(")){
+    data <- calc.I.cols(data)
+  }
   
   # Return result
   return(data)
@@ -1380,13 +1369,44 @@ create.I.cols <- function(data, I.vars, non.I.value=NA_integer_){
 
 #gb <- load.gb(); data <- gb; data[,c("I(ArbVerdFamilie/JAE_FamAK)", "I(LE+NE_tot)","NA")] <- 1
 #h(calc.I.cols(data))
-calc.I.cols <- function(data) {
-  # The function alculates the value of all columns with I() in a data.frame and returns the whole data.frame
-  i_cols <- colnames(data)
+#data <- matrix(c(1:30),ncol=3); colnames(data) <- c("a","b","I(a+b)")
+#data <- as.list(as.data.frame(data))
+calc.I.cols <- function(data, edit.I.colnames=FALSE, del.I.help.columns=FALSE, I.help.columns=NULL) {
+  # This function calculates the value of all columns with colnames looking like I(a+b) in a matrix/data.frame/list.
+  # The whole matrix/data.frame/list is returned after having finished the caluclations.
+  # Arguments
+  # data               matrix/data.frame/list. Columns to be calculated must have names like I(a+b), I(a/b). Only "a+b" does not work.
+  # edit.I.colnames    Should the brackets I() in the colnames be removed after the calculations?
+  # del.I.help.colums  If e.g. I(a+b) is calculated. Should the columns "a" and "b" be removed after the calculation because they are of no interest?
+  # I.help.columns     If del.I.help.colums=TRUE: The list of the columns to be deleted can be specified. 
+  #                    Otherwise the help columns are dectected automatically.
+  
+  ismat <- is.matrix(data)
+  if(ismat) data <- as.data.frame(data)
+  
+  i_cols <- names(data)
   i_cols <- i_cols[substr(i_cols,1,2)=="I(" & substr.rev(i_cols,1,1)==")"]
   for(i in 1:length(i_cols)){
     data[[i_cols[i]]] <- with(data, eval(parse(text=i_cols[i])) )
   }
+  
+  
+  if(del.I.help.columns){
+    i_cols <- substr(names(data),1,2)=="I(" & substr.rev(names(data),1,1)==")"
+    if(!is.null(I.help.columns)){
+      delnames <- I.help.columns
+    } else {
+      delnames <- unlist(strsplit(names(data)[i_cols],"-|/|\\*|\\+"))
+      delnames <- gsub("I\\(|\\(|)","",delnames)
+    }
+    data <- data[,!names(data)%in%delnames,drop=FALSE]
+  }
+  if(edit.I.colnames){
+    i_cols <- substr(names(data),1,2)=="I(" & substr.rev(names(data),1,1)==")"
+    names(data)[which(i_cols)] <- substr( names(data)[which(i_cols)], 3, nchar(names(data)[which(i_cols)])-1 )
+  }
+  
+  if(ismat) data <- as.matrix(data)
   return(data)
 }
 
@@ -3417,7 +3437,7 @@ scaled.value <- function(value,mean,sd){
 if(FALSE){
   df1=matrix( 1:100, ncol=2); id1=df1[,1]; colnames(df1) <- c("ID1","Value1")
   df2=matrix(21:120, ncol=2); id2=df2[,1]; colnames(df2) <- c("ID2","Value2")
-  match.df.by.id(df1=df1, df2=df2, id1=id1, id2=id2, keep.no.matches=FALSE)
+  match.df.by.id(df1=df1, df2=df2, id1=id1, id2=id2, keep.no.matches=TRUE)
   merge(df1, df2)
 }
 
@@ -3489,32 +3509,41 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE,check.duplicated
     return(prov.return)
   }
   
-  
-  df1.gt.df2 <- nrow(df1)>nrow(df2)
-  if(!df1.gt.df2){
+  # Wenn no-matches nicht behalten werden sollen, ist die einfach.
+  if(!keep.no.matches){
+    df1 <- df1[id1%in%id2,,drop=FALSE]
+    df2 <- df2[id2%in%id1,,drop=FALSE]
+    id1 <- id1[id1%in%id2]
+    id2 <- id2[id2%in%id1]
+    return(data.frame(id1=id1, id2=id2[match(id1,id2)], df1, df2[match(id1,id2),,drop=FALSE], stringsAsFactors=stringsAsFactors))
     
-    newo <- match(id1,id2)
-    is.na.newo <- is.na(newo)
-    id2.newo <- id2[newo]
-    df2.newo <- df2[newo,,drop=FALSE]
-    result <- data.frame(id1, df1, id2=id2.newo, df2.newo, stringsAsFactors=stringsAsFactors)
     
-    if(keep.no.matches){
+    # Kompliziert, wenn no-matches behalten werden sollen.
+  } else {
+    df1.gt.df2 <- nrow(df1)>nrow(df2)
+    if(!df1.gt.df2){
+      
+      newo <- match(id1,id2)
+      result <- data.frame(id1, df1, id2=id2[newo], df2[newo,,drop=FALSE], stringsAsFactors=stringsAsFactors)
+      
+      #if(keep.no.matches){
       id2.in.id2.new <- id2%in%result[,"id2"]
       if(any(!id2.in.id2.new)){
-        add.df2 <- data.frame(id2=id2[!id2.in.id2.new],df2[!id2.in.id2.new,,drop=FALSE], stringsAsFactors=stringsAsFactors)
-        add.df1 <- matrix(NA,nrow=nrow(add.df2),ncol=ncol(df1)+1)
-        add.df <- data.frame(add.df1,add.df2)
+        #add.df2 <- data.frame(id2=id2[!id2.in.id2.new],df2[!id2.in.id2.new,,drop=FALSE], stringsAsFactors=stringsAsFactors)
+        #add.df1 <- matrix(NA,nrow=nrow(add.df2),ncol=ncol(df1)+1)
+        add.df <- data.frame(matrix(NA,nrow=sum(!id2.in.id2.new),ncol=ncol(df1)+1),
+                             data.frame(id2=id2[!id2.in.id2.new],df2[!id2.in.id2.new,,drop=FALSE], stringsAsFactors=stringsAsFactors),
+                             stringsAsFactors=stringsAsFactors)
         colnames(add.df) <- colnames(result)
         result <- rbind(result,add.df)
       }
-    } else {
-      result <- result[!is.na(result[,"id2"]),,drop=FALSE]
-    }
-    
-    
-  } else { #if(df1.gt.df2)
-    if(FALSE){
+      #} else {
+      #  result <- result[!is.na(result[,"id2"]),,drop=FALSE]
+      #}
+      
+      
+    } else { #if(df1.gt.df2)
+      
       # Hinweis: Den Code von oben kopieren. Dann folgende Ersetzungen vornehmen:
       # df1 -> df3
       # df2 -> df4
@@ -3525,57 +3554,58 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE,check.duplicated
       # df3 -> df2
       # id4 -> id1
       # id3 -> id2
-    }
-    ### Block reinkopieren - Anfang ###
-    newo <- match(id2,id1)
-    is.na.newo <- is.na(newo)
-    id1.newo <- id1[newo]
-    df1.newo <- df1[newo,,drop=FALSE]
-    result <- data.frame(id2, df2, id1=id1.newo, df1.newo)
-    
-    if(keep.no.matches){
+      
+      ### Block reinkopieren - Anfang ###
+      newo <- match(id2,id1)
+      result <- data.frame(id2, df2, id1=id1[newo], df1[newo,,drop=FALSE])
+      
+      #if(keep.no.matches){
       id1.in.id1.new <- id1%in%result[,"id1"]
       if(any(!id1.in.id1.new)){
-        add.df1 <- data.frame(id1=id1[!id1.in.id1.new],df1[!id1.in.id1.new,,drop=FALSE], stringsAsFactors=stringsAsFactors)
-        add.df2 <- matrix(NA,nrow=nrow(add.df1),ncol=ncol(df2)+1)
-        add.df <- data.frame(add.df2,add.df1, stringsAsFactors=stringsAsFactors)
+        #add.df1 <- data.frame(id1=id1[!id1.in.id1.new],df1[!id1.in.id1.new,,drop=FALSE], stringsAsFactors=stringsAsFactors)
+        #add.df2 <- matrix(NA,nrow=nrow(add.df1),ncol=ncol(df2)+1)
+        add.df <- data.frame(matrix(NA,nrow=sum(!id1.in.id1.new),ncol=ncol(df2)+1) ,
+                             data.frame(id1=id1[!id1.in.id1.new],df1[!id1.in.id1.new,,drop=FALSE], stringsAsFactors=stringsAsFactors) ,
+                             stringsAsFactors=stringsAsFactors)
         colnames(add.df) <- colnames(result)
         result <- rbind(result,add.df)
       }
-    } else {
-      result <- result[!is.na(result[,"id1"]),,drop=FALSE]
+      #} else {
+      #  result <- result[!is.na(result[,"id1"]),,drop=FALSE]
+      #}
+      ### Block reinkopieren - Ende ###
+      
+      # Schliesslich Reihenfolge zuruecktauschen:
+      result <- result[,c( (1+ncol(df2)+1)  #id1
+                           ,(1+ncol(df2)+1+1):ncol(result) #df1
+                           ,1 #id2                  
+                           ,2:(1+ncol(df2))) #df2
+                       ]
     }
-    ### Block reinkopieren - Ende ###
     
-    # Schliesslich Reihenfolge zuruecktauschen:
-    result <- result[,c( (1+ncol(df2)+1)  #id1
-                         ,(1+ncol(df2)+1+1):ncol(result) #df1
-                         ,1 #id2                  
-                         ,2:(1+ncol(df2))) #df2
+    
+    
+    # Jetzt id1 und id2 an den Anfang stellen, Rest lassen:
+    result <- result[,c( which(colnames(result)=="id1"),
+                         which(colnames(result)=="id2"),
+                         which(!colnames(result)%in%c("id1","id2")) )
                      ]
+    
+    # Am Schluss wieder diejenigen Betriebe einfuegen, die bei ihrer eigenen ID NA Values drinstehen hatten:
+    if(any(is.na.id1) & keep.no.matches){
+      pseudo.df2 <- as.data.frame(matrix(NA, nrow=nrow(df1.na), ncol=ncol(result)-2-ncol(df1.na)))
+      colnames(pseudo.df2) <- colnames(df2)
+      result <- rbind(result,  data.frame(id1=NA, id2=NA, df1.na, pseudo.df2, stringsAsFactors=stringsAsFactors) )
+    }
+    if(any(is.na.id2) & keep.no.matches){
+      pseudo.df1 <- as.data.frame(matrix(NA, nrow=nrow(df2.na), ncol=ncol(result)-2-ncol(df2.na)))
+      colnames(pseudo.df1) <- colnames(df1)
+      result <- rbind(result,  data.frame(id1=NA, id2=NA, pseudo.df1, df2.na, stringsAsFactors=stringsAsFactors) )
+    }
+    
+    colnames(result) <- replace.values(cn_new, cn_orig, colnames(result))
   }
   
-  
-  
-  # Jetzt id1 und id2 an den Anfang stellen, Rest lassen:
-  result <- result[,c( which(colnames(result)=="id1"),
-                       which(colnames(result)=="id2"),
-                       which(!colnames(result)%in%c("id1","id2")) )
-                   ]
-  
-  # Am Schluss wieder diejenigen Betriebe einfuegen, die bei ihrer eigenen ID NA Values drinstehen hatten:
-  if(any(is.na.id1) & keep.no.matches){
-    pseudo.df2 <- as.data.frame(matrix(NA, nrow=nrow(df1.na), ncol=ncol(result)-2-ncol(df1.na)))
-    colnames(pseudo.df2) <- colnames(df2)
-    result <- rbind(result,  data.frame(id1=NA, id2=NA, df1.na, pseudo.df2, stringsAsFactors=stringsAsFactors) )
-  }
-  if(any(is.na.id2) & keep.no.matches){
-    pseudo.df1 <- as.data.frame(matrix(NA, nrow=nrow(df2.na), ncol=ncol(result)-2-ncol(df2.na)))
-    colnames(pseudo.df1) <- colnames(df1)
-    result <- rbind(result,  data.frame(id1=NA, id2=NA, pseudo.df1, df2.na, stringsAsFactors=stringsAsFactors) )
-  }
-  
-  colnames(result) <- replace.values(cn_new, cn_orig, colnames(result))
   
   return(result)
 }    
@@ -3597,13 +3627,42 @@ match.multiple.id.left <- function(id_left, id_right) {
   return(cbind(left=m_left,right=m_right))
 }
 
-balanced.panel <- function(id, year, YEAR, nYEARmin=length(unique(YEAR)), output=c("logical","ID")){
-  # id: Vector of IDs
-  # year: Vector of year (same length as ID)
-  # YEAR: Years that should be selected
-  # output: Logical vector or IDs?
+#index <- as.matrix(spa[,c("REGION","ZA15TYPS3_AVG")]); id <- spa[,"BETRIEB"]; year <- spa[,"JAHR"]; YEAR <- 2014:2015; nYEARmin=length(unique(YEAR)); output=c("logical","ID")
+#indexvars <- c("REGION"); table(spa[ balanced.panel(id=spa[,"BETRIEB"],year=spa[,"JAHR"],YEAR=2014:2015,index=spa[,indexvars])  , c("JAHR",indexvars)])
+balanced.panel <- function(id, year, YEAR=sort(unique(year)), index=NULL, nYEARmin=length(unique(YEAR)), output=c("logical","ID")){
+  # id:       Vector of IDs
+  # year:     Vector of year (same length as ID)
+  # YEAR:     Years that should be selected
+  # nYearmin: Minimum number of years to be selected for the pseudo balanced panel
+  # index:    Index for which the balancing should be done.
+  # output:   Logical vector or IDs?
+  
   output <- match.arg(output)
   YEAR <- unique(YEAR)
+  if(length(id)!=length(year)) stop("Length id must be equal length year")
+  
+  if(!is.null(index)) {
+    if(output!="logical") stop("If !is.null(index) only output=logical is possible!")
+    # Converting Index to string vector
+    if((is.matrix(index) || is.list(index))) {
+      if(is.matrix(index) | is.data.frame(index)) {
+        index <- as.list(as.data.frame(index))
+      }
+      if(length(unique(unlist(lapply(index,function(x)length(x)))))>1) {
+        stop("All indices must have the same length!")
+      }
+      paste_own <- function(...) paste(..., sep="_")
+      index <- do.call("paste_own", index)
+    }
+    
+    # Recursive function definition if !is.null(index)
+    # balanced.panel() for each entry in index separately.
+    #x <- cbind(counter=1:length(id),id=id,year=year)[index==index[1],]
+    res <- do.call("rbind", by(cbind(counter=1:length(id), id=id,year=year), index, function(x){
+      data.frame(x, filter=balanced.panel(id=x[,"id"], year=x[,"year"], YEAR=YEAR, index=NULL, nYEARmin=nYEARmin, output=output),stringsAsFactors=FALSE)
+    }))
+    return( res[order(res[,"counter"]),"filter"] )
+  }
   
   mode.id <- mode(id) # Save mode of id for later output
   IDs <- list()
@@ -4185,6 +4244,18 @@ write.table <- function(x, file, ...) {
   }
 }
 
+read.table2 <- function(file, header=TRUE, sep=";", fileEncoding=""){
+  dat <- readLines(file, encoding=fileEncoding)
+  dat <- do.call("rbind", strsplit(dat,sep))
+  if(header) {
+    cn1 <- dat[1,]
+    dat <- dat[-1,]
+    colnames(dat) <- cn1
+  }
+  dat <- char.cols.to.num(dat)
+  return(dat)
+}
+
 # x <- matrix(1:10); nrowmax=10000; ncolmax=10000; folder=NULL; view(x)
 view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000, folder=NULL, quote=FALSE, na="NA", sep=";", openfolder=FALSE, ...){
   # This function creates a CSV file from a data.frame/matrix and opens it with the default CSV-opening-program
@@ -4309,7 +4380,7 @@ load.spa <- function() {
   load(pfad)
   
   # Testen ob alle plausibeln Betriebe aus 2015 im Datensatz sind
-  if(TRUE){
+  if(FALSE){
     BHJ <- 2015
     pfad_CRM_plaus_t0 <- paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/Liste_Plausible/B",BHJ,"/")
     fold <- list.files(pfad_CRM_plaus_t0)
@@ -4354,15 +4425,13 @@ load.gb <- function() {
   return(gb)
 }
 
-load.agis <- function(year=2014){
-  if(year==2014){
-    pfad1 <- "C:/Users/U80823148/_/Data/AGIS/AGIS_BFS_2014.RData"
-    pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/AGIS/2014/AGIS_BFS_2014.RData"
+load.agis <- function(year=2015){
+    pfad1 <- paste0("C:/Users/U80823148/_/Data/AGIS/AGIS_BFS_",year,".RData")
+    pfad2 <- paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/AGIS/",year,"/AGIS_BFS_",year,".RData")
     if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
     cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
     cat(pfad, "\n", sep="")
     return(load2(pfad))
-  }
 }
 
 rekid.zaid <- function(id, reverse=FALSE){
@@ -4663,15 +4732,19 @@ remove.na.rowcols.of.csv <- function(filepath, print.info=FALSE){
 
 
 
-csv.to.rdata <- function(path, name="dat", clean.numb.format=FALSE, clean.dat.columns=FALSE, update.csv=FALSE, ...){
+csv.to.rdata <- function(path, dat=NULL, name="dat", clean.numb.format=FALSE, clean.dat.columns=FALSE, update.csv=FALSE, ...){
   # This function converts csv data to RData (which can be read in much faster)
   
   # Remove .csv or .RData from string.
   if( substr.rev(path,1,4)%in%c( ".csv", ".CSV") ) path <- substr(path,1,nchar(path)-4)
   if( substr.rev(path,1,6)%in%c( ".RData", ".rdata" ) ) path <- substr(path,1,nchar(path)-6)
   
-  # Read in csv data
-  dat <- read.csv(paste0(path, ".csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
+  # If a path is given, read in new data. Else the data.frame 'dat' is used for further processing.
+  if(is.null(dat)) {
+    dat <- read.csv(paste0(path, ".csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
+  } else {
+    cat("Argument 'dat=' was given. Reading in no new data but directly using 'dat' from workspace!\n")
+  }
   if(colnames(dat)[1]=="X.ID") colnames(dat)[1] <- "ID"
   
   # Clean columns, if wished
