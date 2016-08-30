@@ -55,11 +55,11 @@ if(isTRUE(file.info("C:/Users/U80823148/")$isdir)) {
     file.copy(paste0(pathP,"func.R"), paste0(pathW,"func.R"))
     file.remove(paste0(pathW,"Rhelp.R"))
     file.copy(paste0(pathP,"Rhelp.R"), paste0(pathW,"Rhelp.R"))
-    rm(pathP, pathW)
     cat("func.R and Rhelp.R copied from P to W\n")
   } else {
     cat("func.R did not change. Files not copied from P to W\n")
   }
+  rm(pathP, pathW, pathFilesize, filesize0, filesize1)
 }
 
 #### GRAPHICS ####
@@ -1220,6 +1220,16 @@ if(FALSE){
               edit.I.colnames=TRUE,del.I.help.columns=FALSE)
 }
 
+if(FALSE) slapply <- function(X, MARGIN=2, FUN, ...){
+  if(is.matrix(X) | MARGIN!=2) {
+    return(apply(X=X, MARGIN=MARGIN, FUN=FUN, ...))
+  } else if (is.data.frame(X) & MARGIN==2) {
+    return(sapply(X=X, FUN=FUN, ...))
+  } else if (is.list(X)) {
+    return(lapply(X=X, FUN=FUN, ...))
+  }
+}
+
 mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE, edit.I.colnames=TRUE, del.I.help.columns=FALSE, I.help.columns=NULL){
   # This function calculates the weighted mean of all variables in a possibly indexed data.frame or matrix.
   
@@ -1233,24 +1243,27 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
   # na.rm = na action
   # edit.I.colnames = Should the colnames containing expressions with I() be edited, such that I() won't be there anymore? TRUE/FALSE
 
+  # Wenn innerhalb eines Indexes mehrere Indexe als Listen abgelegt sind, wird die Berechnung fuer alle Indexe gemacht.
+  #if(is.list(index)){
+  #  if(any(sapply(index,function(x)is.list(x)))){
+  #    return(do.call("rbind", lapply(index, function(x)mean.weight(data=data, weights=weights, index=x, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))))
+  #  }
+  #}
   if(!is.list(index)) index <- list(index)
-  #if(is.data.frame(index)) index <- as.list(index)
-  
+
   # Im Falle, dass !is.null(dim(data)) folgt eine rekursive Funktionsdefinition!
   if(!is.null(dim(data))) {
-    
     # Wenn !is.null(dim(data))
     # & es keinen oder nur einen Index gibt:
     if(is.null(index) || length(index)==1) {
-        if(is.matrix(data)) {
-          result <- apply(data, 2, function(x)mean.weight(x, weights, index, digits, na.rm) )
-          if(is.null(dim(result))) result <- t(as.matrix(result))
-          if(nrow(result)==1) rownames(result) <- NULL
-        } else if(is.data.frame(data)) {
-          result <- sapply(data, function(x)mean.weight(x, weights, index, digits, na.rm))
-          if(is.null(dim(result))) result <- t(as.matrix(result))
-          if(nrow(result)==1) rownames(result) <- NULL
-        }
+      if(is.matrix(data)) {
+        result <- apply(data, 2, function(x)mean.weight(data=x, weights=weights, index=index, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))
+      } else if(is.data.frame(data)) {
+        result <- sapply(data, function(x)mean.weight(data=x, weights=weights, index=index, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))
+      }
+      # Wieder zu Marix machen, falls es ein Vektor ist
+      if(is.null(dim(result))) result <- t(as.matrix(result))
+      #if(nrow(result)==1) rownames(result) <- NULL
       # Wieder die alten Colnames vergeben
       colnames(result) <- colnames(data)
 
@@ -1268,7 +1281,7 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
       if(nrow(result)==1) rownames(result) <- NULL
       return(result)
       
-      
+
       # Wenn !is.null(dim(data))
       # & 2 Indexe eingegeben wurden:
     } else if(length(index)==2) {
@@ -1316,6 +1329,7 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
     
     # Sonst muss mit index und tapply() gerechnet werden.
   } else {
+    index <- lapply(index, function(x)if(length(x)==1) return(rep(x,length(weights))) else return(x))
     length.index <- sapply(index,function(x)length(x))
     if(any(length.index!=length.index[1])) stop("All vectors in the index have to have the same length!")
     #print(length(weights)); print(length.index)
@@ -1404,11 +1418,18 @@ calc.I.cols <- function(data, edit.I.colnames=FALSE, del.I.help.columns=FALSE, I
   if(edit.I.colnames){
     i_cols <- substr(names(data),1,2)=="I(" & substr.rev(names(data),1,1)==")"
     names(data)[which(i_cols)] <- substr( names(data)[which(i_cols)], 3, nchar(names(data)[which(i_cols)])-1 )
+    #names(data) <- rm.I.from.names(names(data))
   }
   
   if(ismat) data <- as.matrix(data)
   return(data)
 }
+#rm.I.from.names <- function(x){
+#  i_x <- substr(x,1,2)=="I(" & substr.rev(x,1,1)==")"
+#  x[which(i_x)] <- substr( x[which(i_x)], 3, nchar(x[which(i_x)])-1 )
+#  return(x)
+#}
+
 
 median.weight <- function(...) return(quantile.weight(..., probs=0.5))
 #x <- gb[,"ArbVerd_jeFJAE"]; weights <- gb[,"Gewicht"];index <- gb[,c("Jahr","Region","Betriebstyp_S3")]; probs=0.5; na.rm=TRUE
@@ -1788,20 +1809,13 @@ is.dir <- function(path) {
   return( file.info(path)$isdir )
 }
 
-is.finite.data.frame <- function(x){
-  # Error in is.finite(df) : default method not implemented for type 'list'
-  return(as.matrix(as.data.frame(lapply(x,function(x)is.finite(x)))))
-}
-is.infinite.data.frame <- function(x){
-  # Error in is.finite(df) : default method not implemented for type 'list'
-  return(as.matrix(as.data.frame(lapply(x,function(x)is.infinite(x)))))
-}
-is.numeric.data.frame <- function(x) {
-  return(as.data.frame(lapply(x,function(x)is.numeric(x)),stringsAsFactors=FALSE))
-}
-as.numeric.data.frame <- function(x) {
-  return(as.data.frame(lapply(x,function(x)as.numeric(x)),stringsAsFactors=FALSE))
-}
+#is.finite.data.frame <- function(x){
+#  # Error in is.finite(df) : default method not implemented for type 'list'
+#  return(as.matrix(as.data.frame(lapply(x,function(x)is.finite(x)))))
+#}
+#is.numeric.data.frame <- function(x) {
+#  return(as.data.frame(lapply(x,function(x)is.numeric(x)),stringsAsFactors=FALSE))
+#}
 
 transl.mm <- function(x, gsub=FALSE, excel.format=FALSE){
   # Diese Funktion uebersetzt die Merkmalsnummern der Merkmalsliste ZA2015 in die Zeilen-Bezeichnungen laut REX.
@@ -4013,7 +4027,10 @@ group.by.fix.scale <- function(x, selection.levels, method=c("< x <=", "<= x <")
     }
   }
   
-  if(any(is.na(grouping))) warning("NAs produced")
+  if(any(is.na(grouping))) {
+    #print(grouping)
+    warning("NAs produced")
+  }
   return(grouping)
 }
 
@@ -4414,6 +4431,8 @@ load.spa <- function() {
   # Datensatz ausgeben.
   return(spa)
 }
+# Alias erzeugen
+load.spe <- function(...) load.spa(...)
 
 load.gb <- function() {
   pfad1 <- "C:/Users/U80823148/_/Data/GB.RData"
