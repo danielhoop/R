@@ -4,7 +4,7 @@
 ### Or read it in via R console > source("filedirectory of this file")
 ### Or simply copy it into your R console.
 
-# Functions for the ZA data
+# Functions for ZA data
 # -------------------------
 # mean.weight (in combination with extract.I.vars & create.cols)
 # median.weight (as wrapper for quantile.weight)
@@ -70,6 +70,13 @@ show.pch <- function(show=1:255,mfrow=c(5,5),mar=c(4,1,1,3)){
   par(mar=mar, mfrow=mfrow)
   for(i in show) suppressWarnings( plot(1,pch=i,xlab=i) )
   par(mar=mar.orig, mfrow=mfrow.orig)
+}
+####
+color.check <- function(){
+  cols <- c("#FF0000","#00FF00","#0000FF","#FFFF00","#FF00FF","#00FFFF","#FFFFFF")
+  plot(1:length(cols),rep(1,length(cols)),col=cols, pch=20, cex=5,xaxt="n")
+  points(1:length(cols),rep(1,length(cols)),col="black", pch=21, cex=4)
+  axis(1, at=1:length(cols),labels=cols)
 }
 ####
 
@@ -724,6 +731,10 @@ paste.IDJahr <- function(dat){
 
 wait <- function(secs) {
   Sys.sleep(secs)
+}
+
+try <- function(...) {
+  tryCatch(..., error=function(e)e,warning=function(w)w)
 }
 
 #### CHANGE OBJECT STRUCUTRE ####
@@ -1796,13 +1807,17 @@ table.fixed <- function(..., names.result=NULL, vector.result=FALSE, sep.sign="_
 
 #### OTHER ####
 minmax <- function(x, na.rm=TRUE) {
-  return(c(min(x=x,na.rm=na.rm), max(x=x,na.rm=na.rm)))
+  return(range(x, na.rm=na.rm))
 }
 
 file.move <- function(from, to) {
   todir <- dirname(to)
-  if ( !isTRUE(file.info(todir)$isdir) ) dir.create(todir, recursive=TRUE)
-  file.rename(from = from,  to = to)
+  if ( !isTRUE(file.info(todir)$isdir) ) {
+    stop("Directory will not be moved but copied!")
+    dir.create(todir, recursive=TRUE)
+  }
+  success <- file.rename(from = from,  to = to)
+  if(any(!success)) stop("Some files were not moved. Files not accessible? Or they might already exist in the copy directory?")
 }
 
 is.dir <- function(path) {
@@ -3317,6 +3332,7 @@ equal.length <- function(x, add=0, where=c("beginning","end"), minlength=0, marg
   
   where <- match.arg(where)
   nchar.x <- nchar(x)
+  nchar.x[is.na(nchar.x)] <- 0
   n.add <- max(minlength, nchar.x)  - nchar.x
   x.new <- character()
   if(where=="beginning") {
@@ -5533,7 +5549,7 @@ substr.rev <- function(char, start, end, reverse=FALSE) {
   
   nchar_char <- nchar(char)
   res <- substr(char, nchar_char-end+1, nchar_char-start+1)
-  if(reverse) {
+  if(reverse) { # Hinweis: Diese Version mit sapply(lapply()) ist rund 25% schneller als wenn man es mit apply() loest.
     res <- sapply(lapply(strsplit(res, NULL), function(x)rev(x)), function(x)paste(x, collapse=""))
   }
   return(res)
@@ -5559,18 +5575,20 @@ find.col <- function(pattern, dat, ignore.case=TRUE, ...){
   if(!is.null(dim(pattern))) stop("pattern (first argument) must be a value or vector, not data.frame.")
   # This function is a convenience function to find columns in the Grundlagenbericht.
   # Use it like this: find.col("jae", dat1)
-  return( colnames(dat)[ find.string(pattern=pattern, x=colnames(dat), ignore.case=ignore.case) ] )
+  return( colnames(dat)[ find.string(pattern=pattern, x=colnames(dat), ignore.case=ignore.case, ...) ] )
 }
 find.gb.col <- function(pattern, dat=gb, ignore.case=TRUE, ...){
   # This function is a convenience function to find columns in the Grundlagenbericht.
   # Use it like this: find.gb.col("jae")
-  return( colnames(dat)[ find.string(pattern=pattern, x=colnames(dat), ignore.case=ignore.case) ] )
+  return( colnames(dat)[ find.string(pattern=pattern, x=colnames(dat), ignore.case=ignore.case, ...) ] )
 }
 find.spa.col <- function(pattern, dat=spa, ignore.case=TRUE, ...){
   # This function is a convenience function to find columns in the spa data.
   # Use it like this: find.spa.col("jae")
-  return( colnames(dat)[ find.string(pattern=pattern, x=colnames(dat), ignore.case=ignore.case) ] )
+  return( colnames(dat)[ find.string(pattern=pattern, x=colnames(dat), ignore.case=ignore.case, ...) ] )
 }
+
+find.spe.col <- function(pattern, dat=spe, ignore.case=TRUE, ...) find.spa.col(pattern=pattern, dat=dat, ignore.case=ignore.case, ...)
 
 
 gbc <- function(...){
