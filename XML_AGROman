@@ -1,0 +1,794 @@
+<xs:schema 	xmlns:xs="http://www.w3.org/2001/XMLSchema"
+			xmlns="https://awebergmbh.ch/XMLSchema"
+			targetNamespace="https://awebergmbh.ch/XMLSchema"
+			elementFormDefault="qualified">
+	<xs:element name="Surveydata">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Versiondata">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="TypeOfRecording" type="xs:string"/> <!-- Stichprobe Betriebsführung (Bezeichung der Stichprobe) -->
+							<xs:element name="Creationdate" type="xs:string"/>
+							<xs:element name="WrittenBySoftware" type="xs:string"/> <!-- Name der Sofware, welches das lieferende XML-File erstellt -->
+							<xs:element name="SoftwareversionUsed" type="xs:string"/>
+							<xs:element name="XMLFormatVersion" type="xs:string"/> <!-- Version der XML-Definition der Zentralen Auswertung-->
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Farmdata">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="TrustofficeId" type="xs:integer" minOccurs="0"/> <!-- Optionales Merkmal | Diese ZA-Treuhandstellenindentifiktionsnummer wird durch die ZA einmalig vergeben-->
+							<xs:element name="Trustofficename" type="xs:string" minOccurs="0"/> <!-- Optinales Merkmal-->
+							<xs:element name="FarmId" type="xs:integer"/> <!-- Identifikation des Betriebes, soll im laufe der Jahre nicht verändert werden -->
+							<xs:element name="Period" type="PeriodRestriction"/> <!-- Buchhaltungsjahr z.B. 2014 | Grundsätzlich wird eine Periode vom 1.1 bis 31.12 seitens ZA gewünscht --> 							
+							<xs:element name="Farmname" type="xs:string" minOccurs="0" /> <!--  Optionales Merkal | z.B. Name und Vorname des Betriebsleiters zur Ereknnung des Betriebes im ZA-Erhebungstool. Dies kann man aber auch über die FarmId machen -->
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="FinancialAccounting">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="AccountStructure">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Account" maxOccurs="unbounded" minOccurs="0">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="Accountnumber" type="xs:string"/> <!-- Betriebsspezifische FiBu-Nummerierung | allfällige zusätzliche Buchungen im Erhebungstool sind mit der eigenen Nummerierung zu machen-->
+													<xs:element name="Accountname" type="xs:string"/> <!-- Betriebssepzifischer Name des FiBu-Kontos -->
+													<xs:element name="IsAccount" type="xs:boolean"/> <!-- Konto oder Gliederungsposition möglich-->
+													<xs:element name="AccountnumberZA" type="AccountnumberZARestriction" minOccurs="0"/> <!-- optionales Merkmal | Liefert das Mapping zu der ZA-Kontennummer | Kann im ZA-Erhebungstool auch mittels Vorlagen zugeteilt und betriebsspezifisch angepasst werden-->
+													<xs:element name="AccountnameZA" type="xs:string" minOccurs="0"/> <!-- optionales Merkmal | Wird nicht direkt verwendet -->
+													<xs:element name="Level" type="xs:integer" minOccurs="0"/> <!-- optionales Merkmal | Abbildung Hierarchiestufe - oberstes Element hat den Wert 0 -->
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="CostunitStructure">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Costunit" maxOccurs="unbounded" minOccurs="0">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="Costunitnumber" type="xs:string"/> <!-- Betriebsspezifische Kostenträgernummer | allfällige zusätzliche Buchungen im Erhebungstool sind mit der eigenen Nummerierung zu machen -->
+													<xs:element name="Costunitname" type="xs:string"/> <!-- Betriebsspezifische Kostenträger-Bezeichung -->
+													<xs:element name="IsCostunit" type="xs:boolean"/> <!-- Kostenträger oder Gliederung möglich-->
+													<xs:element name="CostunitnumberZA" type="CostunitnumberZARestriction" minOccurs="0"/> <!-- Optionales Merkmal | Liefert das Mapping zum ZA-Kostenträger | Kann im ZA-Erheungstool auch mittels Vorlage zugeteilt und betriebsspezifisch angepasst werden -->
+													<xs:element name="CostunitnameZA" type="xs:string" minOccurs="0"/> <!-- Optionales Merkmal | Wird nicht direkt verwendet -->
+													<xs:element name="Level" type="xs:integer" minOccurs="0"/> <!-- optionales Merkmal | Abbildung Hierarchiestufe - oberstes Element hat den Wert 0 -->
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="Journalentries"> <!-- Buchungsjournal des Betriebes | Inklusive Einbilanzierungsbuchungen sowie internen Lieferungen (z.B. Gerste an Schweine) | Die Kostenträgerzuteilung erfolgt unter "JournalentriesCostunit"-->
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Journalitem" maxOccurs="unbounded" minOccurs="1">
+											<xs:complexType>
+												<xs:sequence>
+													<!-- <xs:element name="Sector" type="SectorRestriction"/> -->
+													<!--  Buchungssektor sind unter Restriction definiert | 
+													Unterteilt wird in FiBu Buchungen und Buchungen ausserhalb der FiBu |
+													Interne Lieferungen sind z.B. keine FiBu Buchungen -->
+													<xs:element name="EntryId" type="xs:integer"/> <!-- Dient zur Identifikation des einzelen Journaleintrages | Nummer darf nicht dopplet vorkommen | Basis für Verknüpfung mit der Kostenträgerzuteilung "JournalentriesCostUnit"-->
+													<xs:element name="Receiptnumber" type="xs:string" minOccurs="0"/> <!-- Optionales Merkmal | Kann zur Erkennung von Buchungen dienen, da die Buchungstexte nicht mitgeliefert werden -->
+													<xs:element name="Entrydate" type="xs:string"/> 
+													<xs:element name="Amount" type="xs:float"/>
+													<xs:element name="AccountnumberDebit" type="xs:string"/> <!-- Soll-Kontonummer -->
+													<xs:element name="AccountnumberCredit" type="xs:string"/> <!-- Haben-Kontonummer -->
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="JournalentriesCostunit"> <!-- Dient als Schlüssel zwischen Buchung und Kostenträgerzuteilung | Nicht jede Buchung muss eine Kostentträgerzuteilung haben | Ein Buchung darf mehrere Kostenträgerzuteilungen haben -->
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="JournalitemCostunit" maxOccurs="unbounded" minOccurs="1">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="EntryCostunitItemId" type="xs:integer" minOccurs="0"/> <!-- Optionales Merkmal | Kann anlog Belegnummer zur Wiedererkennung eines einzelenen Eintrages dienen -->
+													<xs:element name="EntryNr" type="xs:integer"/> <!-- EntryId des Journalitem's, welches in Verbindung mit diesem Eintrag steht -->
+													<xs:element name="Amount" type="xs:float"/> <!-- Betrag oder Teilbetrag der diesem Kostenträger zugeteilt wird -->
+													<xs:element name="CostunitnumberDebit" type="xs:string" minOccurs="0"/> <!-- mindestens CostunitnumberDebit oder CostunitnumberCredit notwendig-->
+													<xs:element name="CostunitnumberCredit" type="xs:string" minOccurs="0"/> <!-- mindestens CostunitnumberDebit oder CostunitnumberCredit notwendig-->
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="NonFinancialAccounting"><!-- Non Financial Accounting data  -->
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="AttributeList" maxOccurs="unbounded" minOccurs="1">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Attribute" maxOccurs="unbounded" minOccurs="1">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="UID" type="xs:string" minOccurs="1"/><!-- Dient zur Identifikation des Merkmals  --> 
+													<xs:element name="Index" type="xs:integer" minOccurs="0"/><!-- Optional z.B. für Arbeitskräfte  --> 
+													<xs:element name="Datatype" type="xs:integer" minOccurs="0"/><!-- Optional --> 
+													<xs:element name="Value" type="xs:string" minOccurs="1"/><!-- Haltet des Wert des Merkmals - die Datentypen wurden zu Text konvertiert --> 
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+
+<!-- ZA - Restrictions  -->
+	<!-- Period-->
+	<xs:simpleType name="PeriodRestriction">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="2014"/>
+			<xs:maxInclusive value="2099"/>
+		</xs:restriction>
+	</xs:simpleType>
+		
+	<!-- ZA Sectors -->
+	<xs:simpleType name="SectorRestriction">
+		<xs:restriction base="xs:integer">
+			<xs:enumeration value="1"/> <!-- FiBu-Buchung -->
+			<xs:enumeration value="2"/> <!-- keine FiBu-Buchung | z.B. interne Lieferungen -->
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- ZA ACCOUNTS -->
+	<xs:simpleType name="AccountnumberZARestriction">
+		<xs:restriction base="xs:token">
+			<xs:enumeration value="111"/><!-- Flüssige Mittel -->
+			<xs:enumeration value="1121"/><!-- Forderungen aus Lieferungen und Leistungen -->
+			<xs:enumeration value="1127"/><!-- Forderungen Mehrwertsteuer -->
+			<xs:enumeration value="1129"/><!-- Übrige kurzfristige Forderungen -->
+			<xs:enumeration value="1131"/><!-- Zugekaufte Vorräte -->
+			<xs:enumeration value="1133"/><!-- Selbstproduzierte Vorräte -->
+			<xs:enumeration value="1135"/><!-- Feldinventar -->
+			<xs:enumeration value="1138"/><!-- Andere Vorräte und nicht fakturierte Dienstleistungen -->
+			<xs:enumeration value="11391"/><!-- Rindvieh -->
+			<xs:enumeration value="11393"/><!-- Schweine -->
+			<xs:enumeration value="11395"/><!-- Geflügel -->
+			<xs:enumeration value="11399"/><!-- Andere Tiere -->
+			<xs:enumeration value="114"/><!-- Aktive Rechnungsabgrenzung -->
+			<xs:enumeration value="119"/><!-- Transferkonto interne Lieferungen -->
+			<xs:enumeration value="1411"/><!-- Finanzanlagen -->
+			<xs:enumeration value="1418"/><!-- Beteiligungen -->
+			<xs:enumeration value="143"/><!-- Mobile Sachanlagen -->
+			<xs:enumeration value="1451"/><!-- Ökonomiegebäude -->
+			<xs:enumeration value="1452"/><!-- Feste Einrichtungen -->
+			<xs:enumeration value="1454"/><!-- Wohngebäude -->
+			<xs:enumeration value="1456"/><!-- Dauerkulturen -->
+			<xs:enumeration value="1457"/><!-- Boden -->
+			<xs:enumeration value="1458"/><!-- Meliorationen -->
+			<xs:enumeration value="1471"/><!-- Lieferrechte -->
+			<xs:enumeration value="1479"/><!-- Andere immaterielle Anlagen -->
+			<xs:enumeration value="2111"/><!-- Verbindlichkeiten aus Lieferungen und Leistungen -->
+			<xs:enumeration value="2115"/><!-- Kurzfristige verzinsliche Verbindlichkeiten -->
+			<xs:enumeration value="2117"/><!-- Verbindlichkeiten Mehrwertsteuer -->
+			<xs:enumeration value="2119"/><!-- Übrige kurzfristige Verbindlichkeiten -->
+			<xs:enumeration value="215"/><!-- Passive Rechnungsabgrenzung -->
+			<xs:enumeration value="24111"/><!-- Hypothekarkredite -->
+			<xs:enumeration value="24119"/><!-- übriges verzinsliches langfristiges Fremdkapital -->
+			<xs:enumeration value="24151"/><!-- Starthilfe - IK -->
+			<xs:enumeration value="24152"/><!-- Ökonomiegebäude - IK -->
+			<xs:enumeration value="24153"/><!-- Wohnhaus - IK -->
+			<xs:enumeration value="24154"/><!-- Betriebshilfedarlehen -->
+			<xs:enumeration value="24157"/><!-- Übrige Investitionskredite -->
+			<xs:enumeration value="24159"/><!-- Übrige langfristige Verbindlichkeiten (unverzinslich) -->
+			<xs:enumeration value="245"/><!-- Rückstellungen langfristig -->
+			<xs:enumeration value="281"/><!-- Eigenkapital zu Beginn des Geschäftsjahres -->
+			<xs:enumeration value="282"/><!-- Kapitaleinlagen / Kapitalrückzüge -->
+			<xs:enumeration value="2831"/><!-- Nicht landwirtschaftliches selbständiges Einkommen -->
+			<xs:enumeration value="28331"/><!-- Einkommen auswärtige Arbeit -->
+			<xs:enumeration value="28335"/><!-- Lohn Ehepartner für Arbeit auf dem landw. Betrieb -->
+			<xs:enumeration value="28336"/><!-- Lohn Ehepartner für Arbeit auf dem nicht landw. Nebenbetrieb -->
+			<xs:enumeration value="28391"/><!-- Private Wertschriftenerträge -->
+			<xs:enumeration value="28392"/><!-- Erfolg betriebsfremde Liegenschaften -->
+			<xs:enumeration value="28393"/><!-- Familien- und Kinderzulagen -->
+			<xs:enumeration value="28394"/><!-- Renten, Versicherungsleistungen, Ergänzungsleistungen -->
+			<xs:enumeration value="28395"/><!-- Übrige Einkünfte -->
+			<xs:enumeration value="28397"/><!-- Gewinne und Verluste aus Veräusserung von Grundstücken -->
+			<xs:enumeration value="28398"/><!-- Einkommen aus nicht landwirtschaftlichen Gemeinschaften -->
+			<xs:enumeration value="2851"/><!-- Naturalbezüge -->
+			<xs:enumeration value="2852"/><!-- Privatanteile am Betriebsaufwand & Betriebsanteil am Verpflegungsaufwand (Angest -->
+			<xs:enumeration value="2853"/><!-- Mietwert Privatwohnung -->
+			<xs:enumeration value="28551"/><!-- Ordentliche Beiträge - Berufliche Vorsorge 2b (2.Säule) -->
+			<xs:enumeration value="28553"/><!-- Einkäufe - Berufliche Vorsorge 2b (2.Säule) -->
+			<xs:enumeration value="28555"/><!-- Private Vorsorge 3a -->
+			<xs:enumeration value="2859"/><!-- Übriger Privatverbrauch -->
+			<xs:enumeration value="289"/><!-- Jahresgewinn oder Jahresverlust -->
+			<xs:enumeration value="2901"/><!-- Eigenkapital zu Beginn des Geschäftsjahres (A) -->
+			<xs:enumeration value="2902"/><!-- Eigenkapital zu Beginn des Geschäftsjahres (B) -->
+			<xs:enumeration value="2903"/><!-- Eigenkapital zu Beginn des Geschäftsjahres (C) -->
+			<xs:enumeration value="2904"/><!-- Eigenkapital zu Beginn des Geschäftsjahres (D) -->
+			<xs:enumeration value="2911"/><!-- Kapitaleinlagen / Kapitalrückzüge (A) -->
+			<xs:enumeration value="2912"/><!-- Kapitaleinlagen / Kapitalrückzüge (B) -->
+			<xs:enumeration value="2913"/><!-- Kapitaleinlagen / Kapitalrückzüge (C) -->
+			<xs:enumeration value="2914"/><!-- Kapitaleinlagen / Kapitalrückzüge (D) -->
+			<xs:enumeration value="2921"/><!-- Nebeneinkünfte (A) -->
+			<xs:enumeration value="2922"/><!-- Nebeneinkünfte (B) -->
+			<xs:enumeration value="2923"/><!-- Nebeneinkünfte (C) -->
+			<xs:enumeration value="2924"/><!-- Nebeneinkünfte (D) -->
+			<xs:enumeration value="2941"/><!-- Nebenrechnung (A) -->
+			<xs:enumeration value="2942"/><!-- Nebenrechnung (B) -->
+			<xs:enumeration value="2943"/><!-- Nebenrechnung (C) -->
+			<xs:enumeration value="2944"/><!-- Nebenrechnung (D) -->
+			<xs:enumeration value="29511"/><!-- Naturalbezüge (A) -->
+			<xs:enumeration value="29512"/><!-- Naturalbezüge (B) -->
+			<xs:enumeration value="29513"/><!-- Naturalbezüge (C) -->
+			<xs:enumeration value="29514"/><!-- Naturalbezüge (D) -->
+			<xs:enumeration value="29521"/><!-- Privatanteile am Betriebsaufwand & Betriebsanteil am Verpflegungsaufwand (Angest -->
+			<xs:enumeration value="29522"/><!-- Privatanteile am Betriebsaufwand & Betriebsanteil am Verpflegungsaufwand (Angest -->
+			<xs:enumeration value="29523"/><!-- Privatanteile am Betriebsaufwand & Betriebsanteil am Verpflegungsaufwand (Angest -->
+			<xs:enumeration value="29524"/><!-- Privatanteile am Betriebsaufwand & Betriebsanteil am Verpflegungsaufwand (Angest -->
+			<xs:enumeration value="29531"/><!-- Mietwert Privatwohnung  (A) -->
+			<xs:enumeration value="29532"/><!-- Mietwert Privatwohnung  (B) -->
+			<xs:enumeration value="29533"/><!-- Mietwert Privatwohnung  (C) -->
+			<xs:enumeration value="29534"/><!-- Mietwert Privatwohnung  (D) -->
+			<xs:enumeration value="295511"/><!-- Ordentliche Beiträge - Berufliche Vorsorge 2b (2.Säule) - Gesellschafter A -->
+			<xs:enumeration value="295512"/><!-- Ordentliche Beiträge - Berufliche Vorsorge 2b (2.Säule) - Gesellschafter B -->
+			<xs:enumeration value="295513"/><!-- Ordentliche Beiträge - Berufliche Vorsorge 2b (2.Säule) - Gesellschafter C -->
+			<xs:enumeration value="295514"/><!-- Ordentliche Beiträge - Berufliche Vorsorge 2b (2.Säule) - Gesellschafter D -->
+			<xs:enumeration value="295531"/><!-- Einkäufe - Berufliche Vorsorge 2b (2.Säule) - Gesellschafter A -->
+			<xs:enumeration value="295532"/><!-- Einkäufe - Berufliche Vorsorge 2b (2.Säule) - Gesellschafter B -->
+			<xs:enumeration value="295533"/><!-- Einkäufe - Berufliche Vorsorge 2b (2.Säule) - Gesellschafter C -->
+			<xs:enumeration value="295534"/><!-- Einkäufe - Berufliche Vorsorge 2b (2.Säule) - Gesellschafter D -->
+			<xs:enumeration value="295551"/><!-- Private Vorsorge 3a  (A) -->
+			<xs:enumeration value="295552"/><!-- Private Vorsorge 3a (B) -->
+			<xs:enumeration value="295553"/><!-- Private Vorsorge 3a (C) -->
+			<xs:enumeration value="295554"/><!-- Private Vorsorge 3a (D) -->
+			<xs:enumeration value="29591"/><!-- Übriger Privatverbrauch (A) -->
+			<xs:enumeration value="29592"/><!-- Übriger Privatverbrauch (B) -->
+			<xs:enumeration value="29593"/><!-- Übriger Privatverbrauch (C) -->
+			<xs:enumeration value="29594"/><!-- Übriger Privatverbrauch (D) -->
+			<xs:enumeration value="2991"/><!-- Jahresgewinn oder Jahresverlust (A) -->
+			<xs:enumeration value="2992"/><!-- Jahresgewinn oder Jahresverlust (B) -->
+			<xs:enumeration value="2993"/><!-- Jahresgewinn oder Jahresverlust (C) -->
+			<xs:enumeration value="2994"/><!-- Jahresgewinn oder Jahresverlust (D) -->
+			<xs:enumeration value="301"/><!-- Ertrag Brotgetreidebau -->
+			<xs:enumeration value="303"/><!-- Ertrag Futtergetreidebau -->
+			<xs:enumeration value="305"/><!-- Ertrag Hackfruchtbau und andere Hauptkulturen -->
+			<xs:enumeration value="307"/><!-- Ertrag Saat- und Pflanzgutproduktion -->
+			<xs:enumeration value="308"/><!-- Ertrag Futterbau -->
+			<xs:enumeration value="31"/><!-- Produktionsertrag Gemüsebauprodukte -->
+			<xs:enumeration value="321"/><!-- Ertrag Obstbau -->
+			<xs:enumeration value="322"/><!-- Ertrag Rebbau -->
+			<xs:enumeration value="323"/><!-- Ertrag Beeren -->
+			<xs:enumeration value="324"/><!-- Ertrag Wald -->
+			<xs:enumeration value="328"/><!-- Andere Erträge von Früchten und Beeren -->
+			<xs:enumeration value="329"/><!-- Zuwachs Dauerkulturen -->
+			<xs:enumeration value="331"/><!-- Ertrag Verkauf Stroh -->
+			<xs:enumeration value="332"/><!-- Hagelversicherungsentschädigung -->
+			<xs:enumeration value="339"/><!-- Verschiedene Nebenerträge Pflanzenbau -->
+			<xs:enumeration value="341"/><!-- Ertrag Milch und Milchprodukte -->
+			<xs:enumeration value="3421"/><!-- Schlachtung / Verkauf Kühe -->
+			<xs:enumeration value="34211"/><!-- Schlachtung Nutzkühe (inkl. Verkauf zu Schlachtpreis) -->
+			<xs:enumeration value="34213"/><!-- Verkauf Zucht- und Nutzkühe (nur weibliche Tiere abgekalbt) -->
+			<xs:enumeration value="3423"/><!-- Schlachtung / Verkauf Kälber -->
+			<xs:enumeration value="34231"/><!-- Verkauf Tränker (< 160 Tage) -->
+			<xs:enumeration value="34233"/><!-- Verkauf Zuchtkälber und Stiere (<160 Tage) -->
+			<xs:enumeration value="34235"/><!-- Schlachtung Mastkälber (<160 Tage) -->
+			<xs:enumeration value="3425"/><!-- Schlachtung / Verkauf Rinder und Stier > 160 Tage -->
+			<xs:enumeration value="34251"/><!-- Schlachtung Jungvieh und Stiere (Zucht- und Nutztiere) -->
+			<xs:enumeration value="34253"/><!-- Verkauf Jungvieh und Stiere (Zucht- und Nutztiere) -->
+			<xs:enumeration value="34255"/><!-- Schlachtung Masttiere (Rindvieh - weiblich & männlich) -->
+			<xs:enumeration value="34257"/><!-- Verkauf Masttiere (Rindvieh - weiblich & männlich) -->
+			<xs:enumeration value="343"/><!-- Schlachtung / Verkauf Schweine -->
+			<xs:enumeration value="3431"/><!-- Schlachtung / Verkauf Mastschweine -->
+			<xs:enumeration value="3433"/><!-- Verkauf Zuchtschweine -->
+			<xs:enumeration value="3435"/><!-- Verkauf Ferkel / Jager -->
+			<xs:enumeration value="3441"/><!-- Ertrag Eier -->
+			<xs:enumeration value="3443"/><!-- Schlachtung / Verkauf Geflügel -->
+			<xs:enumeration value="34431"/><!-- Schlachtung Geflügel -->
+			<xs:enumeration value="34433"/><!-- Verkauf Geflügel -->
+			<xs:enumeration value="345"/><!-- Schlachtung / Verkauf andere Tiere -->
+			<xs:enumeration value="346"/><!-- Ertrag Haltegelder (Pensionvieh) -->
+			<xs:enumeration value="349"/><!-- Übrige Erträge Tierhaltung -->
+			<xs:enumeration value="35"/><!-- Ertrag Verarbeitungsprodukte -->
+			<xs:enumeration value="361"/><!-- Ertrag erneuerbare Energien -->
+			<xs:enumeration value="363"/><!-- Erträge aus Lizenzen, Patenten usw. -->
+			<xs:enumeration value="365"/><!-- Ertrag Handelsprodukte -->
+			<xs:enumeration value="3671"/><!-- Arbeiten für Dritte (jeglicher Art) -->
+			<xs:enumeration value="3673"/><!-- Maschinenvermietung (landwirtschaftlich) -->
+			<xs:enumeration value="368"/><!-- Sonstige Erträge -->
+			<xs:enumeration value="3691"/><!-- Erlösminderungen (ohne MWST) -->
+			<xs:enumeration value="3699"/><!-- MWST - Saldosteuersatz -->
+			<xs:enumeration value="37"/><!-- Lieferungen an Betrieb und Privat -->
+			<xs:enumeration value="3811"/><!-- Offenhaltungsbeiträge -->
+			<xs:enumeration value="3812"/><!-- Hangbeiträge (inkl. Reben) -->
+			<xs:enumeration value="3813"/><!-- Steillagenbeitrag -->
+			<xs:enumeration value="3814"/><!-- Alpungsbeitrag -->
+			<xs:enumeration value="3815"/><!-- Sömmerungsbeitrag -->
+			<xs:enumeration value="3821"/><!-- Basisbeitrag -->
+			<xs:enumeration value="3822"/><!-- Produktionserschwernisbeitrag -->
+			<xs:enumeration value="3823"/><!-- Beitrag für die offene Ackerfläche und für Dauerkulturen -->
+			<xs:enumeration value="3831"/><!-- Qualitätsbeitrag -->
+			<xs:enumeration value="3832"/><!-- Vernetzungsbeitrag -->
+			<xs:enumeration value="3833"/><!-- Landschaftsqualitätsbeiträge -->
+			<xs:enumeration value="3841"/><!-- Bio-Beiträge -->
+			<xs:enumeration value="3842"/><!-- EXTENSO-Beitrag -->
+			<xs:enumeration value="3843"/><!-- Beitrag für graslandbasierte Milch- und Fleischproduktion -->
+			<xs:enumeration value="38441"/><!-- BTS-Beiträge -->
+			<xs:enumeration value="38442"/><!-- RAUS-Beiträge -->
+			<xs:enumeration value="3851"/><!-- Beitrag für emissionsmindernde Ausbringverfahren -->
+			<xs:enumeration value="3852"/><!-- Beitrag für schonende Bodenbearbeitung -->
+			<xs:enumeration value="3853"/><!-- Beitrag für den Einsatz von präziser Applikationstechnik -->
+			<xs:enumeration value="387"/><!-- Einzelkulturbeiträge -->
+			<xs:enumeration value="388"/><!-- Übergangsbeiträge -->
+			<xs:enumeration value="389"/><!-- Andere Bundes- und kantonale Beiträge -->
+			<xs:enumeration value="39"/><!-- Bestandesänderungen -->
+			<xs:enumeration value="411"/><!-- Saat- und Pflanzgut -->
+			<xs:enumeration value="412"/><!-- Dünger -->
+			<xs:enumeration value="413"/><!-- Pflanzenschutzmittel -->
+			<xs:enumeration value="414"/><!-- Verpackungs- und Trocknungsaufwand -->
+			<xs:enumeration value="417"/><!-- Hagelversicherungsprämien -->
+			<xs:enumeration value="419"/><!-- Anderer Aufwand pflanzenbauliche Produktion -->
+			<xs:enumeration value="4411"/><!-- Kauf Zucht- und Nutzkühe (abgekalbt) -->
+			<xs:enumeration value="4413"/><!-- Kauf Kälber -->
+			<xs:enumeration value="44131"/><!-- Kauf weibliche & männliche Tränker (Mastzweck) -->
+			<xs:enumeration value="44133"/><!-- Kauf weibliche Kälber -->
+			<xs:enumeration value="44135"/><!-- Kauf Stiere -->
+			<xs:enumeration value="4415"/><!-- Kauf Rinder und Stiere > 160 Tage -->
+			<xs:enumeration value="44151"/><!-- Kauf Jungvieh (weibliches Rindvieh Zucht- und Nutzzweck) -->
+			<xs:enumeration value="44153"/><!-- Kauf Stiere und Jungstiere (Zucht- und Nutzzweck) -->
+			<xs:enumeration value="44155"/><!-- Kauf Mastremonten (weiblich & männlich) -->
+			<xs:enumeration value="44157"/><!-- Kauf anderes Rindvieh zu Mastzweck (weiblich & männlich) -->
+			<xs:enumeration value="442"/><!-- Kauf Schweine -->
+			<xs:enumeration value="4421"/><!-- Kauf Zucht- und Mastschweine -->
+			<xs:enumeration value="4425"/><!-- Kauf Ferkel / Jager -->
+			<xs:enumeration value="443"/><!-- Kauf Geflügel -->
+			<xs:enumeration value="4431"/><!-- Kauf Zucht-, Nutz- und Mastgeflügel -->
+			<xs:enumeration value="4435"/><!-- Kauf Kücken -->
+			<xs:enumeration value="444"/><!-- Kauf andere Tiere -->
+			<xs:enumeration value="445"/><!-- Miete Milchlieferrecht -->
+			<xs:enumeration value="4471"/><!-- Zukauf Heu / Gras -->
+			<xs:enumeration value="4472"/><!-- Zukauf Grassilage -->
+			<xs:enumeration value="4473"/><!-- Zukauf Maissilage -->
+			<xs:enumeration value="4474"/><!-- Raufutter künstlich getrocknet -->
+			<xs:enumeration value="4479"/><!-- Anderes Rau- und Grundfutter -->
+			<xs:enumeration value="4481"/><!-- Kraftfutter -->
+			<xs:enumeration value="4483"/><!-- Milchpulver -->
+			<xs:enumeration value="4485"/><!-- Milch und Molkereiabfälle (Verfütterung) -->
+			<xs:enumeration value="4487"/><!-- Mineralstoffe, Vitamine -->
+			<xs:enumeration value="4491"/><!-- Stroh, Streue (zugekauft) -->
+			<xs:enumeration value="4493"/><!-- Tierarzt, Tierarzneimittel -->
+			<xs:enumeration value="4495"/><!-- Sprunggeld, KB -->
+			<xs:enumeration value="4497"/><!-- Aufzuchtkosten, Futter- & Sömmerungsgelder -->
+			<xs:enumeration value="4499"/><!-- Verschiedene Aufwände Tierhaltung -->
+			<xs:enumeration value="45"/><!-- Materialaufwand Verarbeitungsprodukte -->
+			<xs:enumeration value="461"/><!-- Materialaufwand erneuerbare Energie -->
+			<xs:enumeration value="462"/><!-- Handelswarenaufwand -->
+			<xs:enumeration value="4641"/><!-- Arbeiten durch Dritte -->
+			<xs:enumeration value="4642"/><!-- Aufwand Maschinenmiete -->
+			<xs:enumeration value="465"/><!-- Aufwand für Verpackung -->
+			<xs:enumeration value="469"/><!-- Anderer Material-, Waren- und Drittleistungsaufwand -->
+			<xs:enumeration value="49"/><!-- Aufwandminderungen -->
+			<xs:enumeration value="51"/><!-- Lohnaufwand -->
+			<xs:enumeration value="53"/><!-- Sozialversicherungsaufwand Angestellte -->
+			<xs:enumeration value="551"/><!-- AHV, IV, EO Betriebsleiter -->
+			<xs:enumeration value="553"/><!-- Berufliche Vorsorge 2b - Betriebsleiterpaar -->
+			<xs:enumeration value="554"/><!-- Einkäufe in Berufliche Vorsorge 2b - Betriebsleiterpaar -->
+			<xs:enumeration value="555"/><!-- Unfall und Krankentaggeldversicherung Betriebsleiterpaar -->
+			<xs:enumeration value="57"/><!-- Übriger Personalaufwand -->
+			<xs:enumeration value="58"/><!-- Privatanteil Personalaufwand -->
+			<xs:enumeration value="6011"/><!-- Parzellenpachtzinse -->
+			<xs:enumeration value="6013"/><!-- Gewerbepachtzinse (Vollpacht) -->
+			<xs:enumeration value="6019"/><!-- Übrige Pacht- und Mietzinse -->
+			<xs:enumeration value="6031"/><!-- Eigenmiete Parzellen -->
+			<xs:enumeration value="6033"/><!-- Eigenmiete Gewerbe (Vollpacht) -->
+			<xs:enumeration value="6039"/><!-- Übrige Eigenmieten -->
+			<xs:enumeration value="6091"/><!-- Nebenkosten und Reinigungsaufwand Geschäftsimmobilien -->
+			<xs:enumeration value="60931"/><!-- Unterhalt Wohnhaus -->
+			<xs:enumeration value="60933"/><!-- Unterhalt Ökonomiegebäude -->
+			<xs:enumeration value="60935"/><!-- Unterhalt feste Einrichtungen -->
+			<xs:enumeration value="60937"/><!-- Unterhalt Meliorationen -->
+			<xs:enumeration value="6095"/><!-- Leasing Geschäftsimmobilien -->
+			<xs:enumeration value="6099"/><!-- Privatanteile Raumaufwand -->
+			<xs:enumeration value="611"/><!-- URE mobiler Sachanlagen -->
+			<xs:enumeration value="6151"/><!-- Reparaturen, Service, Reinigungen (Fahrzeuge) -->
+			<xs:enumeration value="6152"/><!-- Treib und Schmierstoffe -->
+			<xs:enumeration value="6153"/><!-- Versicherungen (Fahrzeuge) -->
+			<xs:enumeration value="6154"/><!-- Verkehrsabgaben, Beiträge, Gebühren (Fahrzeuge) -->
+			<xs:enumeration value="6155"/><!-- Fahrzeugleasing, Fahrzeugmieten -->
+			<xs:enumeration value="6157"/><!-- Privatanteil Fahrzeugaufwand -->
+			<xs:enumeration value="6158"/><!-- Transportaufwand -->
+			<xs:enumeration value="631"/><!-- Sachversicherungen -->
+			<xs:enumeration value="633"/><!-- Abgaben, Gebühren, Bewilligungen -->
+			<xs:enumeration value="641"/><!-- Elektrizität -->
+			<xs:enumeration value="643"/><!-- Gas, Brennstoffe, Heizmaterial -->
+			<xs:enumeration value="645"/><!-- Wasser -->
+			<xs:enumeration value="647"/><!-- Entsorgungsaufwand -->
+			<xs:enumeration value="651"/><!-- Telefon, Internet, Porto -->
+			<xs:enumeration value="653"/><!-- Buchführungs-, Beratungsaufwand -->
+			<xs:enumeration value="655"/><!-- Informatikaufwand -->
+			<xs:enumeration value="659"/><!-- übriger Verwaltungsaufwand -->
+			<xs:enumeration value="66"/><!-- Privatanteil Betriebsaufwand (Energie & Verwaltung) -->
+			<xs:enumeration value="671"/><!-- Werbeaufwand -->
+			<xs:enumeration value="672"/><!-- Sonstiger betrieblicher Aufwand -->
+			<xs:enumeration value="681"/><!-- Wertberichtigungen Finanzanlagen -->
+			<xs:enumeration value="685"/><!-- Abschreibungen und Wertberichtigungen mobile Sachanlagen -->
+			<xs:enumeration value="687"/><!-- Abschreibungen und Wertberichtigungen immaterielle Werte -->
+			<xs:enumeration value="6911"/><!-- Zinsaufwand -->
+			<xs:enumeration value="6919"/><!-- Übriger Finanzaufwand -->
+			<xs:enumeration value="6951"/><!-- Erträge aus flüssigen Mittel -->
+			<xs:enumeration value="6953"/><!-- Erträge aus Finanzanlagen und Beteiligungen -->
+			<xs:enumeration value="6959"/><!-- Übriger Finanzertrag -->
+			<xs:enumeration value="71"/><!-- Erfolg Betriebszweiggemeinschaft -->
+			<xs:enumeration value="75111"/><!-- Eigenmietwerte Geschäftslokalitäten -->
+			<xs:enumeration value="75115"/><!-- Eigenmietwert Privatwohnung -->
+			<xs:enumeration value="75131"/><!-- Mietzinseinnahmen Wohnungen -->
+			<xs:enumeration value="75133"/><!-- Ertrag Wohnrecht -->
+			<xs:enumeration value="75135"/><!-- Mietzinseinnahmen Ökonomie- und übrige Gebäude -->
+			<xs:enumeration value="75171"/><!-- Pachtzinseinnahmen -->
+			<xs:enumeration value="75179"/><!-- Übriger Liegenschaftsertrag -->
+			<xs:enumeration value="7518"/><!-- Anteil Heizung, Beleuchtung -->
+			<xs:enumeration value="7551"/><!-- Liegenschaftsschuldzinse -->
+			<xs:enumeration value="75521"/><!-- Liegenschaftsunterhalt Ökonomiegebäude -->
+			<xs:enumeration value="75523"/><!-- Liegenschaftsunterhalt Feste Einrichtungen -->
+			<xs:enumeration value="75525"/><!-- Liegenschaftsunterhalt Wohngebäude -->
+			<xs:enumeration value="75529"/><!-- Übriger Liegenschaftsunterhalt -->
+			<xs:enumeration value="75531"/><!-- Abgaben, Gebühren, Objektsteuern (Liegenschaft) -->
+			<xs:enumeration value="755321"/><!-- Wohngebäude - Versicherungsprämien -->
+			<xs:enumeration value="755322"/><!-- Ökonomiegebäude - Versicherungsprämien -->
+			<xs:enumeration value="7558"/><!-- Übriger Liegenschaftsaufwand -->
+			<xs:enumeration value="7559"/><!-- Abschreibungen und Wertberichtigungen betriebliche Liegenschaften -->
+			<xs:enumeration value="781"/><!-- Ertrag nicht landw. Nebenbetriebe -->
+			<xs:enumeration value="7851"/><!-- Materialaufwand - nicht landw. Nebenbetriebe -->
+			<xs:enumeration value="7853"/><!-- Personalaufwand  - nicht landw. Nebenbetriebe -->
+			<xs:enumeration value="7855"/><!-- Übriger Aufwand des nicht landw. Nebenbetriebes -->
+			<xs:enumeration value="81"/><!-- Betriebsfremder Aufwand und Ertrag -->
+			<xs:enumeration value="821"/><!-- Gewinne und Verluste aus Veräusserung von Anlagevermögen -->
+			<xs:enumeration value="829"/><!-- Andere ausserordentliche Aufwände und Erträge -->
+			<xs:enumeration value="83"/><!-- Einmaliger Aufwand und Ertrag -->
+			<xs:enumeration value="84"/><!-- Periodenfremder Aufwand und Ertrag -->
+			<xs:enumeration value="901"/><!-- Jahresgewinn / -verlust -->
+			<xs:enumeration value="902"/><!-- Eigenkapitalveränderung -->
+			<xs:enumeration value="911"/><!-- Eröffnungsbilanz -->
+			<xs:enumeration value="912"/><!-- Summenbilanz -->
+			<xs:enumeration value="981"/><!-- Zwischenkonto interne Lieferungen -->
+			<xs:enumeration value="982"/><!-- Zwischenkonto Verteilung von Aufwand -->
+			<xs:enumeration value="983"/><!-- Zwischenkonto Verteilung von Ertrag -->
+			<xs:enumeration value="989"/><!-- Zwischenkonto (nicht näher spezifiziert) -->
+			<xs:enumeration value="99"/><!-- Kontenzuteilung Unklar (nur für Testzwecke) -->
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- ZA COSTUNITNUMBER -->
+	<xs:simpleType name="CostunitnumberZARestriction">
+		<xs:restriction base="xs:token">
+			<xs:enumeration value="0100"/><!-- Saatgut zum Verteilen -->
+			<xs:enumeration value="0200"/><!-- Dünger zum Verteilen -->
+			<xs:enumeration value="0300"/><!-- Spritzmittel zum Verteilen -->
+			<xs:enumeration value="0500"/><!-- Futter zum Verteilen -->
+			<xs:enumeration value="0700"/><!-- Versicherungen zum Verteilen -->
+			<xs:enumeration value="1000"/><!-- Getreide (nicht detailliert) -->
+			<xs:enumeration value="1100"/><!-- Weizen -->
+			<xs:enumeration value="1111"/><!-- Weizen -->
+			<xs:enumeration value="1112"/><!-- Roggen -->
+			<xs:enumeration value="1113"/><!-- Emmer, Einkorn -->
+			<xs:enumeration value="1113"/><!-- Dinkel -->
+			<xs:enumeration value="1118"/><!-- Mischel Brotgetreide -->
+			<xs:enumeration value="1121"/><!-- Gerste -->
+			<xs:enumeration value="1122"/><!-- Hafer -->
+			<xs:enumeration value="1123"/><!-- Triticale -->
+			<xs:enumeration value="1124"/><!-- Futterweizen -->
+			<xs:enumeration value="1128"/><!-- Mischel Futtergetreide -->
+			<xs:enumeration value="1200"/><!-- Roggen -->
+			<xs:enumeration value="121"/><!-- Körnermais -->
+			<xs:enumeration value="122"/><!-- Silo- und Grünmais -->
+			<xs:enumeration value="123"/><!-- Saatmais -->
+			<xs:enumeration value="124"/><!-- Hirse -->
+			<xs:enumeration value="13"/><!-- Kartoffeln -->
+			<xs:enumeration value="1300"/><!-- Korn -->
+			<xs:enumeration value="1400"/><!-- Mischel von Brotgetreide -->
+			<xs:enumeration value="141"/><!-- Zuckerrüben -->
+			<xs:enumeration value="142"/><!-- Futterrüben -->
+			<xs:enumeration value="1500"/><!-- Gerste -->
+			<xs:enumeration value="151"/><!-- Raps zur Speiseölgewinnung -->
+			<xs:enumeration value="152"/><!-- Soja -->
+			<xs:enumeration value="153"/><!-- Sonnenblumen zur Speiseölgewinnung -->
+			<xs:enumeration value="158"/><!-- übrige Ölsaaten -->
+			<xs:enumeration value="1600"/><!-- Hafer -->
+			<xs:enumeration value="161"/><!-- Ackerbohnen zu Futterzwecken -->
+			<xs:enumeration value="162"/><!-- Eiweisserbsen zu Futterzwecken -->
+			<xs:enumeration value="168"/><!-- Übrige Körnerleguminosen -->
+			<xs:enumeration value="1700"/><!-- Triticale -->
+			<xs:enumeration value="1800"/><!-- Mischel von Futtergetreide -->
+			<xs:enumeration value="181"/><!-- Einjährige nachwachsende Rohstoffe -->
+			<xs:enumeration value="182"/><!-- Einjährige Beeren -->
+			<xs:enumeration value="1820"/><!-- Futterweizen -->
+			<xs:enumeration value="183"/><!-- Einjährige Gewürz- und Medizinalpflanzen -->
+			<xs:enumeration value="184"/><!-- Tabak -->
+			<xs:enumeration value="185"/><!-- Einjähriges Freilandgemüse (ohne Konservengemüse) -->
+			<xs:enumeration value="186"/><!-- Freiland-Konservengemüse -->
+			<xs:enumeration value="187"/><!-- Übrige Ackerkulturen -->
+			<xs:enumeration value="188"/><!-- Einjährige gärtnerische Freilandkulturen -->
+			<xs:enumeration value="191"/><!-- Buntbrache -->
+			<xs:enumeration value="192"/><!-- Rotationsbrache -->
+			<xs:enumeration value="193"/><!-- Saum auf Ackerland -->
+			<xs:enumeration value="194"/><!-- Ackerschonstreifen -->
+			<xs:enumeration value="21"/><!-- Futterbau (ohne Mais, Futterrüben und Samenproduktion) -->
+			<xs:enumeration value="2100"/><!-- Körnermais -->
+			<xs:enumeration value="2120"/><!-- Maiskolbenschrot -->
+			<xs:enumeration value="2180"/><!-- Hirse -->
+			<xs:enumeration value="22"/><!-- Samenproduktion Futterbau -->
+			<xs:enumeration value="2300"/><!-- Zuckerrüben -->
+			<xs:enumeration value="2400"/><!-- Raps zur Speiseölgewinnung -->
+			<xs:enumeration value="2420"/><!-- Soja zur Speiseölgewinnung -->
+			<xs:enumeration value="2440"/><!-- Sonnenblumen zur Speiseölgewinnung -->
+			<xs:enumeration value="2500"/><!-- Ackerbohnen -->
+			<xs:enumeration value="2520"/><!-- Eiweisserbsen -->
+			<xs:enumeration value="2700"/><!-- Industrieraps -->
+			<xs:enumeration value="2710"/><!-- Kenaf -->
+			<xs:enumeration value="2720"/><!-- Hanf -->
+			<xs:enumeration value="2730"/><!-- Lein, Flachs -->
+			<xs:enumeration value="2740"/><!-- Industriesonnenblumen -->
+			<xs:enumeration value="2800"/><!-- Grünbrache -->
+			<xs:enumeration value="2810"/><!-- Buntbrache -->
+			<xs:enumeration value="2820"/><!-- Rotationsbrache -->
+			<xs:enumeration value="2830"/><!-- Saum auf Ackerfläche -->
+			<xs:enumeration value="2840"/><!-- Blühstreifen -->
+			<xs:enumeration value="2860"/><!-- Tabak -->
+			<xs:enumeration value="2870"/><!-- Medizinal- und Gewürzpflanzen -->
+			<xs:enumeration value="2880"/><!-- Einjährige Erdbeeren -->
+			<xs:enumeration value="2900"/><!-- Einjährig.gärtn.Freilandk.(Setzlinge,Blumen usw.) -->
+			<xs:enumeration value="3000"/><!-- Futterbau (ohne Detail) -->
+			<xs:enumeration value="31"/><!-- Reben -->
+			<xs:enumeration value="3100"/><!-- Weiden -->
+			<xs:enumeration value="3200"/><!-- Weiden im Sömmerungsgebiet -->
+			<xs:enumeration value="321"/><!-- Obst, Streuobst (ohne Fläche) -->
+			<xs:enumeration value="322"/><!-- Obstanlagen -->
+			<xs:enumeration value="33"/><!-- Gemüse-Dauerkulturen -->
+			<xs:enumeration value="34"/><!-- Mehrjährige Beeren -->
+			<xs:enumeration value="35"/><!-- Mehrjährige nachwachsende Rohstoffe -->
+			<xs:enumeration value="3500"/><!-- Silomais -->
+			<xs:enumeration value="36"/><!-- Hopfen -->
+			<xs:enumeration value="3600"/><!-- Futterrüben -->
+			<xs:enumeration value="37"/><!-- Mehrjährige Gewürz- und Medizinalpflanzen -->
+			<xs:enumeration value="38"/><!-- Christbäume, Baumschulen und ähnliches -->
+			<xs:enumeration value="39"/><!-- Übrige Dauerkulturen -->
+			<xs:enumeration value="3900"/><!-- Streue- und Torfland -->
+			<xs:enumeration value="41"/><!-- Gewächshaus- und Tunnel-Frischgemüse -->
+			<xs:enumeration value="4110"/><!-- Karotten -->
+			<xs:enumeration value="4120"/><!-- Zwiebeln -->
+			<xs:enumeration value="4130"/><!-- Sellerie -->
+			<xs:enumeration value="4140"/><!-- Blumenkohl -->
+			<xs:enumeration value="4150"/><!-- Broccoli -->
+			<xs:enumeration value="4160"/><!-- Fenchel -->
+			<xs:enumeration value="4170"/><!-- Kohlrabi -->
+			<xs:enumeration value="4180"/><!-- Lauch -->
+			<xs:enumeration value="4190"/><!-- Blattsalat -->
+			<xs:enumeration value="42"/><!-- Gärtnerische Kulturen in geschützem Anbau -->
+			<xs:enumeration value="4200"/><!-- Nüsslisalat -->
+			<xs:enumeration value="4210"/><!-- Spinat -->
+			<xs:enumeration value="4220"/><!-- Chinakohl -->
+			<xs:enumeration value="4230"/><!-- Bohnen -->
+			<xs:enumeration value="4240"/><!-- Zucchetti -->
+			<xs:enumeration value="4250"/><!-- Chicorée -->
+			<xs:enumeration value="4370"/><!-- Spargel (Dauerkultur) -->
+			<xs:enumeration value="4380"/><!-- Rhabarbern (Dauerkultur) -->
+			<xs:enumeration value="4390"/><!-- Anderes Freiland Frischgemüse -->
+			<xs:enumeration value="4410"/><!-- Karotten -->
+			<xs:enumeration value="4420"/><!-- Zwiebeln -->
+			<xs:enumeration value="4430"/><!-- Sellerie -->
+			<xs:enumeration value="4440"/><!-- Weiss-, Rotkohl, Wirz -->
+			<xs:enumeration value="4450"/><!-- Randen -->
+			<xs:enumeration value="4590"/><!-- Anderes Freiland Lagergemüse -->
+			<xs:enumeration value="4610"/><!-- Maschinenbohnen -->
+			<xs:enumeration value="4620"/><!-- Drescherbsen -->
+			<xs:enumeration value="4630"/><!-- Maschinenspinat -->
+			<xs:enumeration value="4640"/><!-- Pariserkarotten (maschinelle Ernte) -->
+			<xs:enumeration value="4650"/><!-- Einschneidekabis -->
+			<xs:enumeration value="4690"/><!-- Anderes Freiland Verarbeitungsgemüse -->
+			<xs:enumeration value="4710"/><!-- Gurken Salat -->
+			<xs:enumeration value="4720"/><!-- Tomaten Rispe -->
+			<xs:enumeration value="4730"/><!-- Tomaten Rund/Fleisch/Peretti -->
+			<xs:enumeration value="4740"/><!-- Tomaten Cherry -->
+			<xs:enumeration value="4750"/><!-- Blattsalate -->
+			<xs:enumeration value="4760"/><!-- Nüsslisalate -->
+			<xs:enumeration value="4770"/><!-- Radies -->
+			<xs:enumeration value="4780"/><!-- Aubergine -->
+			<xs:enumeration value="4790"/><!-- Andere Gewächshaus- und Tunnel-Frischgemüse -->
+			<xs:enumeration value="4990"/><!-- Andere gärtnerische Kulturen -->
+			<xs:enumeration value="51"/><!-- Weitere Flächen innerhalb der LN -->
+			<xs:enumeration value="5100"/><!-- Reben -->
+			<xs:enumeration value="5200"/><!-- Jungreben -->
+			<xs:enumeration value="521"/><!-- Wald -->
+			<xs:enumeration value="5220"/><!-- Erneuerungen Reben -->
+			<xs:enumeration value="5240"/><!-- Neuanlage Reben -->
+			<xs:enumeration value="5260"/><!-- Edelreiser Reben -->
+			<xs:enumeration value="528"/><!-- Weitere Flächen ausserhalb der LN -->
+			<xs:enumeration value="5280"/><!-- Baumschule Reben -->
+			<xs:enumeration value="5300"/><!-- Obstbau (Streuobst) -->
+			<xs:enumeration value="5350"/><!-- Obstanlage mit Fläche (nicht detailliert) -->
+			<xs:enumeration value="5400"/><!-- Äpfel (nicht detailliert) -->
+			<xs:enumeration value="5410"/><!-- Golden -->
+			<xs:enumeration value="5420"/><!-- Jonagold -->
+			<xs:enumeration value="5430"/><!-- Gala -->
+			<xs:enumeration value="5440"/><!-- Elstar -->
+			<xs:enumeration value="5450"/><!-- Maigold -->
+			<xs:enumeration value="5460"/><!-- Idared -->
+			<xs:enumeration value="5470"/><!-- Boskoop -->
+			<xs:enumeration value="5480"/><!-- Glockenapfel -->
+			<xs:enumeration value="5490"/><!-- Gravensteiner -->
+			<xs:enumeration value="5540"/><!-- Birnen (nicht detailliert) -->
+			<xs:enumeration value="5550"/><!-- Williams -->
+			<xs:enumeration value="5560"/><!-- Conférence -->
+			<xs:enumeration value="5570"/><!-- Kaiser Alexander -->
+			<xs:enumeration value="5610"/><!-- Kirschen (nicht detailliert) -->
+			<xs:enumeration value="5620"/><!-- Tafelkirschen -->
+			<xs:enumeration value="5630"/><!-- Brennkirschen -->
+			<xs:enumeration value="5640"/><!-- Industriekirschen -->
+			<xs:enumeration value="5660"/><!-- Zwetschgen (nicht detailliert) -->
+			<xs:enumeration value="5670"/><!-- Tafelzwetschgen -->
+			<xs:enumeration value="5680"/><!-- Brennzwetschgen -->
+			<xs:enumeration value="5690"/><!-- Industriezwetschgen -->
+			<xs:enumeration value="5710"/><!-- Andere Obstfrüchte -->
+			<xs:enumeration value="5760"/><!-- Junganlagen Aepfel 1. - 3. Jahr -->
+			<xs:enumeration value="5770"/><!-- Junganlagen Birnen 1. - 4. Jahr -->
+			<xs:enumeration value="5780"/><!-- Junganalgen Kirschen 1. - 4. Jahr -->
+			<xs:enumeration value="5790"/><!-- Junganlagen Zwetschgen 1. - 4. Jahr -->
+			<xs:enumeration value="5810"/><!-- Himbeeren -->
+			<xs:enumeration value="5820"/><!-- Brombeeren -->
+			<xs:enumeration value="5830"/><!-- Johannisbeeren -->
+			<xs:enumeration value="5840"/><!-- Heidelbeeren -->
+			<xs:enumeration value="5860"/><!-- Chinaschilf -->
+			<xs:enumeration value="5870"/><!-- Andere mehrj. nachw. Rohstoffe -->
+			<xs:enumeration value="5880"/><!-- Mehrjährige Erdbeeren -->
+			<xs:enumeration value="5890"/><!-- Hopfen -->
+			<xs:enumeration value="5900"/><!-- Medinzinal- und Gewürzpflanzen -->
+			<xs:enumeration value="5920"/><!-- Christbäume -->
+			<xs:enumeration value="5930"/><!-- Baumschulen von Fortspflanzen ausserhalb Forstzone -->
+			<xs:enumeration value="5940"/><!-- Ziersträucher, -gehölze und- stauden -->
+			<xs:enumeration value="5950"/><!-- Übrige Baumschulen (Rosen, Früchte etc.) -->
+			<xs:enumeration value="5960"/><!-- Hecken und Feldgehölze -->
+			<xs:enumeration value="5970"/><!-- Waldbau -->
+			<xs:enumeration value="6000"/><!-- Produktion Tiere (nicht detailliert) -->
+			<xs:enumeration value="6100"/><!-- Milchvieh und Aufzucht -->
+			<xs:enumeration value="611"/><!-- Milchvieh (ink. Aufzucht,Tränker, gelegentliche Masttiere) -->
+			<xs:enumeration value="612"/><!-- Mutterkühe (inkl. Aufzucht) -->
+			<xs:enumeration value="613"/><!-- Mastkälber -->
+			<xs:enumeration value="6130"/><!-- Fremde Tiere (Milchvieh und Aufzucht) -->
+			<xs:enumeration value="614"/><!-- Rindviehmast (Grosses Mastvieh und Mastremonten) -->
+			<xs:enumeration value="615"/><!-- Haltung fremdes Rindvieh -->
+			<xs:enumeration value="6150"/><!-- Mutterkühe und Aufzucht -->
+			<xs:enumeration value="618"/><!-- Übriges Rindvieh (Bison, Büffel, Highland-Kühe, Mastviehzucht) -->
+			<xs:enumeration value="619"/><!-- Rindvieh- / Kälbermast für Dritte -->
+			<xs:enumeration value="6200"/><!-- Mastkälber -->
+			<xs:enumeration value="621"/><!-- Pferdehaltung -->
+			<xs:enumeration value="6300"/><!-- Grosses Mastvieh -->
+			<xs:enumeration value="631"/><!-- Schafe -->
+			<xs:enumeration value="632"/><!-- Ziegen -->
+			<xs:enumeration value="6350"/><!-- Mastremonten -->
+			<xs:enumeration value="6360"/><!-- Bisons -->
+			<xs:enumeration value="6370"/><!-- Büffel -->
+			<xs:enumeration value="638"/><!-- Andere Raufutter verzehrende Nutztiere -->
+			<xs:enumeration value="6380"/><!-- Highland-Kühe -->
+			<xs:enumeration value="6400"/><!-- Pferde -->
+			<xs:enumeration value="6450"/><!-- Maultiere und Maulesel -->
+			<xs:enumeration value="6470"/><!-- Pony, Kleinpferde -->
+			<xs:enumeration value="6480"/><!-- Esel -->
+			<xs:enumeration value="6500"/><!-- Milchschafe -->
+			<xs:enumeration value="6510"/><!-- Andere Schafe -->
+			<xs:enumeration value="6520"/><!-- Milchziegen -->
+			<xs:enumeration value="6530"/><!-- Andere Ziegen -->
+			<xs:enumeration value="6540"/><!-- Rothirsche -->
+			<xs:enumeration value="6550"/><!-- Damhirsche -->
+			<xs:enumeration value="6560"/><!-- Lamas, Alpakas -->
+			<xs:enumeration value="6600"/><!-- Schweine -->
+			<xs:enumeration value="661"/><!-- Schweine (Zucht und Mast) -->
+			<xs:enumeration value="6610"/><!-- Reine Schweinezucht -->
+			<xs:enumeration value="662"/><!-- Reine Schweinezucht -->
+			<xs:enumeration value="6620"/><!-- Reine Schweinemast -->
+			<xs:enumeration value="663"/><!-- Reine Schweinemast -->
+			<xs:enumeration value="6630"/><!-- Deckbetrieb (APF) -->
+			<xs:enumeration value="664"/><!-- Arbeitsteilige Ferkelprodutkion  -->
+			<xs:enumeration value="6640"/><!-- Abferkelbetrieb (APF) -->
+			<xs:enumeration value="6650"/><!-- Wartebetrieb (APF) -->
+			<xs:enumeration value="6660"/><!-- Ferkelaufzuchtbetrieb (APF) -->
+			<xs:enumeration value="669"/><!-- Schweinemast für Dritte -->
+			<xs:enumeration value="6700"/><!-- Hühner -->
+			<xs:enumeration value="671"/><!-- Konsumeier produzierende Hennen -->
+			<xs:enumeration value="6710"/><!-- Lege- und Zuchthennen -->
+			<xs:enumeration value="672"/><!-- Bruteierproduktion und Junghennen/-häne, Kücken -->
+			<xs:enumeration value="6720"/><!-- Junghennenaufzucht -->
+			<xs:enumeration value="673"/><!-- Mastpoulets -->
+			<xs:enumeration value="674"/><!-- Truten -->
+			<xs:enumeration value="6740"/><!-- Mastpoulets -->
+			<xs:enumeration value="6750"/><!-- Truten -->
+			<xs:enumeration value="6760"/><!-- Gänse -->
+			<xs:enumeration value="6770"/><!-- Enten -->
+			<xs:enumeration value="679"/><!-- Geflügelmast für Dritte -->
+			<xs:enumeration value="6800"/><!-- Kleintiere -->
+			<xs:enumeration value="681"/><!-- Kaninchen -->
+			<xs:enumeration value="6810"/><!-- Kaninchen -->
+			<xs:enumeration value="682"/><!-- Übriges Geflügel -->
+			<xs:enumeration value="689"/><!-- Andere Tiere -->
+			<xs:enumeration value="6890"/><!-- Bienen -->
+			<xs:enumeration value="693"/><!-- Bienenvölker -->
+			<xs:enumeration value="7000"/><!-- Verarbeitung, Handel und Direktvermarktung (nicht detailliert) -->
+			<xs:enumeration value="7100"/><!-- Verarbeitung (nicht detailliert) -->
+			<xs:enumeration value="711"/><!-- Kelterei -->
+			<xs:enumeration value="7110"/><!-- Kelterei -->
+			<xs:enumeration value="718"/><!-- Übrige Verarbeitung -->
+			<xs:enumeration value="72"/><!-- Handel -->
+			<xs:enumeration value="7200"/><!-- Handel (nicht detailliert) -->
+			<xs:enumeration value="7210"/><!-- Ertrag aus Heu- und Strohandel -->
+			<xs:enumeration value="7220"/><!-- Handel Keltereihilfsmittel -->
+			<xs:enumeration value="73"/><!-- Direktvermarktung -->
+			<xs:enumeration value="7300"/><!-- Direktvermarktung -->
+			<xs:enumeration value="7400"/><!-- Agrotourismus (Gäste und Beherbergung) (nicht detailliert) -->
+			<xs:enumeration value="741"/><!-- Miete- und Kostgeld (Ferien auf dem Bauernhof / Schlafen im Stroh / Fremde) -->
+			<xs:enumeration value="7410"/><!-- Miete und Kostgeld aus Ferien auf dem Bauernhof -->
+			<xs:enumeration value="7420"/><!-- Miete und Kostgeld aus Schlafen im Stroh -->
+			<xs:enumeration value="7430"/><!-- Miete und/oder Kostgeld Fremde -->
+			<xs:enumeration value="744"/><!-- Gastwirtschaft -->
+			<xs:enumeration value="7440"/><!-- Ertrag aus Gastwirtschaft -->
+			<xs:enumeration value="745"/><!-- Schule auf dem Bauernhof -->
+			<xs:enumeration value="7450"/><!-- Schule auf dem Bauernhof -->
+			<xs:enumeration value="746"/><!-- Maislabyrinth -->
+			<xs:enumeration value="7460"/><!-- Maislabyrinth -->
+			<xs:enumeration value="747"/><!-- Reitschule -->
+			<xs:enumeration value="7470"/><!-- Reitschule -->
+			<xs:enumeration value="749"/><!-- übriger Agrotourismus -->
+			<xs:enumeration value="75"/><!-- Soziale Dienstleistungen -->
+			<xs:enumeration value="7500"/><!-- Soziale Dienstleistungen (nicht detailliert) -->
+			<xs:enumeration value="7510"/><!-- Ertrag aus Pflege- und Betreuungsleistungen -->
+			<xs:enumeration value="7600"/><!-- Energieproduktion (nicht detailliert) -->
+			<xs:enumeration value="761"/><!-- Photovoltaik -->
+			<xs:enumeration value="7610"/><!-- Photovoltatik -->
+			<xs:enumeration value="762"/><!-- Wind -->
+			<xs:enumeration value="7620"/><!-- Wind -->
+			<xs:enumeration value="763"/><!-- Wasser -->
+			<xs:enumeration value="7630"/><!-- Wasser -->
+			<xs:enumeration value="764"/><!-- Biogas -->
+			<xs:enumeration value="7640"/><!-- Biogas -->
+			<xs:enumeration value="769"/><!-- übrige Energieproduktion -->
+			<xs:enumeration value="7700"/><!-- Dienstleistungen (nicht detailliert) -->
+			<xs:enumeration value="771"/><!-- Arbeiten für Dritte -->
+			<xs:enumeration value="7710"/><!-- Arbeiten für Dritte -->
+			<xs:enumeration value="772"/><!-- Lohnunternehmen (landwirtschaftlich) -->
+			<xs:enumeration value="7720"/><!-- Lohnunternehmen (landwirtschaftlich) -->
+			<xs:enumeration value="773"/><!-- Rebbau und Kelterei für Dritte -->
+			<xs:enumeration value="7730"/><!-- Rebbau für Dritte -->
+			<xs:enumeration value="7740"/><!-- Kelterei für Dritte -->
+			<xs:enumeration value="7750"/><!-- Kälbermast für Dritte -->
+			<xs:enumeration value="7760"/><!-- Schweinemast für Dritte -->
+			<xs:enumeration value="7770"/><!-- Pouletsmast für Dritte -->
+			<xs:enumeration value="7780"/><!-- Trutenmast für Dritte -->
+			<xs:enumeration value="7790"/><!-- Mast andere Tiere für Dritte -->
+			<xs:enumeration value="7910"/><!-- Direktzahlungen (nicht zugeteilt) -->
+			<xs:enumeration value="7950"/><!-- Subventionen -->
+			<xs:enumeration value="7980"/><!-- Erfolg betriebliche Liegenschaften -->
+			<xs:enumeration value="7990"/><!-- Nicht zuteilbare Erträge und Kosten -->
+			<xs:enumeration value="80"/><!-- Strukturkosten (wird seitens ZA nicht ausgewertet) -->
+			<xs:enumeration value="81"/><!-- ZA-Kostenträgerzuteilung nicht nötig -->
+			<xs:enumeration value="91"/><!-- Nicht-landwirtschaftliche Tätigkeiten -->
+			<xs:enumeration value="981"/><!-- Saatgut zum Verteilen -->
+			<xs:enumeration value="982"/><!-- Dünger zum Verteilen -->
+			<xs:enumeration value="983"/><!-- Spritzmittel zum Verteilen -->
+			<xs:enumeration value="984"/><!-- Futter zum Verteilen -->
+			<xs:enumeration value="985"/><!-- Versicherungen zum Verteilen -->
+			<xs:enumeration value="99"/><!-- KTR-Zuteilung unklar (Test) -->
+			<xs:enumeration value="9900"/><!-- Fehlkostenkonto -->
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>
