@@ -20,10 +20,10 @@
 # -- Source locally --
 # source("O:/Sites/TA/Transfer/hpda/R/func.R")
 # if(!exists("load.gb")) source("O:/Sites/TA/Transfer/hpda/R/func.R")
-# source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/func.R")
+# if(!exists("load.gb")) source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/func.R")
 #
 # -- GitHub --
-# source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")
+# if(!exists("mean.weight")) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")
 # browseURL("https://github.com/danielhoop/R/edit/master/func.R")
 # browseURL("https://github.com/danielhoop/R/edit/master/Rhelp.R")
 
@@ -622,7 +622,10 @@ h <- function(x, n=6) {
     return(x[1:n,,])
   } else {
     if(is.data.frame(x)) {
-      x <- rbind(paste0("<", substr( sapply(x[1,],function(x)mode(x)), 1,3), ">"),x[1:n,])
+      #mode.own <- function(x) if(!is.na(suppressWarnings(as.numeric(x[1]))) && as.character(x[1]) != suppressWarnings(as.numeric(x[1])) ) return("factor") else return(mode(x))
+      #x <- as.data.frame(rbind(paste0("<", substr( sapply(x[1,,drop=FALSE],function(x)mode(x)), 1,3), ">"),as.character(unlist(x[1:n,])))
+      # Warnings occur from factors.
+      x <- suppressWarnings(rbind(paste0("<", substr( sapply(x[1,,drop=FALSE],function(x)mode(x)), 1,3), ">"),x[1:n,]))
       rownames(x) <- 0:n
       return(x)
     }
@@ -739,6 +742,8 @@ try <- function(...) {
 
 #### CHANGE OBJECT STRUCUTRE ####
 
+# array <- array(0, dim=c(3,4,5), dimnames=list(c("c","b","a"),c(4,3,2,1),c("z","y","x","v","u")))
+# array <- matrix(0, ncol=3, nrow=3); colnames(array) <- c("a","b","c");
 c.dimnames <- function(array, sep.sign="_"){
   # This function brings the dimnames of an array into the array itself
   # Example
@@ -751,14 +756,14 @@ c.dimnames <- function(array, sep.sign="_"){
   if(is.null(dim(array))) stop("Input has to be an array, not vector.")
   
   dn1 <- dimnames(array)
-  dn1.1 <- dn1[[1]]
-  dn1.2 <- dn1[[2]]
+  dn1.1 <- dn1[[1]]; if(is.null(dn1.1)) dn1.1 <- rep("",dim(array)[[1]])
+  dn1.2 <- dn1[[2]]; if(is.null(dn1.2)) dn1.2 <- rep("",dim(array)[[2]])
   
   res0 <- paste( rep(dn1.1, length(dn1.2)) , rep(dn1.2, each=length(dn1.1)) , sep=sep.sign)
   if(length(dn1)>2){
     for(i in 3:length(dn1)){
       dn1.1 <- res0
-      dn1.2 <- sort(unique(dn1[[i]]))
+      dn1.2 <- dn1[[i]]; if(is.null(dn1.2)) dn1.2 <- rep("",dim(array)[[i]])
       res0 <- paste( rep(dn1.1, length(dn1.2)) , rep(dn1.2, each=length(dn1.1)) , sep=sep.sign)
     }
   }
@@ -767,15 +772,22 @@ c.dimnames <- function(array, sep.sign="_"){
   return(res1)
 }
 
-dimnames.to.mat <- function(x){
+dimnames.to.mat <- function(x, dims=c("rowcol","row","col")){
   # Diese Funktion integriert die Spalten- und Reihennamen einer Matrix in die Matrix selbst. Also quasi als Werte.
   # WICHTIG: Dies Funktion wird gebraucht fuer Funktion merge.matrices()
+  # Arguments
+  # x     = The matrix into which the dimnames should be integrated.
+  # dims  = Which dimnames should be integrated? row&colnames? only rownames? only colnames?
+  
+  dims <- match.arg(dims)
   #if(is.null(dim(x))) x <- as.matrix(x)
   x <- as.matrix(x)
   if(is.null(dimnames(x))) return(x)
   if(is.null(rownames(x))) rownames(x) <- rep("",nrow(x))
   if(is.null(colnames(x))) colnames(x) <- rep("",ncol(x))
-  res <- rbind( c("", colnames(x)), cbind(rownames(x),x) )
+  if(dims=="rowcol") res <- rbind( c("", colnames(x)), cbind(rownames(x),x) )
+  if(dims=="row") res <- cbind(rownames(x),x)
+  if(dims=="col") res <- rbind(colnames(x),x)
   dimnames(res) <- NULL
   return(res)
 }
@@ -866,7 +878,8 @@ rep.1b1 <- function(vector,times){
     #return(as.vector(   apply(matrix(vector,ncol=1),1,function(x)rep(x,times))   )) 
   } else {
     if(length(vector)!=length(times)) stop("If length(times)>1 then condition length(vector)==length(times) must hold.")
-    return(unlist(   apply(matrix(c(vector,times),ncol=2),1,function(x)rep(x[1],x[2])) ))
+    return(rep(vector,times))
+    #return(unlist(   apply(matrix(c(vector,times),ncol=2),1,function(x)rep(x[1],x[2])) ))
   }
 }
 # Performance-Vergleich zwischen mapply und apply. Apply ist deutlich schneller.
@@ -879,19 +892,27 @@ if(FALSE){
   x <- data.frame(c("a","b","c"),1:3)
   times <- 6
   rep.rows(x,times)
-  rep.rows.1b1(x,times)
+  rep.rows.1b1(x,c(5,4,3))
 }
 rep.rows <- function(x, times){
+  if(length(times)>1) stop("length(times) must be equal 1, else repetition is done one by one.")
+  return(x[rep(1:nrow(x),times),])
+}
+rep.rows.1b1 <- function(x, times){
+  return(x[rep.1b1(1:nrow(x),times),])
+}
+
+
+if(FALSE) rep.rows_OLD_DELETE <- function(x, times){
   return( eval(parse(text=paste0("rbind(",paste0(rep("x",times),collapse=","),")"))) )
 }
-rep.rows.1b1 <- function(x, times) {
+if(FALSE) rep.rows.1b1_OLD_DELETE <- function(x, times) {
   res <- eval(parse(text=paste0("rbind(",paste0(rep("x",times),collapse=","),")")))
   if(nrow(x)>1) newo <- order( rep(1:nrow(x), times) ) else newo <- 1:times
   res <- res[newo,,drop=FALSE]
   rownames(res) <- NULL
   return(res)
 }
-
 
 
 c.1b1 <- function(..., add.names=c("char","num","obj.names","own.names","none"), own.names=NULL, names.at.front=FALSE, sep.sign="_") {
@@ -1109,6 +1130,17 @@ insert <- function(what, inobject, where, how=c("c","list","rbind","cbind")){
 
 #### SUMMARIES & MEANS ####
 
+trim <- function(x, probs=c(0.025,0.975)) {
+  # This function trims a distribution and gives back only those values that are within the trimming limits.
+  # Arguments:
+  # x     = vector of values
+  # probs = probabilities to exclude extreme values using the quantlie() function. Both quantile probabilities are included like: prob1[1] <= x <= probs[2]
+  
+  if(length(probs)!=2) stop("probs must be a vector of length 2")
+  q1 <- quantile(x, sort(probs), na.rm=TRUE)
+  return(x[ which(x>=q1[1] & x<=q1[2]) ]) # Use which to exclude NA values.
+}
+
 summarysd <- function(x,na.rm=TRUE,digits=2,...) {
   if(is.null(x)) {
     result <- rep(NA,7);  names(result) <- c("Min.", "1st Qu.","Media","Mean","3rd Qu.","Max.","SD") 
@@ -1156,7 +1188,8 @@ if(FALSE){
 summary.long <- function(x,quant=10,digits=2,na.rm=TRUE,margin=2,reverse=FALSE,...) {
   # Gives a "long" summary with 11 quantiles from 0 to 1 (default).
   # margin is only used when a dataframe/matrix is given. Then apply() is used.
-  # The argument matrixinput is only used inside the function and should not be used
+  # See also: describe()
+
   if(!is.null(dim(x))) {
     if(is.matrix(x))     return( apply(x,2,function(x)summary.long(x,quant=quant,digits=digits,na.rm=na.rm,margin=2,reverse=TRUE, ...))  )
     if(is.data.frame(x)) return( as.data.frame( lapply(x,function(x)summary.long(x,quant=quant,digits=digits,na.rm=na.rm,margin=2,reverse=TRUE, ...)) ,stringsAsFactors=FALSE) )
@@ -1424,7 +1457,7 @@ calc.I.cols <- function(data, edit.I.colnames=FALSE, del.I.help.columns=FALSE, I
       delnames <- unlist(strsplit(names(data)[i_cols],"-|/|\\*|\\+"))
       delnames <- gsub("I\\(|\\(|)","",delnames)
     }
-    data <- data[,!names(data)%in%delnames,drop=FALSE]
+    data <- data[!names(data)%in%delnames] # ALT, geht nicht fuer Listen: #data <- data[,!names(data)%in%delnames,drop=FALSE]
   }
   if(edit.I.colnames){
     i_cols <- substr(names(data),1,2)=="I(" & substr.rev(names(data),1,1)==")"
@@ -1508,8 +1541,21 @@ quantile.weight <- function(x, weights=NULL, index=NULL, probs=0.5, na.rm=TRUE) 
     max(x[ind1], x[ind2])
   }
 }
-####
 
+####
+quantile.inverse <- function(x, value){ # quantile.reverse inverse.quantile reverse.quantile
+  # This funciton acts as a inverse quantile function.
+  # However, it does not yield exactly the same results as you would get using the quantile() function because the distribution functions differ.
+  # Arguments
+  # x     = All values in the sample.
+  # value = The value of which the probability in the cumulative distribution should be calculated.
+  invProb <- ecdf(x)(value)
+  invProbs <- c(invProb-0.01,invProb,min(1,invProb+0.01))
+  values <- quantile(x,invProbs)
+  return(approx(x=values,y=invProbs,xout=value)$y)
+}
+
+####
 meansd <- function(x,na.rm=TRUE) {
   c(Mean=mean(x,na.rm=na.rm),SD=sd(x,na.rm=na.rm))
 }
@@ -1537,7 +1583,7 @@ meansd.geom <- function(x,na.rm=TRUE){
   return(c(Mean=m,SD=sd))
 }
 ####
-
+# data <- tab_ch0; margin=1; front.back=1; method="sum"; name="Total"; digits=NULL; na.rm=FALSE
 add.means <- function(data, margin=c(1,2), front.back=c(1,2), method=c("arith","geom","sum","median"), name=NULL, digits=NULL, na.rm=FALSE, ...){
   
   if(is.list(data) & !is.data.frame(data)) return(lapply(data, function(data)add.means(data=data, margin=margin, front.back=front.back, method=method, name=name, digits=digits, ...)))
@@ -1804,6 +1850,46 @@ table.fixed <- function(..., names.result=NULL, vector.result=FALSE, sep.sign="_
   tapply.fixed(X=rep(1,length(INDEX[[1]])), INDEX=INDEX, FUN=function(x)length(x), names.result=names.result, missing.value=0, vector.result=vector.result, sep.sign=sep.sign)  
 }
 
+####
+if(FALSE){
+  # Debugging data for bxy.partially()
+  cost <- load.cost(); sampl <- sample(1:200, 200)
+  data <- cost[sampl,]
+  data[,"orderTester"] <- 1:nrow(data)
+  relevantColnames <- c("Gewinn","Groesse","orderTester")
+  INDICES <- cost[sampl,c("ID","Jahr")]
+  FUN <- function(x) {
+    x[,"Gewinn_tot"] <- sum(with(x, Gewinn*Groesse), na.rm=TRUE)
+    #return(x[,c("Gewinn_tot","Gewinn"),drop=FALSE])
+    return(x[,c("Gewinn_tot"),drop=FALSE])
+  }
+  bxy.partially(data=data, relevantColnames=relevantColnames, INDICES=INDICES, FUN=FUN, stringsAsFactors=FALSE)
+}
+
+by.add.df.cols <- function(data, relevantColnames, INDICES, FUN, stringsAsFactors=FALSE){
+  # This function uses by() over data[,relevantColnames] with INDICES and a defined function FUN. See also ?by
+  # Is is designed to be faster than by() over the whole data.frame because is takes only these columns into by() that are really needed for the function.
+  # After the calculation a data.frame is returned instead of the usual list that is returned by the by function().
+  # The initial order of the rows in data is kept in the result. The additionally calculated columns from FUN are added to the original data.frame.
+  
+  # Arguments
+  # data             = The data frame over which by() should be applied.
+  # relevantColnames = The relevant colnames that are needed for the calculations in FUN.
+  # INDICES          = The indices for the application of by(). This will be pasted to a signle string if !is.null(INDICES).
+  # FUN              = The function to apply within by()
+  
+  # Combine INDICES to a single string if it is given as several columns of a data.frame/matrix
+  if(is.matrix(data)) data <- as.data.frame(data)
+  if(is.list(INDICES) & !is.data.frame(INDICES)) INDICES <- as.data.frame(INDICES)
+  if(!is.null(dim(INDICES))) INDICES <- paste.cols(INDICES, colnames(INDICES))
+  # By...   Add column to restore the original order of the rows.
+  # An additional function has to be definded that add will add the "order column" with content=1:nrow(x) and col number=ncol(x) to the result.
+  res <- do.call("rbind", by( cbind(data[,relevantColnames],1:nrow(data)), INDICES, function(x)return(cbind(FUN(x), x[,ncol(x)])) ))
+  # Return original data.frame and ordered additional columns (without the column that was added to restore the initial row order)
+  return(data.frame(data,
+                    res[order(res[,ncol(res)]),-ncol(res),drop=FALSE],
+                    stringsAsFactors=stringsAsFactors))
+}
 
 #### OTHER ####
 minmax <- function(x, na.rm=TRUE) {
@@ -1832,6 +1918,41 @@ is.dir <- function(path) {
 #  return(as.data.frame(lapply(x,function(x)is.numeric(x)),stringsAsFactors=FALSE))
 #}
 
+transl.typ <- function(x, short=FALSE, FAT99=FALSE){
+  
+  # Wenn Typennummern in Vektor groesser als 99, dann ist es in der Schreibweise 15..
+  s3.numb <- c(   11,           12,           21,          22,               23,                   31,                41,                   51,                          52,                          53,                   54)
+  if(x[1]>99) s3.numb <- s3.numb + 1500
+  
+  if(!short){
+    s3.name <- c("Ackerbau","Spezialkulturen","Milchkühe", "Mutterkühe", "Rindvieh gemischt", "Pferde/Schafe/Ziegen", "Veredelung", "Kombiniert Milchkühe/Ackerbau", "Kombiniert Mutterkühe", "Kombiniert Veredelung", "Kombiniert Andere")
+    if(FAT99) s3.name[c(3,5,8)] <- c("Verkehrsmilch", "Anderes Rindvieh", "Kombiniert Verkehrsmilch/Ackerbau")
+  } else {
+    s3.name <- c("Ackb","Spez","Milk","MuKu","RiGe","PfSZ","Vere","MiAc","KoMu","KoVe","KoAn")
+    if(FAT99) s3.name[c(3,5,8)] <- c("VMil","AnRi","VMAc")
+  }
+  
+  return(replace.values(s3.numb, s3.name, x))
+}
+
+transl.reg <- function(x){
+  name <- c("Tal","Hügel","Berg")
+  numb <- c(  1,     2,      3)
+  return(replace.values(numb, name, x))
+}
+
+transl.ths <- function(x){
+  # dat <- read.cb("no") # Quelle: \\evdad.admin.ch\AGROSCOPE_OS\2\5\2\1\1\1860\C_GB\B2014\A_Vers\Druckerei_Adr&Auflage_f_Versand
+  ths.name <- c("Agro-Treuhand Rütti AG", "Agro-Treuhand Schwand", "Agro-Treuhand Berner-Oberland",  "Agro-Treuhand Emmental", "Agro-Treuhand Aargau", "Agro-Treuhand Thurgau AG", 
+                "Agro-Treuhand Waldhof", "BBV Treuhand", "Agro-Treuhand Region Zürich AG",  "BBV Treuhand", "BBV Treuhand", "Agro-Treuhand Schwyz GmbH", 
+                "SBV Treuhand und Schätzungen", "Fidasol S.A.", "AgriGenève",  "Cofida S.A.", "Service des comptabilités agricoles", "Service des comptabilités agricoles", 
+                "Service de l'Agriculture", "Fiduciaire SEGECA", "Fiduciaire SEGECA",  "Fondation Rurale Interjurassienne", "Landwirtschaftszentrum Visp", 
+                "Agro-Treuhand Seeland AG", "Agro-Treuhand Sursee", "Agro-Treuhand Uri, Nid- und Obwalden GmbH",  "Agro-Treuhand Uri, Nid- und Obwalden GmbH", "Agro-Treuhand Glarus", 
+                "Bündner Bauernverband", "Agro-Treuhand Solothurn-Baselland",  "Fessler Treuhand GmbH", "Studer-Korner Treuhand")
+  ths.numb <- c(101L, 102L, 103L, 104L, 105L, 110L, 111L, 112L, 113L, 115L, 116L, 117L, 121L, 201L, 202L, 203L, 204L, 224L, 205L, 206L, 226L, 207L, 225L, 336L, 338L, 340L, 342L, 362L, 401L, 402L, 403L, 404L)
+  return(replace.values(ths.numb, ths.name, x))
+}
+
 transl.mm <- function(x, gsub=FALSE, excel.format=FALSE){
   # Diese Funktion uebersetzt die Merkmalsnummern der Merkmalsliste ZA2015 in die Zeilen-Bezeichnungen laut REX.
   # Wenn gsub=TRUE findet suche in Strings statt, statt ganze Character-Vektorplaetze zu uebersetzen.
@@ -1849,18 +1970,125 @@ transl.mm <- function(x, gsub=FALSE, excel.format=FALSE){
   return(x)
 }
 
+transl.ref.210row <- function(x, give.tab=FALSE){
+  t1 <- matrix(c(
+    "Weizen","00200"     ,"Roggen","00300"    ,"Korn_Dinkel","00400"     ,"Mischel_ua_Brot","00500"
+    ,"Gerste","00600"     ,"Hafer","00700"    ,"Triticale","00800"     ,"Mischel_ua_Futt","00900"
+    ,"Koernermais","01000"     ,"Koernermais_uebr","01100"    ,"Silomais","01200"     ,"Silomais_alt","01201"
+    ,"Kartoffeln","01300"     ,"Zueckerrueben","01400"    ,"Futterrueben","01500"     ,"Futterrueben_alt","01501"
+    ,"Raps","01600"     ,"Industrieraps","01700"    ,"Sojabohnen","01800"     ,"Sonnenblumen","01900"
+    ,"Oelsaaten_uebr","02000"     ,"einj_nachw_Rohst","02100"    ,"Hanf","02200"     ,"Ackerbohnen","02300"
+    ,"Eiweisserbsen","02400"     ,"Koernerlegum_uebr", "02500"    ,"Tabak","02600"     ,"Maschinenbohnen","02700"
+    ,"Drescherbsen","02800"     ,"Maschinenkarotten","02900"    ,"Maschinenspinat","03000"     ,"Konservengemuese_uebr","03100"
+    ,"Karotten_Freiland","03200"     ,"Zwiebeln_Freiland","03300"    ,"Kabis_Freiland","03400"     ,"Randen_Freiland","03500"
+    ,"Blumenkohl_Freiland","03600"     ,"Freilandgemuese_uebr","03700"    ,"einj_Beeren","03800"     ,"einj_Gewuerz_u_Medizin","03900"
+    ,"einj_gaertn_Freilandkult","04000"    ,"Spezkult_in_GH","04100"    ,"gaertn_Kult_in_GH","04200"     ,"Buntbrache","04400"
+    ,"Rotationsbrache","04500"    ,"Rotationsbrache_alt","04501"    ,"Saum_auf_Ackerfl","04520"     ,"Bluehstreifen_ab2015","04530"
+    ,"Ackerschonstreifen","04600"     ,"einj_Ackerkult_uebr","04700"    ,"Gruenland_LeistKost","06000"     ,"Futterbau_LeistKost_alt","06001"
+    ,"Kunstwiesen","06100"     ,"oekolAusgl_Kunstwiesen_alt","06101"    ,"oekolAusgl_Naturwiesen_alt","06102"     ,"Wiesen_ext_auf_Aeck","06200"
+    ,"Wiesen_ext","06300"     ,"Wiesen_wenig_intens","06400"    ,"Dauerwiesen_andere","06500"     ,"Uferwiesen","06550"
+    ,"Weiden_ext","06600"     ,"Waldweiden","06700"    ,"Weiden","06800"     ,"Weiden_f_Schw","06900"
+    ,"Heuwiesen_Alp1","07000"     ,"Heuwiesen_Alp2","07010"    ,"Heuwiesen_Alp3","07020"     ,"Gruenfl_uebr","07100"
+    ,"Alpweiden_alt","07101"     ,"Wiesen_ZwiFu","07200"    ,"Reben","08000"     ,"Obst_ohne_Flaeche","08100"
+    ,"Obst_mit_flaeche","08200"     ,"mehrj_Erdbeeren","08300"    ,"Himbeeren","08400"     ,"Strauchbeeren_uebr","08500"
+    ,"mehrj_Gewuerz_Medizin","08600"     ,"Chinaschilf","08700"    ,"mehrj_nachw_Rohst","08800"    ,"Hopfen","08900"
+    ,"mehrj_Spezkult_uebr","09000"    ,"Weihnachtsbaeume","09100"    ,"mehrj_gaertn_Freilandkult","09200"     ,"Dauerkult_uebr","09300"
+    ,"Streue_Torfland","10000"     ,"HeckFeldUfer_Gehoelz","10100"    ,"uebr_Flaechen_LN","10200"     ,"Wald","10300"
+    ,"Strohverkauf","10400"     ,"Pflanzenbau_nicht_zuteilbar","10500"  ), ncol=2, byrow=TRUE)
+  rownames(t1) <- t1[,1]
+  t1 <- t1[,2]
+  
+  if(give.tab) {
+    return(t1)
+  } else {
+    return(replace.values(t1, names(t1), x))
+  }
+}
+
+# transl1.spb.330col.340row(c(2011,2012))
+transl.spb.330col.340row <- function(x, inverse=FALSE, give.tab=FALSE, nice.names=FALSE){
+  # This function translates the numbers from MML Tab 330 columns  to  Tab 340 rows (and vice versa if inverse=TRUE).
+  # Arguments
+  # x        = The number to be translated from one tab to another
+  # inverse  = Translate from 340 row -> 330 col
+  # give.tab = Return translation table without translating anything.
+  
+  #dput(as.numeric(unname(unlist(read.cb("no")))))
+  #dput(unname(as.matrix(read.cb("no"))))
+  t1 <- t(structure(c(2011L, 11000L, 2012L, 13000L, 2013L, 15000L, 2014L, 16000L, 2015L, 17000L, 2018L, 19000L, 2019L, 18000L, 2021L, 61000L, 
+                      2022L, 62000L, 2023L, 63000L, 2024L, 64000L, 2028L, 69000L, 2031L, 71000L, 2032L, 72000L, 2033L, 73000L, 2034L, 75000L, 2038L, 79000L, 
+                      2075L, 21000L, 2080L, 33000L, 2085L, 34000L, 2090L, 35000L, 2095L, 81000L, 2100L, 83000L), .Dim = c(2L, 23L)))
+  colnames(t1) <- c("Tab330col", "Tab340row")
+  rownames(t1) <- c("Milch","Muku","Kaelberm","Rindviehm","fremdesRindvieh","Rind/Kaelberm-3","uebrigesRindvieh","SchweineAllg","Schweinezucht","Schweinemast","Ferkelprod","Schweinemast-3","Konsumeier","Bruteier","Pouletmast","Truten","Gefluegel-3","Pferde","Schafe","Ziegen","sonstigeRaufu","Kaninchen","uebrigesGeflu")
+  if(nice.names) rownames(t1) <- c("Milchkühe","Mutterkühe","Kälbermast","Rindviehmast","Haltung fremdes Rindvieh","Rinder- & Kälbermast für Dritte","Übriges Rindvieh",
+                                   "Schweine (Zucht & Mast)","Schweinezucht","Schweinemast","Arbeitsteilige Ferkelproduktion","Schweinemast für Dritte","Konsumeierproduktion","Bruteierproduktion","Pouletmast","Truten","Gefluegelmast für Dritte","Pferde","Schafe","Ziegen","Andere Raufutter verzehrende Tiere","Kaninchen","Übriges Geflügel")
+  t1 <- t1[order(t1[,"Tab340row"]),]
+  
+  if(give.tab) {
+    return(t1)
+  }
+  
+  if(!inverse) col_in <- 1 else col_in <- 2
+  if(!inverse) col_ou <- 2 else col_ou <- 1
+  row_ou <- match(x,t1[,col_in])
+  res <- t1[row_ou,col_ou]
+  names(res) <- rownames(t1)[row_ou]
+  return(res)
+}
+
+transl.spb.320row <- function(x, give.tab=FALSE){
+  # This function translates the numbers from MML Tab 320 rows  to  the german names of the enterprises.
+  # Arguments
+  # x        = The number to be translated to enterprise name.
+  # give.tab = Return translation vector without translating anything.
+  
+  # Import the data from MML: Copy the following columns of tab 320 side by side: 1) Zeile [UID, 2nd col], 2) Total Leistung [col no 4000], 3) all cols containing the culture names (no matter how many). They will be pasted together.
+  #t1 <- read.cb("no"); t1[is.na(t1)] <- ""; t1 <- t1[t1[,2]!="",]; t1 <- cbind(t1[,1:2], apply(t1[,3:ncol(t1)],1,function(x)paste0(x,collapse="")), stringsAsFactors=FALSE); dput(as.numeric(t1[,1])); dput(t1[,3])
+  
+  t1 <- c(11110, 11120, 11130, 11140, 11180, 11310, 11320, 11330, 11340, 11380, 12100, 12200, 12500, 12600, 13000, 14100, 14300, 15100, 15200, 15300, 15900, 16100, 16200, 16900, 18100, 18200, 18300,
+          18400, 19000, 20000, 20100, 20200, 21100, 21200, 21300, 21400, 30100, 35000, 41000, 42100, 42200, 43000, 43500, 44000, 44500, 46000, 48000, 49000, 61000, 65000, 70000, 81000, 85000)
+  names(t1) <- c("Weizen (Brotgetreide)", "Roggen (Brotgetreide)", "Dinkel (Brotgetreide)", "Emmer, Einkorn", "Mischel Brotgetreide", "Gerste (Futtergetreide)", "Hafer (Futtergetreide)", "Triticale (Futtergetreide)", "Futterweizen", 
+                 "Mischel Futtergetreide", "Körnermais", "Silo- & Grünmais", "Saatmais", "Hirse", "Kartoffeln", "Zuckerrüben", "Futterrüben", "Raps zur Speiseölgewinnung", "Soja", "Sonnenblumen zur Speiseölgewinnung", "übrige Ölsaaten", 
+                 "Ackerbohnen zu Futterzwecken", "Eiweisserbsen zu Futterzwecken", "übrige Körnerleguminosen", "Tabak", "Einjährige gärtnerische Freilandkulturen", "Einjährige nachwachsende Rohstoffe", "Freiland Frischgemüse", 
+                 "Freiland Konservengemüse", "Einjährige Beeren (z.B Erdbeeren)", "Einjährige Gewürz- & Medizinalpflanzen", "Übrige Ackerkulturen", "Buntbrache", "Rotationsbrache", "Saum auf Ackerfläche", "Ackerschonstreifen", 
+                 "Futterbau (ohne Silomais, Futterrüben und Samenproduktion)", "Samenproduktion Futterbau", "Reben", "Obst, Streuobst ohne Fläche", "Obstanlagen", "Mehrjährige Beeren", "Mehrjährige nachwachsende Rohstoffe", 
+                 "Hopfen", "Mehrjährige Gewürz- & Medizinalpflanzen", "Gemüse-Dauerkulturen", "Christbäume, Baumschulen und ähnliches", "Übrige Dauerkulturen", "Gewächshaus- und Tunnel-Frischgemüse", "Gärtnerische Kulturen in geschütztem Anbau", 
+                 "Weitere Flächen innerhalb der LN", "Wald", "Weitere Flächen ausserhalb der LN")
+  
+  if(give.tab) {
+    return(t1)
+  } else {
+    return(replace.values(t1, names(t1), x))
+  }
+}
 
 transl.EB.MML <- function(x, inverse=FALSE) {
   # Diese Funktion übersetzt die Merkmalsbezeichnungen zwischen Online-Erhebungsbogen und Merkmalsliste-ZA2015
   # if inverse=TRUE in andere Richtung: MML2015 -> EB
   
   if(!exists("uebers_tab", envir=globalenv())){
-    pfad_uebers <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/1863/1_Entwicklungsphase_2013/1_AG Merkmalsliste/Umbenennung_UID_Reglen_Alle_Merkmale_uebersetzt.csv"
+    #pfad_uebers <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/1863/1_Entwicklungsphase_2013/1_AG Merkmalsliste/21_transcoding_fuer_R/Umbenennung_UID_Reglen_Alle_Merkmale_uebersetzt.csv"
+    pfad_uebers <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/1863/1_Entwicklungsphase_2013/1_AG Merkmalsliste/21_transcoding_fuer_R/transcoding_active.csv"
     uebers_tab <<- read.table(pfad_uebers, sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
   }
   if(!inverse) col_in <- 1 else col_in <- 2
   if(!inverse) col_ou <- 2 else col_ou <- 1
   return(uebers_tab[match(x,uebers_tab[,col_in]),col_ou])
+}
+
+gsub.multiple <- function(pattern, replacement, x, ...){
+  # gsub implemented for pattern and replacement as vector arguments (recursive implementation).
+  # Use: gsub.multiple(c("a","b","c"),c(1,2,3),letters)
+  # Agruments: Please consult help page of gsub.
+  if(length(pattern)!=length(replacement)) stop("length(pattern) must be equal length(replacement).")
+  if(length(pattern)>1) {
+    return(gsub(pattern[1], replacement[1], gsub.multiple(pattern[-1], replacement[-1], x, ...), ...))
+  } else {
+    return(gsub(pattern, replacement, x, ...))
+  }
+}
+gsub.multi <- function(...){
+  stop("gsub.multi is now called gsub.multiple! Please rename in script.")
 }
 
 repl.aou <- function(x){
@@ -1909,7 +2137,10 @@ repl.utf8 <- function(x) {
   return(x)
 }
 
-random.string <- function(length=10, capitals=2, numbers=3){
+random.string <- function(n=1, length=10, capitals=2, numbers=3){
+  # Create n random strings of specified number of characters (length), capital letters and numbers.
+  if(n>1) return(replicate(n, random.string(n=1, length=10, capitals=2, numbers=3)))
+  
   nlower <- length-capitals-numbers
   if(nlower<0) stop("capitals+numbers must be smaller equal length")
   
@@ -1922,7 +2153,7 @@ random.string <- function(length=10, capitals=2, numbers=3){
 set.args <- function(string){
   # This function reads a string of arguments looking like:
   # y=y, trt=grouping, sig=sig, sig.level=sig.level ,digits=digits, median.mean="mean", ranked=ranked, print.result=FALSE
-  # and sets the variables accordingly in the clobal environment.
+  # and sets the variables accordingly in the global environment. For function debugging.
   
   string <- gsub("\\=","<<-",string)
   string <- gsub(",",";",string)
@@ -2544,14 +2775,6 @@ get.googlemaps.slopes <- function(N, E){
   # extract.adr <- function(x)  return(unname(substr(x, 2+gregexpr(":", x)[[1]][1], nchar(x)-1)))
 }
 
-if(FALSE) list.dirs2 <- function(path=".", pattern=NULL, all.dirs=FALSE,  full.names=FALSE, ignore.case=FALSE) {
-  # This function lists all Folders in a directory.
-  
-  all <- list.files(path, pattern, all.dirs,
-                    full.names, recursive=FALSE, ignore.case)
-  all[file.info(all)$isdir]
-}
-
 ####
 # pattern="B20"; replace="BH20"; recursive=TRUE;
 # gsub.only.dirs("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/StatSkripte/", pattern="BH20", replace="B20", recursive=TRUE)
@@ -2671,6 +2894,17 @@ rename.files <- function(path="."){
   
   file.rename(from="./Betr_B/AWP/BH2014/001_AuswahlplanRef_Formel_Seite2.pdf", to="./Betr_B/AWP/B2014/001_AuswahlplanRef_Formel_Seite2.pdf")
 }
+####
+
+# file <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/2/3583/Resultate/16-06-06/2014/allcosts_info.RData";  setwd.to.file(file)
+# file <- "C:/Users/U80823148/_/ME/ME_data_out/data_final/allcosts_info.RData"; setwd.to.file(file)
+setwd.to.file <- function(file){
+  if(length(file)>1) stop("file must containt only one filename.")
+  fil <- strsplit(file, "/|\\\\")[[1]]
+  fil <- fil[-length(fil)]
+  setwd(paste(fil,collapse="/"))
+}
+
 ####
 
 # Beispiel und Parametereinstellung unter der Funktion!
@@ -3283,7 +3517,7 @@ signif.equally <- function(x,digits=3,max=1,margin=2) {
 ####
 
 n.decimals <- function(x){
-  stopifnot(class(x)=="numeric")
+  stopifnot(class(x)%in%c("numeric","integer"))
   if(length(x)>1) return(  unlist( lapply(as.list(x),function(x)n.decimals(x)) )  )
   
   x <- abs(x)
@@ -3468,14 +3702,26 @@ if(FALSE){
   df1=matrix( 1:100, ncol=2); id1=df1[,1]; colnames(df1) <- c("ID1","Value1")
   df2=matrix(21:120, ncol=2); id2=df2[,1]; colnames(df2) <- c("ID2","Value2")
   match.df.by.id(df1=df1, df2=df2, id1=id1, id2=id2, keep.no.matches=TRUE)
-  merge(df1, df2)
+  match.df.by.id(df1=df1, df2=df2, id1=id1, id2=id2, keep.no.matches=FALSE)
+  merge(df1, df2, by.x="ID1", by.y="ID2")
+  
 }
 
 ####
+#' Documentation for automatic .Rd creation with roxygen2 package.
+#' \code{match.df.by.id} matches two data.frames by id and returnes a merged data.frame.
+#' @param df1 The first data.frame
+#' @param df2 The second data.frame
+#' @param id1 A vector of ids for the first data frame
+#' @param id2 A vector of ids for the second data frame
+#' @param keep.no.matches Logical determining whether rows that could not. Default TRUE.
+#' @param check.duplicated Logical determining whether the ids should be checked for duplicated entries in each vector before matching. Default TRUE.
+#' @param stringsAsFactors Logical determining wheter character vectors be converted to factors. Default FALSE.
+#' @return A data.frame containing i1 and id2 in the first two columns followed by the columns of df1 and df2.
 match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE,check.duplicated=TRUE, stringsAsFactors=FALSE){
   # This function matches two data frames by id.
   # If wished (by default) also no matches are kept.
-  # Alternative: merge()
+  # Alternative: merge(df1, df2, by.x="ID1", by.y="ID2")
   
   if(any( colnames(df1)%in%c("id1","id2") )) stop("There must be no colnames(df1) equal 'id1' or 'id2'")
   if(any( colnames(df2)%in%c("id1","id2") )) stop("There must be no colnames(df2) equal 'id1' or 'id2'")
@@ -3649,8 +3895,9 @@ print.match.df.by.id.prov <- function(object){
 }
 
 match.multiple.id.left <- function(id_left, id_right) {
-  # This function matches single IDs in the right vector (the vector that provides values) to multiple IDs in the left vector (the vector that receives values)
+  # This function matches unique IDs in the right vector (the vector that provides values) to non-unique IDs in the left vector (the vector that receives values)
   # Ouput is a matrix. First column serves as index for left vector. Second Column serves as index for right vector.
+  
   if(any(duplicated(id_right))) stop("Do duplicated IDs in id_right allowed.")
   m_right <- match(id_left,id_right); m_right <- m_right[!is.na(m_right)]; m_right
   m_left <- which(id_left%in%id_right)
@@ -4088,6 +4335,7 @@ group.by.quartiles <- function(...){
 }
 
 #x <- gb[,"ArbVerd_jeFJAE"]; weights <- gb[,"Gewicht"]; index <- gb[,c("Jahr","Region","Betriebstyp_S3")]
+#x=spa[,"P430_0100_95300"]; weights=spa[,weightCol]; index=spa[,"SchichtJahr"]
 group.by.wtd.quantiles <- function(x, weights=NULL, index=NULL, probs=c(0, 0.25, 0.5, 0.75, 1), method=c("< x <=", "<= x <"), na.rm=TRUE) {
   # This function groups the elements of a vector by weighted quantiles.
   # Weights and index can be given.
@@ -4102,9 +4350,10 @@ group.by.wtd.quantiles <- function(x, weights=NULL, index=NULL, probs=c(0, 0.25,
     }
     is.null.weights <- is.null(weights)
     x <- cbind(id=1:length(x), x=x, w=weights)
+    if(any(weights==0) & na.rm==TRUE) warning("There were weights==0. Wbservations with weight==0 were not allocated to a group.")
     res <- do.call("rbind",as.list(by(x,index,function(x){
       if(is.null.weights) w <- NULL else w <- x[,"w"]
-      x[,"q"] <- group.by.wtd.quantiles(x=x[,"x"], weights=w, index=NULL, probs=probs, na.rm=na.rm, method=method)
+      x[,"q"] <- suppressWarnings( group.by.wtd.quantiles(x=x[,"x"], weights=w, index=NULL, probs=probs, na.rm=na.rm, method=method) )
       return(x)
     })))
     return(res[order(res[,"id"]),"q"])
@@ -4252,7 +4501,7 @@ replace.values <- function(search, replace, x, no.matching.NA=FALSE, gsub=FALSE)
 
 #cost <- load2("C:/Users/U80823148/_/ME/ME_data_out/data_final/allcosts_info.RData")
 #file <- "\\\\evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/Output/Test_write.table.fast/cost.csv"
-#system.time( w1rite.table(cost[1:1000,],file) ); system.time( utils::wr1ite.table(cost[1:1000,],file) )
+#system.time( wr1ite.table(cost[1:1000,],file) ); system.time( utils::wr1ite.table(cost[1:1000,],file) )
 write.table <- function(x, file, ...) {
   # This function writes tables much faster if they should be written onto network drives.
   # If a network drive is detected and the file will be larger than approx. 300kb, it first creates a temporary file on the local hard drive.
@@ -4263,21 +4512,91 @@ write.table <- function(x, file, ...) {
   } else {
     utils::write.table(x=1, file=file, ...) # First try to write a file. If not possible (e.g. because directory does not exist) this will return a error message.
     tryCatch({
-      folder <- paste0(Sys.getenv("TMP"), "\\RFastWrite\\")
-      suppressWarnings( dir.create(folder) )
+      folder <- paste0(Sys.getenv("TMP"), "\\R\\RFastWrite\\")
+      dir.create(folder, recursive=TRUE, showWarnings=FALSE)
       file.remove(list.files(folder,full.names=TRUE))
       file2 <- paste0(folder, paste0(sample(letters,4,replace=TRUE),collapse=""), ".csv" )
       utils::write.table(x=x, file=file2, ...)
       file.copy(file2, file, overwrite=TRUE)
       suppressWarnings( file.remove(list.files(folder,full.names=TRUE)) )
     }, error = function(e) {
-      stop("write.table has encountered an error. This is not the original write.table() function but an edited version by Daniel Hoop. It was optimized to save files on network drives.\nTry utils::write.table() to use the default function.")
-    } )
-    #unlink(folder)
+      stop(paste0(e$message, "write.table() has encountered an error. This is not the original write.table() function but an edited version by Daniel Hoop. It was optimized to save files on network drives.\nTry utils::write.table() to use the default function."))
+    })
+    unlink(folder)
+  }
+}
+
+# Performance-Vergleich zwischen eigener zip-Loesung und csv.gz Loesung. Ist gleich schnell.
+# Es scheint ausserdem, dass das Einlesen von csv File von Laufwerk gleich schnell ist wie das Einlesen & Entpacken von zip file von Laufwerk.
+# Beide Male 10 Sekunden für AGIS-Daten 2015.
+if(FALSE){
+  dir.create("C:\\Users\\U80823~2\\AppData\\Local\\Temp\\R\\", showWarnings=FALSE, recursive=TRUE)
+  df <- as.data.frame( matrix(1:1000000, ncol=100) )
+  system.time(for(i in 1:1){ # Performanc with buil-tin function. 20 sec
+    wr1ite.table(df, file=gzfile("C:\\Users\\U80823~2\\AppData\\Local\\Temp\\R\\filename.csv.gz"), sep=";", quote=FALSE, col.names=TRUE, row.names=FALSE) # Nur COLnames
+    dat <- utils::read.table(gzfile("C:\\Users\\U80823~2\\AppData\\Local\\Temp\\R\\filename.csv.gz"), sep=";", header=TRUE)
+  })
+  system.time(for(i in 1:1){ # Performance with own function. 25 sec
+    wr1ite.table.zipped(df, file="C:\\Users\\U80823~2\\AppData\\Local\\Temp\\R\\filename2.zip", sep=";", quote=FALSE, col.names=TRUE, row.names=FALSE) # Nur COLnames
+    dat2 <- read.table("C:\\Users\\U80823~2\\AppData\\Local\\Temp\\R\\filename2.zip", sep=";", header=TRUE)
+  })
+}
+
+# wr1ite.table.zipped(x, file)
+write.table.zipped <- function(x, file, ...){
+  # This file creates a zip file that contains a csv file.
+  # zip files created like this can 
+  # Arguments
+  # x    = data.frame to be saved
+  # file = file path and name
+  # For futher arguments see write.table
+  # Alternative:   write.table(x, file=gzfile("filename.csv.gz")))
+  # combined with  read.table(gzfile("filename.csv.gz"))
+  
+  # Get filename and folder
+  fil <- strsplit(file, "/|\\\\")[[1]]
+  filename <- fil[length(fil)]
+  parentdir <- paste(fil[-length(fil)],collapse="/")
+  # Remove ending of filename. This is necessary to store csv and zip correctly. Speical paste0(,collapse=".") in case the filename contains several dots.
+  filenameWithoutEnding <- strsplit(filename,"\\.")[[1]]
+  if(length(filenameWithoutEnding)>1) filenameWithoutEnding <- paste0( filenameWithoutEnding[-length(filenameWithoutEnding)], collapse=".")
+  
+  # Create temporary file
+  folder <- paste0(Sys.getenv("TMP"), "\\R\\Rzipped")
+  dir.create(folder, recursive=TRUE, showWarnings=FALSE)
+  tmpCSVfile <- paste0(folder, "\\", paste0(filenameWithoutEnding, ".csv") )
+  write.table(x, tmpCSVfile, ...)
+  
+  # Create zip file containing csv. Remove temporary folder.
+  zip.nodirs(paste0(parentdir,"\\",filenameWithoutEnding, ".zip"), tmpCSVfile, remove.original=TRUE, showWarnings=FALSE)
+  unlink(folder)
+}
+
+# file <- "C:/Users/U80823148/_/ME/ME_data_out/data_final/2014/allcosts_info.zip"
+read.table <- function(file, ...){
+  # This edited versin of read.table detects compressed files from their file endings and directly reads them without unpacking.
+  # It is assumed that only one file is within the zip archive. Otherwise the function will give an error message.
+  # All arguments are used like in read.table.
+  
+  # If it is not a compressed file, then use the normal read.table() function.
+  # If the file does not exist, try to read with read.table() so you will get exact the same error message.
+  if(class(file)!="character" || !grepl("^.*(.gz|.bz2|.tar|.zip|.tgz|.gzip|.7z)[[:space:]]*$", file) || !file.exists(file) ) {
+    return( utils::read.table(file, ...) )
+  } else {
+    tryCatch({
+      # List files within the archive and read directly from archive without unpacking.
+      withinFile <- unzip(file, list=TRUE)[,"Name"]
+      if(length(withinFile)>1) stop("Only 1 file inside archive is allowed. Otherwise try utils::read.table(unz(pathOfZIPFile, nameOfCSVwithinZipFile)).")
+      return( utils::read.table(unz(file, withinFile), ...) )
+    }, error = function(e) {
+      stop(paste0(e$message, "\nread.table() has encountered an error. This is not the original read.table() function but an edited version by Daniel Hoop in order to read data from compressed files without unpacking them.\nTry utils::read.table() to use the default function."))
+    })
   }
 }
 
 read.table2 <- function(file, header=TRUE, sep=";", fileEncoding=""){
+  # This read.table() function works in some special cases of wrongly encoded data.
+  
   dat <- readLines(file, encoding=fileEncoding)
   dat <- do.call("rbind", strsplit(dat,sep))
   if(header) {
@@ -4287,6 +4606,24 @@ read.table2 <- function(file, header=TRUE, sep=";", fileEncoding=""){
   }
   dat <- char.cols.to.num(dat)
   return(dat)
+}
+
+# file <- "C:/Users/U80823148/_/ME/ME_gams/005_batch_jobs\\\\success_message.txt"
+# file <- "C:/Users/U80823148/_/ME/ME_data_out/data_final/allcosts_info.csv"
+count.nonblank.lines <- function(file) {
+  if(Sys.info()["sysname"]=="Windows"){
+    file <- gsub("/","\\\\",file) # Replace all forward-slashes with backward-slashes
+    file <- gsub("(\\\\){2,10}","\\\\",file) # Replace all multiple slashes with unique slashes.
+    #system(paste0("findstr /R /N \"^\" \"",file,"\" | find /C \":\"")) # Pipe does not work...
+    str <- paste0(system(paste0("find /c /v \"\" \"",file,"\" "), intern=TRUE), collapse="")
+    str <- unlist(strsplit(str, ":"))
+    return(as.numeric(str[length(str)])) 
+  } else if(tolower(Sys.info()["sysname"])=="linux"){
+    file <- gsub("\\\\","/",file) # Replace all backward-slashes with forward-slashes
+    file <- gsub("(/){2,10}","/",file) # Replace all multiple slashes with unique slashes.
+    str <- paste0(system(paste0("wc -l \"",file,"\""), intern=TRUE), collapse="")
+    stop("Linux version not yet fully implemented")
+  }
 }
 
 # x <- matrix(1:10); nrowmax=10000; ncolmax=10000; folder=NULL; view(x)
@@ -4323,8 +4660,8 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
   # Define paths
   # If is.null(folder), wird ein temporaerer Ordner im Windows-Dateisystem angelegt.
   if(is.null(folder)) {
-    folder <- paste0(Sys.getenv("TMP"), "\\Rview")
-    suppressWarnings( dir.create(folder) )
+    folder <- paste0(Sys.getenv("TMP"), "\\R\\Rview")
+    dir.create(folder, recursive=TRUE, showWarnings=FALSE)
   }  
   
   # Wenn am Schluss des Pfades kein "/" angefuegt wurde, wird dies gemacht:
@@ -4371,11 +4708,11 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
   # Write CSV file & open.
   if(names=="row") {
     # If the first cell of the file is named "ID" Microsoft Excel warns that a SYLK file is opened. Therefore it is renamed.
-    if(!is.null(rownames(x)[1]) & !is.na(rownames(x)[1])) if(rownames(x)[1]=="ID") rownames(x)[1] <- "lD"
+    if(!is.null(rownames(x)[1]) & !is.na(rownames(x)[1])) if(substr(rownames(x)[1],1,2)=="ID") rownames(x)[1] <- paste0("lD", substring(rownames(x)[1],3,nchar(rownames(x)[1])))
     write.table(x, file=pfad1, sep=sep, col.names=FALSE, row.names=TRUE, quote=quote, na=na, ...)
   } else if (names=="col") {
     # If the first cell of the file is named "ID" Microsoft Excel warns that a SYLK file is opened. Therefore it is renamed.
-    if(!is.null(colnames(x)[1]) & !is.na(colnames(x)[1])) if(colnames(x)[1]=="ID") colnames(x)[1] <- "lD"
+    if(!is.null(colnames(x)[1]) & !is.na(colnames(x)[1])) if(substr(colnames(x)[1],1,2)=="ID") colnames(x)[1] <- paste0("lD", substring(colnames(x)[1],3,nchar(colnames(x)[1])))
     write.table(x, file=pfad1, sep=sep, col.names=TRUE, row.names=FALSE, quote=quote, na=na, ...)
   } else if (names=="rowcol") {
     write.table(x, file=pfad1, sep=sep, col.names=NA, quote=quote, na=na, ...)
@@ -4391,12 +4728,12 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
 }
 
 view.folder <- function() {
-  browseURL(paste0(Sys.getenv("TMP"), "\\Rview"))
+  browseURL(paste0(Sys.getenv("TMP"), "\\R\\Rview"))
 }
 
 load2 <- function(file){
-  # This function loads an object and returns it, so you can assign it to an object of choice.
-  # The name of the originally stored object is not relevant anymore.
+  # This function loads an object and returns it, so you can assign it to an variable of choice.
+  # The name of the originally stored variable is not relevant anymore.
   
   load(file)
   ret <- ls()[ls()!="file"]
@@ -4450,7 +4787,19 @@ load.spa <- function() {
 # Alias erzeugen
 load.spe <- function(...) load.spa(...)
 
+# Fuer SpB
+load.spb <- function() {
+  pfad1 <- "C:/Tools/Java_Projects/SQLtoCSV/z_DataExport/SpB.RData"
+  pfad2 <- ""#"//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/BO/alldata/SpE.RData"
+  if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
+  cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
+  cat(pfad, "\n", sep="")
+  return(load2(pfad))
+}
+
+
 load.gb <- function() {
+  warning("in GB sind alle Gewichte=1 wegen Spezialauszug fuer B2015!")
   pfad1 <- "C:/Users/U80823148/_/Data/GB.RData"
   pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/GB/GB.RData"
   if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
@@ -4469,11 +4818,44 @@ load.agis <- function(year=2015){
     return(load2(pfad))
 }
 
-rekid.zaid <- function(id, reverse=FALSE){
+load.cost <- function(years=2014, ignore_P_cols=TRUE){
+  # This function loads full cost data from several years and combines them.
+  pfad <- "C:/Users/U80823148/_/ME/ME_data_out/data_final/"
+  
+  cost1 <- NULL
+  for(i in 1:length(years)) {
+    pfad1 <- paste0(pfad,years[i],"/allcosts_info.RData")
+    if(is.null(cost1)) cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
+    cat(pfad1, "\n", sep="")
+    load(pfad1)
+    # Berechnungen mit propoertionaler Zuteilung entfernen.
+    if(ignore_P_cols) cost <- cost[,substr.rev(colnames(cost),1,2)!="_P"]
+    # Falls gewuenscht, Saatgutproduzenten ausschliessen
+    cost1 <- rbind(cost1,cost)
+  }
+  return(cost1);
+}
+
+rekid.zaid <- function(id, reverse=FALSE, BHJ=NULL, no.match.NA=TRUE){
   if(!exists("spa")) spa <- load.spa()
-  zaid <- colnames(spa)[colnames(spa)%in%c("BETRIEB","ZA_ID")][1]
-  if(!reverse) return(spa[spa[,"REK_ID"]%in%id, c("JAHR","REK_ID", zaid )])
-  if( reverse) return(spa[spa[, zaid   ]%in%id, c("JAHR","REK_ID", zaid )])
+  
+  res <- spa[,c("JAHR","REK_ID", colnames(spa)[colnames(spa)%in%c("BETRIEB","ZA_ID")][1] )]
+  colnames(res)[colnames(res)=="BETRIEB"] <- "ZA_ID"
+  if(!is.null(BHJ)) {
+    res <- res[res[,"JAHR"]%in%BHJ,]
+  } else {
+    res <- res[order(res[,"JAHR"],decreasing=TRUE),]
+  }
+  
+  if(!no.match.NA) {
+    if(!reverse) return(res[res[,"REK_ID"]%in%id,])
+    if( reverse) return(res[res[,"ZA_ID" ]%in%id,])
+  } else {
+    if(!reverse) matchCol <- "REK_ID" else matchCol <- "ZA_ID"
+    res <- res[ match(id, res[,matchCol]) ,]
+    res[,matchCol] <- id
+    return(res)
+  }
 }
 
 # id <- 72010409
@@ -4672,9 +5054,12 @@ merge.gb <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FA
 }
 
 ####
-mml.link <- function(){
+mml.location <- function(FAT99ZA2015=c("new","old")){
+  FAT99ZA2015 <- match.arg(FAT99ZA2015)
+  
   # Merkmalsliste SpE & SpB oeffnen.
-  cat("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/1863/1_Entwicklungsphase_2013/1_AG Merkmalsliste/MML_v14.06-06.xlsm\n")
+  if(FAT99ZA2015=="new") cat("\\\\evdad.admin.ch\\AGROSCOPE_OS\\2\\5\\2\\1\\2\\1863\\1_Entwicklungsphase_2013\\1_AG Merkmalsliste\n")
+  if(FAT99ZA2015=="old") cat("\\\\evdad.admin.ch\\AGROSCOPE_OS\\2\\5\\2\\1\\1\\1859\\E_MKAT\\REX\\rex127\n")
 }
 ####
 
@@ -4771,8 +5156,8 @@ csv.to.rdata <- function(path, dat=NULL, name="dat", clean.numb.format=FALSE, cl
   # This function converts csv data to RData (which can be read in much faster)
   
   # Remove .csv or .RData from string.
-  if( substr.rev(path,1,4)%in%c( ".csv", ".CSV") ) path <- substr(path,1,nchar(path)-4)
-  if( substr.rev(path,1,6)%in%c( ".RData", ".rdata" ) ) path <- substr(path,1,nchar(path)-6)
+  if( tolower(substr.rev(path,1,4))==".csv" ) path <- substr(path,1,nchar(path)-4)
+  if( tolower(substr.rev(path,1,6))==".rdata" ) path <- substr(path,1,nchar(path)-6)
   
   # If a path is given, read in new data. Else the data.frame 'dat' is used for further processing.
   if(is.null(dat)) {
@@ -4794,6 +5179,14 @@ csv.to.rdata <- function(path, dat=NULL, name="dat", clean.numb.format=FALSE, cl
   if(update.csv) write.table(dat, file=paste0(path, ".csv"), sep = ";", eol = "\n", quote=FALSE, col.names=TRUE, row.names=FALSE) # Nur COLnames
 }
 
+rdata.to.csv <- function(path){
+  # This function reads in an RData file and saves it as csv.
+  # Remove .csv or .RData from string.
+  if( tolower(substr.rev(path,1,4))==".csv" ) path <- substr(path,1,nchar(path)-4)
+  if( tolower(substr.rev(path,1,6))==".rdata" ) path <- substr(path,1,nchar(path)-6)
+  write.table(load2(paste0(path,".RData")), file=paste0(path,".csv"), sep = ";", eol = "\n", quote=FALSE, col.names=TRUE, row.names=FALSE) # Nur COLnames
+}
+
 read.xlsx <- function(filename, sheet=1, header=TRUE, create=FALSE){
   # This function reads xls and xlsx files into a data.frame. Package XLConnect must be installed.
   # Sheet can also be given as character. If all sheets of the workbook should be imported, use loadWorkbook()
@@ -4805,6 +5198,61 @@ read.xlsx <- function(filename, sheet=1, header=TRUE, create=FALSE){
   return( readWorksheet(wb, sheet=sheet, header=header) )
 }
 
+#path <- "C:/Users/U80823148/_/ME/ME_data_out/data_final"
+list.nodirs <- function(path = ".", ...){
+  fil <- list.files(path, ...) # ...
+  return( fil[!file.info(fil)$isdir] )
+}
+
+#zipfile <- "C:/Users/U80823148/_/ME/ME_data_out/data_final/2014/allcosts_info.zip"
+#files <- c("C:/Users/U80823148/_/ME/ME_data_out/data_final/2013/allcosts_info - Kopie.csv", "C:/Users/U80823148/_/ME/ME_data_out/data_final/2014/allcosts_info - Kopie.csv")
+#remove.original=TRUE; showWarnings=TRUE
+#z1ip.nodirs(zipfile, files, remove.original=TRUE, showWarnings=FALSE)
+zip.nodirs <- function(zipfile, files, remove.original=FALSE, showWarnings=TRUE, ...){
+  # This function packs all files with full path names into a zip file that will not contain the subfolders.
+  # Arguments
+  # zipfile         = The zipfile containing all compressed files.
+  # files           = All files to be packed into the zip file.
+  # remove.original = Should original files be removed after they were packed into the zip file?
+  # showWarnings    = Should warnings be showed if the zipfile already exists?
+  
+  # Check if zipfile already exists.
+  if(file.exists(zipfile)){
+    if(file.info(zipfile)$isdir) stop("zipfile must not be a directory.")
+    if(showWarnings) {
+      if(remove.original) stop("zipfile already exists. Because remove.original==TRUE, for safety reasons, the zipping was stopped. Set showWarnings=FALSE to ignore this message.")
+      warning("zipfile already existed. Content was updated.")
+    }
+  }
+  
+  # Save original working directory.
+  wd <- getwd();
+  # Split filenames by / or \
+  fil <- strsplit(files, "/|\\\\")
+  
+  # Safetycheck for duplicated filenames that would be overwritten within the zipfile.
+  # x <- fil[[1]]
+  filcheck <- unlist(lapply(fil,function(x)x[length(x)]))
+  if(any(duplicated(filcheck))){
+    stop(paste0("Some filenames are identical. Duplicated filenames would be overwritten within the zip. Please choose unique filenames of the following files:\n", paste0(unique(filcheck[duplicated(filcheck)]),collapse=", ")))
+  }
+  
+  # Pack all files into zipfile.
+  # x <- fil[[1]]
+  lapply(fil, function(x){
+    filename <- x[length(x)]
+    if(length(x)>1){ # If there is more then 1 part in path, then it's the full path, not only filename.
+      parentdir <- paste(x[-length(x)],collapse="/")
+      setwd(parentdir)
+    }
+    zip(zipfile, filename)
+  })
+  
+  # Remove original files if wished.
+  if(remove.original) file.remove(files)
+  # Set original working directory.
+  setwd(wd);
+}
 
 #### CORRELATIONS, REGRESSIONS ####
 ####
@@ -5572,9 +6020,12 @@ find.string <- function(pattern, x, ignore.case=FALSE, ...){
 ####
 
 find.col <- function(pattern, dat, ignore.case=TRUE, ...){
-  if(!is.null(dim(pattern))) stop("pattern (first argument) must be a value or vector, not data.frame.")
-  # This function is a convenience function to find columns in the Grundlagenbericht.
+  # This function is a convenience function to find columns in a data.frame or matrix.
   # Use it like this: find.col("jae", dat1)
+  if(!is.null(dim(pattern))) {
+    if(!is.null(dim(dat))) stop("pattern (first argument) must be a value or vector, but not a matrix/data.frame. dat (second) argument must be a matrix/data.frame.")
+    return( colnames(pattern)[ find.string(pattern=dat, x=colnames(pattern), ignore.case=ignore.case, ...) ] )
+  }
   return( colnames(dat)[ find.string(pattern=pattern, x=colnames(dat), ignore.case=ignore.case, ...) ] )
 }
 find.gb.col <- function(pattern, dat=gb, ignore.case=TRUE, ...){
