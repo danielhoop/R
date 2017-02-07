@@ -695,7 +695,7 @@ sort.MK.colnames <- function(data, order=c("zeile","spalte")){
 
 # System ZA2015
 MKcol <- function(string) {if(is.null(dim(string))) substr(string,6,9) else substr(colnames(string),6,9)}
-MKrow <- function(string) {if(is.null(dim(string))) substr(string,11,16) else substr(colnames(string),11,16)}
+MKrow <- function(string) {if(is.null(dim(string))) substr(string,11,15) else substr(colnames(string),11,15)}
 
 MKsort <- function(data, order=c("zeile","spalte")){
   order <- match.arg(order)
@@ -723,8 +723,9 @@ MKsort.colnames <- function(data, order=c("zeile","spalte")){
   }
 }
 
-paste.cols <- function(dat, cols=c("ID","Jahr"), sep="_") {
+paste.cols <- function(dat, cols=NULL, sep="_") {
   # Paste Values of columns of a data frame
+  if(is.null(cols)) cols <- colnames(dat)
   return( eval(parse(text= paste0( "paste(", paste( paste0("dat[,'",cols,"']"), collapse=", "), ", sep='",sep,"')") )) )
 }
 
@@ -1158,16 +1159,30 @@ summarysd <- function(x,na.rm=TRUE,digits=2,...) {
   }
 }
 ####
-
-
-summaryna <- function(x,na.rm=TRUE,digits=NULL) {
-  if(is.matrix(x)|is.data.frame(x)) { return(apply(x,2,function(x)summaryna(x,na.rm=na.rm)))
-  } else if (is.list(x)) { return(sapply(x,function(x)summaryna(x,na.rm=na.rm)))}
-  sum <- summary(x,na.rm=na.rm)
+summaryna <- function(x, ...) {
+  # Recursive function definition in case of matrix or data.frame.
+  if(is.matrix(x)) {
+    return(apply(x,2,function(x)summaryna(x, ...)))
+  } else if (is.data.frame(x)) {
+    return(sapply(x,function(x)summaryna(x, ...)))
+  }
+  # This is the actual function.
+  sum <- summary(x, ...)
   if(length(sum)<7)    sum <- c(sum,"NA's"=0)
-  if(!is.null(digits)) sum <- round(sum,digits)
   return(sum)
 }
+
+####
+renumber <- function(x){
+  # Integrated function for clarity
+  replace.values <- function(search, replace, x){
+    return(replace[ match(x, search) ])
+  }
+  # Replacement here
+  ux <- unique(x)
+  return(replace.values(ux, 1:length(ux), x))
+}
+
 ####
 if(FALSE){
   data <- cbind(1:1000, 100:1099)
@@ -1882,9 +1897,12 @@ by.add.df.cols <- function(data, relevantColnames, INDICES, FUN, stringsAsFactor
   if(is.matrix(data)) data <- as.data.frame(data)
   if(is.list(INDICES) & !is.data.frame(INDICES)) INDICES <- as.data.frame(INDICES)
   if(!is.null(dim(INDICES))) INDICES <- paste.cols(INDICES, colnames(INDICES))
+  if(length(INDICES)!=nrow(data)) stop("INDICES must have the same number of elements as data has rows. Do not enter colnames here, but vectors instead.")
   # By...   Add column to restore the original order of the rows.
   # An additional function has to be definded that add will add the "order column" with content=1:nrow(x) and col number=ncol(x) to the result.
-  res <- do.call("rbind", by( cbind(data[,relevantColnames],1:nrow(data)), INDICES, function(x)return(cbind(FUN(x), x[,ncol(x)])) ))
+  res <- do.call("rbind", by( cbind(data[,relevantColnames,drop=FALSE],1:nrow(data)), INDICES, function(x)return(cbind(FUN(x), x[,ncol(x)])) ))
+  # Now remove the relevantColnames and the column with name "1:nrow(data)"
+  res <- res[,!colnames(res)%in%c(relevantColnames,"1:nrow(data)"),drop=FALSE]
   # Return original data.frame and ordered additional columns (without the column that was added to restore the initial row order)
   return(data.frame(data,
                     res[order(res[,ncol(res)]),-ncol(res),drop=FALSE],
@@ -1938,6 +1956,12 @@ transl.typ <- function(x, short=FALSE, FAT99=FALSE){
 transl.reg <- function(x){
   name <- c("Tal","Hügel","Berg")
   numb <- c(  1,     2,      3)
+  return(replace.values(numb, name, x))
+}
+
+transl.lbf <- function(x){
+  name <- c("konv.","ÖLN","Bio","Bio Umstell.")
+  numb <- c(   1,     2,    3,       4)
   return(replace.values(numb, name, x))
 }
 
@@ -4485,7 +4509,7 @@ replace.values <- function(search, replace, x, no.matching.NA=FALSE, gsub=FALSE)
       xnew[isna] <- x[isna]
     }
   } else {
-    # Hier erst nach Laenge der Strings ordnen, damit kurze Teilstrings schon vorher ersetzt werden.
+    # Hier erst nach Laenge der Strings ordnen, damit lange Teilstrings vor kurzen ersetzt werden.
     ord <- order(nchar(search),decreasing=TRUE)
     search <- search[ord]
     replace <- replace[ord]
@@ -4573,7 +4597,7 @@ write.table.zipped <- function(x, file, ...){
 }
 
 # file <- "C:/Users/U80823148/_/ME/ME_data_out/data_final/2014/allcosts_info.zip"
-read.table <- function(file, ...){
+read.table <- function(file, ..., choose.columns=NULL){
   # This edited versin of read.table detects compressed files from their file endings and directly reads them without unpacking.
   # It is assumed that only one file is within the zip archive. Otherwise the function will give an error message.
   # All arguments are used like in read.table.
@@ -4608,21 +4632,21 @@ read.table2 <- function(file, header=TRUE, sep=";", fileEncoding=""){
   return(dat)
 }
 
-# file <- "C:/Users/U80823148/_/ME/ME_gams/005_batch_jobs\\\\success_message.txt"
-# file <- "C:/Users/U80823148/_/ME/ME_data_out/data_final/allcosts_info.csv"
-count.nonblank.lines <- function(file) {
+# file <- "C:/Users/U80823148/_/Data/testfile.csv"
+# write.table(1:(1e7+351981), file=file, col.names=FALSE, row.names=FALSE); system.time( print(c1ount.lines(file)) ); file.remove(file)
+count.lines <- function(file) {
+  # count lines of file.
   if(Sys.info()["sysname"]=="Windows"){
     file <- gsub("/","\\\\",file) # Replace all forward-slashes with backward-slashes
     file <- gsub("(\\\\){2,10}","\\\\",file) # Replace all multiple slashes with unique slashes.
-    #system(paste0("findstr /R /N \"^\" \"",file,"\" | find /C \":\"")) # Pipe does not work...
-    str <- paste0(system(paste0("find /c /v \"\" \"",file,"\" "), intern=TRUE), collapse="")
+    str <- paste0(system(paste0("find /c /v \"\" \"",file,"\" "), intern=TRUE), collapse="") # Looks for "nonblank" lines but actually also "blank" lines contain "\n" and are therefore counted.
     str <- unlist(strsplit(str, ":"))
     return(as.numeric(str[length(str)])) 
   } else if(tolower(Sys.info()["sysname"])=="linux"){
     file <- gsub("\\\\","/",file) # Replace all backward-slashes with forward-slashes
     file <- gsub("(/){2,10}","/",file) # Replace all multiple slashes with unique slashes.
     str <- paste0(system(paste0("wc -l \"",file,"\""), intern=TRUE), collapse="")
-    stop("Linux version not yet fully implemented")
+    stop("Linux version not yet fully implemented.")
   }
 }
 
@@ -4789,8 +4813,8 @@ load.spe <- function(...) load.spa(...)
 
 # Fuer SpB
 load.spb <- function() {
-  pfad1 <- "C:/Tools/Java_Projects/SQLtoCSV/z_DataExport/SpB.RData"
-  pfad2 <- ""#"//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/BO/alldata/SpE.RData"
+  pfad1 <- "C:/Users/U80823148/_/Data/SpB.RData1"
+  pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Betr_B/BO/alldata/SpB.RData"
   if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
   cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
   cat(pfad, "\n", sep="")
@@ -4818,16 +4842,17 @@ load.agis <- function(year=2015){
     return(load2(pfad))
 }
 
-load.cost <- function(years=2014, ignore_P_cols=TRUE){
+load.cost <- function(years=2014, ignore_P_cols=TRUE, non_aggr=FALSE, parentDir="C:/Users/U80823148/_/ME/ME_data_out/data_final"){
   # This function loads full cost data from several years and combines them.
-  pfad <- "C:/Users/U80823148/_/ME/ME_data_out/data_final/"
+  
+  if(non_aggr) fileName <- "/allcosts_nonaggr.RData" else fileName <- "/allcosts_info.RData"
   
   cost1 <- NULL
   for(i in 1:length(years)) {
-    pfad1 <- paste0(pfad,years[i],"/allcosts_info.RData")
+    pfad1 <- paste0(parentDir,"/",years[i],fileName)
     if(is.null(cost1)) cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
     cat(pfad1, "\n", sep="")
-    load(pfad1)
+    cost <- load2(pfad1)
     # Berechnungen mit propoertionaler Zuteilung entfernen.
     if(ignore_P_cols) cost <- cost[,substr.rev(colnames(cost),1,2)!="_P"]
     # Falls gewuenscht, Saatgutproduzenten ausschliessen
