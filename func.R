@@ -1890,7 +1890,7 @@ by.add.df.cols <- function(data, relevantColnames, INDICES, FUN, stringsAsFactor
   # Arguments
   # data             = The data frame over which by() should be applied.
   # relevantColnames = The relevant colnames that are needed for the calculations in FUN.
-  # INDICES          = The indices for the application of by(). This will be pasted to a signle string if !is.null(INDICES).
+  # INDICES          = The indices for the application of by(). This will be pasted to a signle string if !is.null(dim(INDICES)).
   # FUN              = The function to apply within by()
   
   # Combine INDICES to a single string if it is given as several columns of a data.frame/matrix
@@ -1903,8 +1903,9 @@ by.add.df.cols <- function(data, relevantColnames, INDICES, FUN, stringsAsFactor
   res <- do.call("rbind", by( cbind(data[,relevantColnames,drop=FALSE],1:nrow(data)), INDICES, function(x)return(cbind(FUN(x), x[,ncol(x)])) ))
   # Now remove the relevantColnames and the column with name "1:nrow(data)"
   res <- res[,!colnames(res)%in%c(relevantColnames,"1:nrow(data)"),drop=FALSE]
-  # Return original data.frame and ordered additional columns (without the column that was added to restore the initial row order)
-  return(data.frame(data,
+  rownames(res) <- NULL
+  # Return original data.frame and ordered additional columns (without the column that was added to restore the initial row order.
+  return(cbind(data,
                     res[order(res[,ncol(res)]),-ncol(res),drop=FALSE],
                     stringsAsFactors=stringsAsFactors))
 }
