@@ -4,18 +4,28 @@
 ### Or read it in via R console > source("filedirectory of this file")
 ### Or simply copy it into your R console.
 
-# Functions for ZA data
+# Most useful funcitons
 # -------------------------
+# Grouping
+# group.by.quantiles / group.by.fix.scale
+# group.by.wtd.quantiles (in combination with mean.weight -> to calculate weighted means of upper and lower income quartile)
+#
+# Calc weighted means / quantiles
 # mean.weight (in combination with extract.I.vars & create.cols)
 # median.weight (as wrapper for quantile.weight)
-# group.by.wtd.quantiles (in combination with mean.weight -> to calculate weighted means of upper and lower income quartile)
-# load.spa, load.gb, load.agis (quickly load data)
-# vergleichslohn, vergleichszins (quickly load data)
+#
+# Load data 
+# load.spa, load.gb, load.agis, load.cost (quickly load data, e.g. full costs)
+# vergleichslohn, vergleichszins (quickly load data, e.g. opportunity costs)
+#
+# Find columns / view data / clipboard copying
+# find.col, find.gb.col, find.spa.col, (quickly find column names with string pattern)
+# read.cb, write.cb, view (read/write from clipboard. save as csv and view in Excel)
+#
+# Other (translate coding and decrypt IDs)
+# transl.reg, transl.typ, transl.ths, transl.lbf, transl.mm, transl.spb.330col.340row, transl.spb.320row, transl.ref.210row, transl.EB.MM
 # id.entschluesseln (decrypt IDs of Referenzbetriebe)
 # rekid.zaid (key between REK_ID[LINK] & ZA_ID[AGIS] )
-# find.gb.col (gbc), find.spa.col, find.col (quickly find column names with string pattern)
-# harmonize.agis.colnames (because BFS has changed column names each year in the past)
-# merge.gb
 
 # -- Source locally --
 # source("O:/Sites/TA/Transfer/hpda/R/func.R")
@@ -453,6 +463,15 @@ color.gradient <- function(x, colors=c("red","yellow","green"), colsteps=100) {
 }
 
 #### CONVENIENCE FUNCTIONS ####
+
+slash <- function(reverse=FALSE){
+  # This function changes \ to / in paths (or vice versa if reverse=TRUE)
+  if(!reverse){
+    cat( gsub("\\\\","/",suppressWarnings(readLines("clipboard"))) )
+  } else {
+    cat( gsub("/{1,10}","\\\\",suppressWarnings(readLines("clipboard"))) ) # replace several / with only one \
+  }
+}
 
 save.packages <- function(){
   # This function saves all installed R-Packages to a file.
@@ -2031,8 +2050,8 @@ transl.ref.210row <- function(x, give.tab=FALSE){
 }
 
 # transl1.spb.330col.340row(c(2011,2012))
-transl.spb.330col.340row <- function(x, inverse=FALSE, give.tab=FALSE, nice.names=FALSE){
-  # This function translates the numbers from MML Tab 330 columns  to  Tab 340 rows (and vice versa if inverse=TRUE).
+transl.spb.330col.340row <- function(x, reverse=FALSE, give.tab=FALSE, nice.names=FALSE){
+  # This function translates the numbers from MML Tab 330 columns  to  Tab 340 rows (and vice versa if reverse=TRUE).
   # Arguments
   # x        = The number to be translated from one tab to another
   # inverse  = Translate from 340 row -> 330 col
@@ -2087,9 +2106,9 @@ transl.spb.320row <- function(x, give.tab=FALSE){
   }
 }
 
-transl.EB.MML <- function(x, inverse=FALSE) {
+transl.EB.MML <- function(x, reverse=FALSE) {
   # Diese Funktion übersetzt die Merkmalsbezeichnungen zwischen Online-Erhebungsbogen und Merkmalsliste-ZA2015
-  # if inverse=TRUE in andere Richtung: MML2015 -> EB
+  # if reverse=TRUE in andere Richtung: MML2015 -> EB
   
   if(!exists("uebers_tab", envir=globalenv())){
     #pfad_uebers <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/1863/1_Entwicklungsphase_2013/1_AG Merkmalsliste/21_transcoding_fuer_R/Umbenennung_UID_Reglen_Alle_Merkmale_uebersetzt.csv"
