@@ -27,7 +27,7 @@
 # id.entschluesseln (decrypt IDs of Referenzbetriebe)
 # rekid.zaid (key between REK_ID[LINK] & ZA_ID[AGIS] )
 
-# -- Source locally --
+# -- Source locally  --
 # source("O:/Sites/TA/Transfer/hpda/R/func.R")
 # if(!exists("load.gb")) source("O:/Sites/TA/Transfer/hpda/R/func.R")
 # if(!exists("load.gb")) source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/func.R")
@@ -1919,14 +1919,18 @@ by.add.df.cols <- function(data, relevantColnames, INDICES, FUN, stringsAsFactor
   if(length(INDICES)!=nrow(data)) stop("INDICES must have the same number of elements as data has rows. Do not enter colnames here, but vectors instead.")
   # By...   Add column to restore the original order of the rows.
   # An additional function has to be definded that add will add the "order column" with content=1:nrow(x) and col number=ncol(x) to the result.
-  res <- do.call("rbind", by( cbind(data[,relevantColnames,drop=FALSE],1:nrow(data)), INDICES, function(x)return(cbind(FUN(x), x[,ncol(x)])) ))
+  #debugRes <<- by( cbind(data[,relevantColnames,drop=FALSE],1:nrow(data)), INDICES, function(x)return(cbind(FUN(x), x[,ncol(x)])) )
+  #cat("Debug has worked.")
+  tryCatch(
+    res <- do.call("rbind", by( cbind(data[,relevantColnames,drop=FALSE],1:nrow(data)), INDICES, function(x)return(cbind(FUN(x), x[, ncol(x)] )) ))
+    ,error=function(e) if(e$message=="names do not match previous names") stop("You must return the initial data.frame x from function(x) otherwise the by.add.df.column() function does not work! Have you returned only the result? This might be the problem.")
+    ,warning=function(w)w)
+  
   # Now remove the relevantColnames and the column with name "1:nrow(data)"
-  res <- res[,!colnames(res)%in%c(relevantColnames,"1:nrow(data)"),drop=FALSE]
+  res <- res[,!colnames(res)%in%relevantColnames,drop=FALSE]
   rownames(res) <- NULL
   # Return original data.frame and ordered additional columns (without the column that was added to restore the initial row order.
-  return(cbind(data,
-                    res[order(res[,ncol(res)]),-ncol(res),drop=FALSE],
-                    stringsAsFactors=stringsAsFactors))
+  return(cbind(data, res[order(res[,ncol(res)]),-ncol(res),drop=FALSE]))
 }
 
 #### OTHER ####
