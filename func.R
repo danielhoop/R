@@ -108,6 +108,7 @@ cornerlegend <- function(v=c("o","m","u")[3],h=c("l","m","r")[3],ply=0,plx=0, ..
   # This function places the legend in the specified corner of the graph. Give all agruments needed to produce the legend in the ,... argument.
   # v= vertical orientation, h= horizontal orientation. In german! "o","r" means for example: oben-rechts (upper right).
   # ply: plus y coord., plx: plus x coord.
+  # Alternative: Try legend() and simply write: "bottomright", "bottom", "bottomleft", "left", "topleft", "top", "topright", "right", "center"
   
   yxlim <- par("usr")
   if(v=="o") {yjust <- 1; y <- yxlim[4];} else if(v=="m") {yjust <- 0.5; y <- mean(c(yxlim[3],yxlim[4]));} else if(v=="u") {yjust <- 0; y <- yxlim[3]+ply;}
@@ -115,6 +116,11 @@ cornerlegend <- function(v=c("o","m","u")[3],h=c("l","m","r")[3],ply=0,plx=0, ..
   legend(x=x,y=y,xjust=xjust,yjust=yjust, ...)
 }
 ####
+curveChar <- function(expr, ...) {
+  # curve() for character input instead of expression
+  # Try this: expr <- "100*(1-exp(-0.025*(40+x)))*(1-exp(-0.0045*(200+400)))"; curveChar(expr, from=1, to=160)
+  curve((function(x) eval(parse(text=expr)))(x), ...)
+}
 
 linreg.plot <- function(form,data,method=c("lm","rlm"),...){
   # see also curve()
@@ -467,10 +473,11 @@ color.gradient <- function(x, colors=c("red","yellow","green"), colsteps=100) {
 slash <- function(reverse=FALSE){
   # This function changes \ to / in paths (or vice versa if reverse=TRUE)
   if(!reverse){
-    cat( gsub("\\\\","/",suppressWarnings(readLines("clipboard"))) )
+    txt <- gsub("\\\\","/",suppressWarnings(readLines("clipboard")))
   } else {
-    cat( gsub("/{1,10}","\\\\",suppressWarnings(readLines("clipboard"))) ) # replace several / with only one \
+    txt <- gsub("/{1,10}","\\\\",suppressWarnings(readLines("clipboard"))) # replace several / with only one \
   }
+  write.table(txt,'clipboard',quote=FALSE,col.names=FALSE,row.names=FALSE,eol=""); cat("Converted string is in clipboard. Use Ctrl+V:\n",txt,"\n",sep="")
 }
 
 save.packages <- function(){
@@ -506,9 +513,13 @@ list.all.package.functions <- function(package, all.names = FALSE, pattern) {
 }
 
 require.package <- function(...){
-  # This function checks if a packages is installed. If not, it is first installed, then loaded.
-  if(!deparse(substitute(...)) %in% rownames(installed.packages())) install.packages( deparse(substitute(...)) )
-  require(...)
+  # This function checks if a package is already installed or loaded. If not, installation is done. Then package is required.
+  if( !paste0("package:",deparse(substitute(...)))%in%search() ){
+    if( !deparse(substitute(...))%in%rownames(installed.packages()) ){
+      install.packages( deparse(substitute(...)) )
+    }
+    require(..., quietly=TRUE)
+  }
 }
 
 vergleichslohn <- function(region=NULL, jahr=NULL){
@@ -579,48 +590,6 @@ find.obj <- function(pattern){
   allobj <- as.character( ls( envir=environment(find.fun) ) )
   choose <- which(grepl(paste0(pattern,collapse="|"), allobj ))
   return(allobj[choose])
-}
-
-read.cb <- function(names=c("col","rowcol","row","no"), ...) {
-  # Read tables that are stored in the clipboard (e.g. copied in excel)
-  names <- match.arg(names)
-  if(names=="row") {
-    dat <- read.table("clipboard", sep="\t", header=FALSE, stringsAsFactors=FALSE, ...)
-    rownames(dat) <- dat[,1]; dat <- dat[,-1]
-    return(dat)
-  } else if (names=="col") {
-    return( read.table("clipboard", sep="\t", quote="", header=TRUE, stringsAsFactors=FALSE, ...) )
-  } else if (names=="rowcol") {
-    dat <- read.table("clipboard", sep="\t", quote="", header=TRUE, stringsAsFactors=FALSE, ...)
-    rownames(dat) <- dat[,1]; dat <- dat[,-1]
-    return(dat)
-  } else {
-    return( read.table("clipboard", sep="\t", quote="", header=FALSE, stringsAsFactors=FALSE, ...) )
-  }
-}
-
-write.cb <- function(data, names=c("col","rowcol","row","no"), ...){
-  # Save a matrix into the clipoard.
-  
-  # If a vector is given as argument it is convertet to a matrix and rownames are given.
-  if(is.null(dim(data))) {
-    if(length(names)>1) names <- "row"
-    names_data <- names(data)
-    data <- as.matrix(data)
-    names(data) <- names_data
-  }
-  
-  names <- match.arg(names)
-  
-  if(names=="row") {
-    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=FALSE, row.names=TRUE, ...)
-  } else if (names=="col") {
-    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=TRUE, row.names=FALSE, ...) # Nur colnames
-  } else if (names=="rowcol") {
-    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=NA, ...)                    # Colnames & Rownames
-  } else {
-    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=FALSE, row.names=FALSE, ...)
-  }
 }
 
 #x <- as.data.frame(matrix(1:100, ncol=10))
@@ -1919,18 +1888,19 @@ by.add.df.cols <- function(data, relevantColnames, INDICES, FUN, stringsAsFactor
   if(length(INDICES)!=nrow(data)) stop("INDICES must have the same number of elements as data has rows. Do not enter colnames here, but vectors instead.")
   # By...   Add column to restore the original order of the rows.
   # An additional function has to be definded that add will add the "order column" with content=1:nrow(x) and col number=ncol(x) to the result.
-  #debugRes <<- by( cbind(data[,relevantColnames,drop=FALSE],1:nrow(data)), INDICES, function(x)return(cbind(FUN(x), x[,ncol(x)])) )
-  #cat("Debug has worked.")
-  tryCatch(
-    res <- do.call("rbind", by( cbind(data[,relevantColnames,drop=FALSE],1:nrow(data)), INDICES, function(x)return(cbind(FUN(x), x[, ncol(x)] )) ))
-    ,error=function(e) if(e$message=="names do not match previous names") stop("You must return the initial data.frame x from function(x) otherwise the by.add.df.column() function does not work! Have you returned only the result? This might be the problem.")
-    ,warning=function(w)w)
+  res <- by( data[,relevantColnames,drop=FALSE], INDICES, FUN )
+  if(!is.null(dim(res[[1]]))) res <- do.call("rbind",res) else {
+    res <- matrix(do.call("c",res)); colnames(res) <- "byResult"
+    cat("The resulting column was named 'byResult' because FUN returned a vector without dimensions.\n")
+    }
   
-  # Now remove the relevantColnames and the column with name "1:nrow(data)"
-  res <- res[,!colnames(res)%in%relevantColnames,drop=FALSE]
-  rownames(res) <- NULL
+  # Now remove the relevantColnames and reorder the data. Set rownames as of data.
+  res <- res[ order(unname(unlist( tapply(1:length(INDICES),INDICES,function(x)return(x)) ))),
+              !colnames(res)%in%relevantColnames,drop=FALSE]
+  if(ncol(res)==0) stop("The colnames of the result must not be named like relevantColnames, otherwise they are deleted and not returned.")
+  rownames(res) <- rownames(data)
   # Return original data.frame and ordered additional columns (without the column that was added to restore the initial row order.
-  return(cbind(data, res[order(res[,ncol(res)]),-ncol(res),drop=FALSE]))
+  return(cbind(data, res))
 }
 
 #### OTHER ####
@@ -3130,7 +3100,9 @@ sd.outliers <- function(x, no.sd=3){
 #which(quantile.outliers(1:1000))
 #which(sd.outliers(1:1000))
 
-mahalanobis.outliers <- function(data,p.val=0.025,method=c("quantile","chisq"),na.action=c("median","mean","remove")){
+if(FALSE) data=prepareMvOutlData(cost[cost[,"Leist_Saat_Fl"]==0 & index==bz,checkCols]); p.val=0.025; method=c("absMahaDistIncrease","quantile","chisq")[1]; max.p.outl=0.15; na.action=c("median","mean","remove")[1]; make.plot=TRUE
+mahalanobis.outliers <- function(data, p.val=0.025, method=c("absMahaDistIncrease","quantile","chisq"), max.p.outl=0.15,
+                                 na.action=c("median","mean","remove"), make.plot=FALSE, plotText=NULL){
   # Define multivariate outliers by mahalanobis distance
   method <- match.arg(method)
   if(is.data.frame(data)) data <- as.matrix(data)
@@ -3149,16 +3121,66 @@ mahalanobis.outliers <- function(data,p.val=0.025,method=c("quantile","chisq"),n
       data <- apply(data,2,function(x)fillnas(x))
     }
   }
+  # Prepare legend for plot
+  if(make.plot){
+    legMat <- as.data.frame(matrix(NA, nrow=5, ncol=4)); colnames(legMat) <- c("legend","lty","pch","col")
+    legMat[,"legend"] <- c("normal","outlier","regrCrit","diffCrit","plotText")
+    legMat[,"lty"] <- c(0,0,2,1,0)
+    legMat[,"pch"] <- c(21,20,NA,NA,NA)
+    legMat[,"col"] <- c("black","black","red","black",NA)
+    if(method!="absMahaDistIncrease") legMat <- legMat[-c(3,4),]
+    if(!is.null(plotText)) legMat["5","legend"] <- plotText else legMat <- legMat[-nrow(legMat),]
+    drawLegend <- function() legend("topleft", legend=legMat[,"legend"], lty=legMat[,"lty"], pch=legMat[,"pch"], col=legMat[,"col"], bty="n");
+  }
+  
   maha <- mahalanobis(data,colMeans(data),cov(data))
   if(method=="quantile") {
-    outliers <- maha > quantile(maha,1-p.val)
+    q1 <- quantile(maha,1-p.val)
+    outliers <- maha > q1
+    if(make.plot) {plot(sort(maha), main=paste0("Mahalanobis outliers,\nmethod=\"quantile\", p.val=",p.val) ); drawLegend(); abline(h=q1)}
   } else if(method=="chisq") {
     p.chisq <- pchisq(q=maha,df=ncol(data)) # df ist richtig. Laut ETH Folien zu "mutivariate outliers"
-    outliers <- (1-p.chisq) < p.val
+    outliers <- p.chisq > 1-p.val
+    if(make.plot) {plot(sort(p.chisq), main=paste0("Mahalanobis outliers,\nmethod=\"chisq\", p.val=",p.val) ); drawLegend(); abline(h=1-p.val)}
     warning("Attention! By choosing method='chisq' you assume that all variables follow a normal distribution.")
+  } else if(method=="absMahaDistIncrease"){
+    # Order data according to mahalanobis distance
+    #Sort & resort works like this: maha1 <- c(1,3,2,10,5,0); om <- order(maha1); oMaha <- maha1[om]; dput(oMaha[order(om)])
+    om <- order(maha)
+    oMaha <- unname( maha[om] )
+    # Calculate the differences between ordered mahalanobis distances. Where the difference is larger than a certain quantile, it's a potential outlier.
+    dMaha <- c(0,diff(oMaha))
+    qdMaha <- quantile(dMaha, 1-p.val)
+    diffFilt <- (dMaha > qdMaha)
+    if(any(diffFilt)){
+      diffFilt[which(diffFilt)[1]:length(diffFilt) ] <- TRUE
+      # Calculate a regression for the left part of the distribution until the quantile <regr.quant>
+      rMaha <- rank(oMaha)
+      regr.quant <- 0.75
+      lmFilt <- oMaha < quantile(oMaha, regr.quant)
+      coef <- lm(oMaha[lmFilt]~rMaha[lmFilt])$coefficient[2]
+      # If a value is <regr.diff.fact> times higher than it would be estimated with the regression, and is in the right side of the distribution it is a potential outlier.
+      regr.diff.fact <- 2.3
+      regrFilt <- (oMaha / (rMaha * coef)) > regr.diff.fact & rMaha>floor(length(rMaha)/2)
+    }
+    
+    # Combine the criteria from 'estimated mahalanobis from regression' and 'increasing differences of mahalanobis distance'.
+    outliers <- (diffFilt & regrFilt)[order(om)]
+    names(outliers) <- names(maha)
+
+    col <- rep("white",length(maha)); col[outliers] <- "black"
+    if(make.plot) {
+      plot(oMaha, main=paste0("Mahalanobis outliers,\nmethod=\"absMahaDistIncrease\", p.val=",p.val), ylab="Mahalanobis distance" )
+      lines(oMaha, col=col[om], type="p", pch=20)
+      drawLegend()
+      if(any(diffFilt)) abline( h=min(oMaha[diffFilt]), lty=1)
+      if(any(regrFilt)) abline( h=min(oMaha[regrFilt]), lty=2, col="red")
+    }
   }
   return(outliers)
 }
+#rev(ma( rev(dMaha), n=floor(length(dMaha)/20) ))
+#ma <- function(x,n=5){filter(x,rep(1/n,n), sides=1)}
 
 ####
 remove.minmax.outliers <- function(x,remove=1,lower=NULL,upper=NULL) {
@@ -4545,7 +4567,7 @@ replace.values <- function(search, replace, x, no.matching.NA=FALSE, gsub=FALSE)
 }
 
 
-#### CSV MANIPULATION & READ IN####
+#### CSV/RData/XLS - READ/WRITE & MANIPULATION ####
 
 #cost <- load2("C:/Users/U80823148/_/ME/ME_data_out/data_final/allcosts_info.RData")
 #file <- "\\\\evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/Output/Test_write.table.fast/cost.csv"
@@ -4699,9 +4721,9 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
   if(nrows<0) nrows <- nrow(x)
   if(ncols<0) ncols <- ncol(x)
   # Shrink data.frame such that it can be saved & viewed faster.
-  nrows <- min(nrow(x), nrows)
+  nrows <- min(nrow(x), nrows); if(nrows<nrow(x)) warning(paste0("data.frame displays only ",nrows," of ",nrow(x)," rows."))
   if(nrows!=nrow(x)) x <- x[1:nrows,,drop=FALSE]
-  ncols <- min(ncol(x), ncols)
+  ncols <- min(ncol(x), ncols); if(ncols<ncol(x)) warning(paste0("data.frame displays only ",ncols," of ",ncol(x)," cols."))
   if(ncols!=ncol(x)) x <- x[,1:ncols,drop=FALSE]
   
   
@@ -5236,19 +5258,102 @@ rdata.to.csv <- function(path){
   write.table(load2(paste0(path,".RData")), file=paste0(path,".csv"), sep = ";", eol = "\n", quote=FALSE, col.names=TRUE, row.names=FALSE) # Nur COLnames
 }
 
+read.cb <- function(names=c("col","rowcol","row","no"), ...) {
+  # Read tables that are stored in the clipboard (e.g. copied in excel)
+  names <- match.arg(names)
+  if(names=="row") {
+    dat <- read.table("clipboard", sep="\t", header=FALSE, stringsAsFactors=FALSE, ...)
+    rownames(dat) <- dat[,1]; dat <- dat[,-1]
+    return(dat)
+  } else if (names=="col") {
+    return( read.table("clipboard", sep="\t", quote="", header=TRUE, stringsAsFactors=FALSE, ...) )
+  } else if (names=="rowcol") {
+    dat <- read.table("clipboard", sep="\t", quote="", header=TRUE, stringsAsFactors=FALSE, ...)
+    rownames(dat) <- dat[,1]; dat <- dat[,-1]
+    return(dat)
+  } else {
+    return( read.table("clipboard", sep="\t", quote="", header=FALSE, stringsAsFactors=FALSE, ...) )
+  }
+}
+
+write.cb <- function(data, names=c("col","rowcol","row","no"), ...){
+  # Save a matrix into the clipoard.
+  
+  # If a vector is given as argument it is convertet to a matrix and rownames are given.
+  if(is.null(dim(data))) {
+    if(length(names)>1) names <- "row"
+    names_data <- names(data)
+    data <- as.matrix(data)
+    names(data) <- names_data
+  }
+  
+  names <- match.arg(names)
+  
+  if(names=="row") {
+    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=FALSE, row.names=TRUE, ...)
+  } else if (names=="col") {
+    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=TRUE, row.names=FALSE, ...) # Nur colnames
+  } else if (names=="rowcol") {
+    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=NA, ...)                    # Colnames & Rownames
+  } else {
+    write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=FALSE, row.names=FALSE, ...)
+  }
+}
 read.xlsx <- function(filename, sheet=1, header=TRUE, create=FALSE){
   # This function reads xls and xlsx files into a data.frame. Package XLConnect must be installed.
-  # Sheet can also be given as character. If all sheets of the workbook should be imported, use loadWorkbook()
+  # Sheet can also be given as character. If all sheets of the workbook should be imported, rather use loadWorkbook{XLConnect}
   # http://www.r-bloggers.com/read-excel-files-from-r/
-  options ( java.parameters = "-Xmx1024m ")
-  suppressWarnings(require(XLConnect))
+  require.package(XLConnect) # #options ( java.parameters = "-Xmx1024m ")
   
   wb = loadWorkbook(filename)
   return( readWorksheet(wb, sheet=sheet, header=header) )
 }
+write.xlsx <- function(filename, data, sheetName=NULL, row.names=FALSE, col.names=TRUE, append=FALSE){
+  # This function writes a xls file from either a matrix/data.frame or a list conaining several matrices/data.frames.
+  # It is a convenient version of writeWorksheetToFile{XLConnect}
+  # Arguments
+  # filename:  The filename of the xls file
+  # data:      A matrix/data.frame or list containing matrices/data.frames
+  # sheetName: Optional sheet names in the Excel file. If NULL, then names Sheet1, Sheet2, etc. are given.
+  # row.names: logical indicating if rownames should be written or character giving the header for rowname colum. Single value or list.
+  # col.names: logical indicating if a header should be written. Single value or list.
+  
+  require.package(XLConnect) # options ( java.parameters = "-Xmx1024m ")
+  
+  if(is.matrix(data) || is.data.frame(data)) data <- list(data)
+  names(data) <- paste0("i",1:length(data))
+  
+  if(!is.null(sheetName)){
+    if(is.list(sheetName)) sheetName <- unlist(sheetName)
+    if(length(data)!=length(sheetName)) stop("length(data) has to be equal length(sheetName)")
+    if(any(duplicated(unlist(sheetName)))) stop("There must be no duplicated sheet names. Otherwise the sheets will be overwritten.")
+  } else {
+    sheetName <- paste0("Sheet",1:length(data))
+  }
+
+  convertRowColNames <- function(nam, trueVal=TRUE, falseVal=FALSE, errorNam="names", allowCharacters=FALSE){
+    if(!is.list(nam)) nam <- as.list(nam)
+    if(!allowCharacters) if(any(sapply(nam,function(x)!is.logical(x)))) stop("row.names must be logical.")
+    if(length(nam)==1) nam <- as.list(rep(nam[[1]],length(sheetName)))
+    if(length(nam)!=length(sheetName)) stop(paste0("length(",errorNam,") must be either 1 or length(data)"))
+    if(!allowCharacters) return( lapply(nam,function(x)if(x) return(trueVal) else return(falseVal) ) ) else return(nam)
+  }
+  rownames=convertRowColNames(row.names, trueVal="", falseVal=NULL,  errorNam="row.names", allowCharacters=TRUE)
+  header=convertRowColNames(col.names, trueVal=TRUE, falseVal=FALSE, errorNam="col.names", allowCharacters=FALSE)
+  
+  if(substr.rev(filename,1,4)==".xls") {
+    warning("Filename must end with xlsx. The filename was appended.")
+    filename <- paste0(filename,"x")
+  }
+  if(file.exists(filename) && !append) file.remove(filename)
+  
+  writeWorksheetToFile(filename, data=data, sheet=sheetName, rownames=rownames, header=col.names)
+}
+
 
 #path <- "C:/Users/U80823148/_/ME/ME_data_out/data_final"
 list.nodirs <- function(path = ".", ...){
+  # List all files but no directories.
   fil <- list.files(path, ...) # ...
   return( fil[!file.info(fil)$isdir] )
 }
