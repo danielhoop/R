@@ -711,9 +711,9 @@ MKsort.colnames <- function(data, order=c("zeile","spalte")){
   }
 }
 
-paste.cols <- function(dat, cols=NULL, sep="_") {
+paste.cols <- function(dat, cols=colnames(dat), sep="_") {
   # Paste Values of columns of a data frame
-  if(is.null(cols)) cols <- colnames(dat)
+  if(is.null(dim(dat))) return(dat)
   return( eval(parse(text= paste0( "paste(", paste( paste0("dat[,'",cols,"']"), collapse=", "), ", sep='",sep,"')") )) )
 }
 
@@ -761,6 +761,7 @@ c.dimnames <- function(array, sep.sign="_"){
   return(res1)
 }
 
+# x <- data.frame(testCol=1:10); y <- data.frame(testCol2=1:5); dims=c("rowcol","row","col")[3]; d1imnames.to.mat(x, dims=dims); m1erge.matrices(x,y,integrate.dimnames="col")
 dimnames.to.mat <- function(x, dims=c("rowcol","row","col")){
   # Diese Funktion integriert die Spalten- und Reihennamen einer Matrix in die Matrix selbst. Also quasi als Werte.
   # WICHTIG: Dies Funktion wird gebraucht fuer Funktion merge.matrices()
@@ -781,19 +782,20 @@ dimnames.to.mat <- function(x, dims=c("rowcol","row","col")){
   return(res)
 }
 
-merge.matrices <- function(..., fill="", nbreak=0, aligned=c("left","right"), integrate.dimnames=FALSE) {
+merge.matrices <- function(..., fill="", nbreak=0, aligned=c("left","right"), integrate.dimnames=c("no","rowcol","row","col")) {
   # Diese Funktion vergleicht die Anzahl Spalten aller gegebenen Matrizen, gleicht sie an und verbindet alle Matrizen in einer einzigen.
   # Mit fill kann gewaehlt werden, was fuer ein Zeichen fuer das Auffuellen der zusaetzlichen Spalten verwendet wird.
   # nbreak gibt an, wie viele Zeilen zwischen zwei Ursprungs-Matrizen eingefuegt werden.
   # Mit integrate.dimnames kann man die dimnames in die End-Matrix integrieren, was mittels dimnames.to.mat() geschieht.
   aligned <- match.arg(aligned)
+  integrate.dimnames <- match.arg(integrate.dimnames)
   
   li <- list(...)
   li <- lapply(li,function(x){
     if(is.null(x)) x <- fill
     if(is.null(dim(x))) return(t(as.matrix(x))) else return(x)
   })
-  if(integrate.dimnames) li <- lapply(li, function(x) dimnames.to.mat(x))
+  if(integrate.dimnames!="no") li <- lapply(li, function(x) dimnames.to.mat(x, dims=integrate.dimnames))
   ncolmax <- max(unlist(lapply(li,function(x) ncol(x) )))
   
   res <- do.call("rbind", 
@@ -1866,10 +1868,11 @@ if(FALSE){
     #return(x[,c("Gewinn_tot","Gewinn"),drop=FALSE])
     return(x[,c("Gewinn_tot"),drop=FALSE])
   }
-  bxy.partially(data=data, relevantColnames=relevantColnames, INDICES=INDICES, FUN=FUN, stringsAsFactors=FALSE)
+  bxy.partially(data=data, relevantColnames=relevantColnames, INDICES=INDICES, FUN=FUN)
 }
 
-by.add.df.cols <- function(data, relevantColnames, INDICES, FUN, stringsAsFactors=FALSE){
+# by(data.frame(v1=1:10),INDICES=c(1,1,1,1,1,2,2,2,2,2),function(x)return(data.frame(result=x[,1,drop=FALSE])))
+by.add.df.cols <- function(data, relevantColnames, INDICES, FUN, showWarnings=TRUE) {
   # This function uses by() over data[,relevantColnames] with INDICES and a defined function FUN. See also ?by
   # Is is designed to be faster than by() over the whole data.frame because is takes only these columns into by() that are really needed for the function.
   # After the calculation a data.frame is returned instead of the usual list that is returned by the by function().
@@ -1891,12 +1894,13 @@ by.add.df.cols <- function(data, relevantColnames, INDICES, FUN, stringsAsFactor
   res <- by( data[,relevantColnames,drop=FALSE], INDICES, FUN )
   if(!is.null(dim(res[[1]]))) res <- do.call("rbind",res) else {
     res <- matrix(do.call("c",res)); colnames(res) <- "byResult"
-    cat("The resulting column was named 'byResult' because FUN returned a vector without dimensions.\n")
-    }
-  
+    if(showWarnings) cat("The resulting column was named 'byResult' because FUN returned a vector without dimensions.\n")
+  }
   # Now remove the relevantColnames and reorder the data. Set rownames as of data.
-  res <- res[ order(unname(unlist( tapply(1:length(INDICES),INDICES,function(x)return(x)) ))),
-              !colnames(res)%in%relevantColnames,drop=FALSE]
+  tapplyOrder <- unname(unlist( tapply(1:length(INDICES),INDICES,function(x)return(x))))
+  if(length(tapplyOrder)!=nrow(res)) stop("The result given by FUN does not containt all rows of the initial data.frame. Please check FUN and correct it.")
+  res <- res[order(tapplyOrder),
+             !colnames(res)%in%relevantColnames,drop=FALSE]
   if(ncol(res)==0) stop("The colnames of the result must not be named like relevantColnames, otherwise they are deleted and not returned.")
   rownames(res) <- rownames(data)
   # Return original data.frame and ordered additional columns (without the column that was added to restore the initial row order.
@@ -1930,11 +1934,10 @@ is.dir <- function(path) {
 #  return(as.data.frame(lapply(x,function(x)is.numeric(x)),stringsAsFactors=FALSE))
 #}
 
-transl.typ <- function(x, short=FALSE, FAT99=FALSE){
+transl.typ <- function(x, short=FALSE, FAT99=FALSE, give.tab=FALSE){
   
   # Wenn Typennummern in Vektor groesser als 99, dann ist es in der Schreibweise 15..
   s3.numb <- c(   11,           12,           21,          22,               23,                   31,                41,                   51,                          52,                          53,                   54)
-  if(x[1]>99) s3.numb <- s3.numb + 1500
   
   if(!short){
     s3.name <- c("Ackerbau","Spezialkulturen","Milchkühe", "Mutterkühe", "Rindvieh gemischt", "Pferde/Schafe/Ziegen", "Veredelung", "Kombiniert Milchkühe/Ackerbau", "Kombiniert Mutterkühe", "Kombiniert Veredelung", "Kombiniert Andere")
@@ -1943,23 +1946,27 @@ transl.typ <- function(x, short=FALSE, FAT99=FALSE){
     s3.name <- c("Ackb","Spez","Milk","MuKu","RiGe","PfSZ","Vere","MiAc","KoMu","KoVe","KoAn")
     if(FAT99) s3.name[c(3,5,8)] <- c("VMil","AnRi","VMAc")
   }
+  if(give.tab){ tab <- matrix(s3.numb); dimnames(tab) <- list(s3.name, "code"); return(tab) }
   
+  if(x[1]>99) s3.numb <- s3.numb + 1500
   return(replace.values(s3.numb, s3.name, x))
 }
 
-transl.reg <- function(x){
+transl.reg <- function(x, give.tab=FALSE){
   name <- c("Tal","Hügel","Berg")
   numb <- c(  1,     2,      3)
+  if(give.tab){ tab <- matrix(numb); dimnames(tab) <- list(name, "code"); return(tab) }
   return(replace.values(numb, name, x))
 }
 
-transl.lbf <- function(x){
+transl.lbf <- function(x, give.tab=TRUE){
   name <- c("konv.","ÖLN","Bio","Bio Umstell.")
   numb <- c(   1,     2,    3,       4)
+  if(give.tab){ tab <- matrix(numb); dimnames(tab) <- list(name, "code"); return(tab) }
   return(replace.values(numb, name, x))
 }
 
-transl.ths <- function(x){
+transl.ths <- function(x, give.tab=TRUE){
   # dat <- read.cb("no") # Quelle: \\evdad.admin.ch\AGROSCOPE_OS\2\5\2\1\1\1860\C_GB\B2014\A_Vers\Druckerei_Adr&Auflage_f_Versand
   ths.name <- c("Agro-Treuhand Rütti AG", "Agro-Treuhand Schwand", "Agro-Treuhand Berner-Oberland",  "Agro-Treuhand Emmental", "Agro-Treuhand Aargau", "Agro-Treuhand Thurgau AG", 
                 "Agro-Treuhand Waldhof", "BBV Treuhand", "Agro-Treuhand Region Zürich AG",  "BBV Treuhand", "BBV Treuhand", "Agro-Treuhand Schwyz GmbH", 
@@ -1968,6 +1975,8 @@ transl.ths <- function(x){
                 "Agro-Treuhand Seeland AG", "Agro-Treuhand Sursee", "Agro-Treuhand Uri, Nid- und Obwalden GmbH",  "Agro-Treuhand Uri, Nid- und Obwalden GmbH", "Agro-Treuhand Glarus", 
                 "Bündner Bauernverband", "Agro-Treuhand Solothurn-Baselland",  "Fessler Treuhand GmbH", "Studer-Korner Treuhand")
   ths.numb <- c(101L, 102L, 103L, 104L, 105L, 110L, 111L, 112L, 113L, 115L, 116L, 117L, 121L, 201L, 202L, 203L, 204L, 224L, 205L, 206L, 226L, 207L, 225L, 336L, 338L, 340L, 342L, 362L, 401L, 402L, 403L, 404L)
+  
+  if(give.tab){ tab <- matrix(ths.numb); dimnames(tab) <- list(ths.name, "code"); return(tab) }
   return(replace.values(ths.numb, ths.name, x))
 }
 
@@ -2014,12 +2023,13 @@ transl.ref.210row <- function(x, give.tab=FALSE){
     ,"Streue_Torfland","10000"     ,"HeckFeldUfer_Gehoelz","10100"    ,"uebr_Flaechen_LN","10200"     ,"Wald","10300"
     ,"Strohverkauf","10400"     ,"Pflanzenbau_nicht_zuteilbar","10500"  ), ncol=2, byrow=TRUE)
   rownames(t1) <- t1[,1]
-  t1 <- t1[,2]
+  t1 <- t1[,2,drop=FALSE]
+  colnames(t1) <- "code"
   
   if(give.tab) {
     return(t1)
   } else {
-    return(replace.values(t1, names(t1), x))
+    return(replace.values(t1[,1], rownames(t1), x))
   }
 }
 
@@ -2063,9 +2073,10 @@ transl.spb.320row <- function(x, give.tab=FALSE){
   # Import the data from MML: Copy the following columns of tab 320 side by side: 1) Zeile [UID, 2nd col], 2) Total Leistung [col no 4000], 3) all cols containing the culture names (no matter how many). They will be pasted together.
   #t1 <- read.cb("no"); t1[is.na(t1)] <- ""; t1 <- t1[t1[,2]!="",]; t1 <- cbind(t1[,1:2], apply(t1[,3:ncol(t1)],1,function(x)paste0(x,collapse="")), stringsAsFactors=FALSE); dput(as.numeric(t1[,1])); dput(t1[,3])
   
-  t1 <- c(11110, 11120, 11130, 11140, 11180, 11310, 11320, 11330, 11340, 11380, 12100, 12200, 12500, 12600, 13000, 14100, 14300, 15100, 15200, 15300, 15900, 16100, 16200, 16900, 18100, 18200, 18300,
-          18400, 19000, 20000, 20100, 20200, 21100, 21200, 21300, 21400, 30100, 35000, 41000, 42100, 42200, 43000, 43500, 44000, 44500, 46000, 48000, 49000, 61000, 65000, 70000, 81000, 85000)
-  names(t1) <- c("Weizen (Brotgetreide)", "Roggen (Brotgetreide)", "Dinkel (Brotgetreide)", "Emmer, Einkorn", "Mischel Brotgetreide", "Gerste (Futtergetreide)", "Hafer (Futtergetreide)", "Triticale (Futtergetreide)", "Futterweizen", 
+  t1 <- matrix(c(11110, 11120, 11130, 11140, 11180, 11310, 11320, 11330, 11340, 11380, 12100, 12200, 12500, 12600, 13000, 14100, 14300, 15100, 15200, 15300, 15900, 16100, 16200, 16900, 18100, 18200, 18300,
+          18400, 19000, 20000, 20100, 20200, 21100, 21200, 21300, 21400, 30100, 35000, 41000, 42100, 42200, 43000, 43500, 44000, 44500, 46000, 48000, 49000, 61000, 65000, 70000, 81000, 85000))
+  colnames(t1) <- "code"
+  rownames(t1) <- c("Weizen (Brotgetreide)", "Roggen (Brotgetreide)", "Dinkel (Brotgetreide)", "Emmer, Einkorn", "Mischel Brotgetreide", "Gerste (Futtergetreide)", "Hafer (Futtergetreide)", "Triticale (Futtergetreide)", "Futterweizen", 
                  "Mischel Futtergetreide", "Körnermais", "Silo- & Grünmais", "Saatmais", "Hirse", "Kartoffeln", "Zuckerrüben", "Futterrüben", "Raps zur Speiseölgewinnung", "Soja", "Sonnenblumen zur Speiseölgewinnung", "übrige Ölsaaten", 
                  "Ackerbohnen zu Futterzwecken", "Eiweisserbsen zu Futterzwecken", "übrige Körnerleguminosen", "Tabak", "Einjährige gärtnerische Freilandkulturen", "Einjährige nachwachsende Rohstoffe", "Freiland Frischgemüse", 
                  "Freiland Konservengemüse", "Einjährige Beeren (z.B Erdbeeren)", "Einjährige Gewürz- & Medizinalpflanzen", "Übrige Ackerkulturen", "Buntbrache", "Rotationsbrache", "Saum auf Ackerfläche", "Ackerschonstreifen", 
@@ -2076,7 +2087,7 @@ transl.spb.320row <- function(x, give.tab=FALSE){
   if(give.tab) {
     return(t1)
   } else {
-    return(replace.values(t1, names(t1), x))
+    return(replace.values(t1[,1], rownames(t1), x))
   }
 }
 
@@ -2098,8 +2109,13 @@ gsub.multiple <- function(pattern, replacement, x, ...){
   # gsub implemented for pattern and replacement as vector arguments (recursive implementation).
   # Use: gsub.multiple(c("a","b","c"),c(1,2,3),letters)
   # Agruments: Please consult help page of gsub.
+  if(length(replacement)==1) replacement <- rep(replacement, length(pattern))
   if(length(pattern)!=length(replacement)) stop("length(pattern) must be equal length(replacement).")
+  
   if(length(pattern)>1) {
+    newo <- order(nchar(pattern))
+    pattern <- pattern[newo]
+    replacement <- replacement[newo]
     return(gsub(pattern[1], replacement[1], gsub.multiple(pattern[-1], replacement[-1], x, ...), ...))
   } else {
     return(gsub(pattern, replacement, x, ...))
@@ -2939,7 +2955,7 @@ stratif.sqrt.f.rule <- function(x, ngrp, interval){
   #            Intervalle, mit denen die Daten geteilt werden.
   #
   # Value (Ergebnis) = Vector of values of x that should be used for stratifying.
-  # Replace first/last value of vecor with -Inf/Inf and stratify by using the function group.by.fix.scal1e()
+  # Replace first/last value of vecor with -Inf/Inf and stratify by using the function g1roup.by.fix.scale()
   
   # Fehlende Werte enfternen
   x <- x[!is.na(x)]
@@ -2970,7 +2986,7 @@ if(FALSE){
   ngrp <- 5; interval <- 5
   borders <- stratif.sqrt.f.rule(x,5,5)
   borders[1] <- -Inf; borders[length(borders)] <- Inf
-  grouping <- group.by.fix.scal1e(x=x, selection.levels=borders)
+  grouping <- g1roup.by.fix.scale(x=x, selection.levels=borders)
   table(grouping)
   
   ## Daten erzeugen
@@ -2984,9 +3000,11 @@ if(FALSE){
 #mclapply.own(1:100, function(x)return(x*2), type="PSOCK")
 #mclapply.own(1:100, function(x)return(x*y+1), type="PSOCK")
 #type <- "PSOCK"; mc.cores=8; X <- as.list(1:100); values <- X; FUN <- function(x)return(x*2)
-mclapply.own <- function(X, FUN, mc.cores=getOption("mc.cores", 8), type=c("PSOCK", "FORK", "MPI")){
+mclapply.own <- function(X, FUN, mc.cores=parallel::detectCores(), type=c("PSOCK", "FORK", "MPI")){
+  # This function does multi core processing of lapply (parLapply)
   # The function depends on following packages
   # parallel, snow, Rmpi
+  # mc.cores = getOption("mc.cores", 8)
   if(!grepl("return",paste0(deparse(FUN),collapse="")))
     stop(paste0("FUN must explicitly return the result by using return(). The entered function looks like this\n",
                 "    ",paste0(deparse(FUN),collapse=""), "\n",
@@ -2995,8 +3013,8 @@ mclapply.own <- function(X, FUN, mc.cores=getOption("mc.cores", 8), type=c("PSOC
   
   type <- match.arg(type)
   
-  library(parallel)
-  cl <- makeCluster(mc.cores, type=type)
+  require.package(parallel)
+  cl <- makeCluster(min(length(X), mc.cores), type=type)
   
   #res <- tryCatch({
   #  parLapply(cl, X=X, fun=FUN)
@@ -3100,7 +3118,7 @@ sd.outliers <- function(x, no.sd=3){
 #which(quantile.outliers(1:1000))
 #which(sd.outliers(1:1000))
 
-if(FALSE) data=prepareMvOutlData(cost[cost[,"Leist_Saat_Fl"]==0 & index==bz,checkCols]); p.val=0.025; method=c("absMahaDistIncrease","quantile","chisq")[1]; max.p.outl=0.15; na.action=c("median","mean","remove")[1]; make.plot=TRUE
+if(FALSE) { data=prepareMvOutlData(cost[cost[,"Leist_Saat_Fl"]==0 & index==bz,checkCols]); p.val=0.025; method=c("absMahaDistIncrease","quantile","chisq")[1]; max.p.outl=0.15; na.action=c("median","mean","remove")[1]; make.plot=TRUE }
 mahalanobis.outliers <- function(data, p.val=0.025, method=c("absMahaDistIncrease","quantile","chisq"), max.p.outl=0.15,
                                  na.action=c("median","mean","remove"), make.plot=FALSE, plotText=NULL){
   # Define multivariate outliers by mahalanobis distance
@@ -4318,7 +4336,7 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
 
 ####
 #x <- rnorm(100); selection.levels <- 0.1; method=c("<= x <", "< x <=")[1]; include.min.max=TRUE; give.names=TRUE
-#group.by.fix.scal1e(x,c(0),c("<= x <", "< x <="),FALSE)
+#g1roup.by.fix.scal1e(x,c(0),c("<= x <", "< x <="),FALSE)
 group.by.fix.scale <- function(x, selection.levels, method=c("< x <=", "<= x <"), include.min.max=FALSE, give.names=FALSE, names.digits=2, names.sep="-"){
   # This function returns a grouping according to the chosen absolute selection.levels.
   # If include.min.max=TRUE depending on the method the minimum (maximum) point is included with the <= sign instead of <
@@ -4371,7 +4389,7 @@ group.by.fix.scale <- function(x, selection.levels, method=c("< x <=", "<= x <")
 
 group.by.quantiles <- function(x, selection.levels=seq(0,1,0.1), method=c("< x <=", "<= x <"), include.min.max=TRUE, give.names=FALSE, names.digits=2, names.sep="-", weights=NULL){
   # Groupy data by quantiles.
-  # This is a wrapper for group.by.fixed scale with slightly altered interface.
+  # This is a wrapper for group.by.fix.scale with slightly altered interface.
   
   #x <- rnorm(1000);  selection.levels <- c(0, 0.25, 0.5, 0.75, 1); method=c("<= x <"); include.min.max=TRUE; weights=rnorm(1000)
   #group.by.quartiles(x=x, weights=weights);
@@ -4642,6 +4660,52 @@ write.table.zipped <- function(x, file, ...){
   unlink(folder)
 }
 
+
+
+#df=as.data.frame(matrix(1:12,ncol=3)); colnames(df) <- c(letters[1:3]); write.table(df,"table.csv",sep=";",col.names=TRUE, row.names=FALSE)
+#read.table("table.csv", header=TRUE, sep=";", choose.columns=c(1)); unlink("table.csv")
+read.table <- function(file, header=FALSE, sep="", ..., choose.columns=NULL, Rtools="C:/Tools/Rtools"){
+  # This edited versin of read.table detects compressed files from their file endings and directly reads them without unpacking.
+  # It is assumed that only one file is within the zip archive. Otherwise the function will give an error message.
+  # All arguments are used like in read.table.
+  #
+  # Special arguments:
+  # choose.columns: character(), numeric() or logical() indicating which columns of the file should be read in. This saves RAM compared to dropping them afterwards. No NA values allowed.
+  # Rtools:         if !is.null(choose.columns), then Rtools must be installed because the Rtools/bin/cut.exe and some dll libraries are needed.
+  #                 The argument <Rtools> has to indicate the folder in which Rtools was installed.
+  
+  # If it is not a compressed file, then use the normal read.table() function.
+  # If the file does not exist, try to read with read.table() so you will get exact the same error message.
+  if(class(file)!="character" || !grepl("^.*(.gz|.bz2|.tar|.zip|.tgz|.gzip|.7z)[[:space:]]*$", file) || !file.exists(file) ) {
+    # Simple reading in without choosing columns
+    if(is.null(choose.columns)){
+      return( utils::read.table(file=file, header=header, sep=sep, ...) )
+      # Special reading in when certain columns are chosen...
+    } else {
+      if(!file.exists(Rtools)) stop(paste0("If !is.null(choose.columns), then the R toolset and Cygwin DLLs of Rtools must be available. Rtools not found at location: ", Rtools))
+      Rtools <- paste0(Rtools, "/bin/cut.exe")
+      if(is.character(choose.columns)){
+        colNames <- unname(unlist(read.table(file, sep=sep, nrow=1, header=FALSE, stringsAsFactors=FALSE)))
+        choose.columns <- which(colNames%in%choose.columns)
+      }
+      if(is.logical(choose.columns)) choose.columns <- which(choose.columns)
+      if(any(is.na(choose.columns))) stop("No NA-values allowed in choose.columns.")
+      return(read.table(pipe(paste0(Rtools, " -f",paste0(choose.columns,collapse=","), " -d", sep," ", file) ), header=header, sep=sep, ...))
+    }
+    
+    # In case of archive ...
+  } else {
+    tryCatch({
+      # List files within the archive and read directly from archive without unpacking.
+      withinFile <- unzip(file, list=TRUE)[,"Name"]
+      if(length(withinFile)>1) stop("Only 1 file inside archive is allowed. Otherwise try utils::read.table(unz(pathOfZIPFile, nameOfCSVwithinZipFile)).")
+      return( utils::read.table(unz(file, withinFile), header=header, sep=sep, ...) )
+    }, error = function(e) {
+      stop(paste0(e$message, "\nread.table() has encountered an error. This is not the original read.table() function but an edited version by Daniel Hoop in order to read data from compressed files without unpacking them.\nTry utils::read.table() to use the default function."))
+    })
+  }
+}
+
 # file <- "C:/Users/U80823148/_/ME/ME_data_out/data_final/2014/allcosts_info.zip"
 read.table <- function(file, ..., choose.columns=NULL){
   # This edited versin of read.table detects compressed files from their file endings and directly reads them without unpacking.
@@ -4697,7 +4761,7 @@ count.lines <- function(file) {
 }
 
 # x <- matrix(1:10); nrowmax=10000; ncolmax=10000; folder=NULL; view(x)
-view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000, folder=NULL, quote=FALSE, na="NA", sep=";", openfolder=FALSE, ...){
+view <- function(x, names=c("col","rowcol","row","no"), nrows=-1, ncols=-1, fastViewOfSubset=TRUE, folder=NULL, quote=FALSE, na="NA", sep=";", openFolder=FALSE, ...){
   # This function creates a CSV file from a data.frame/matrix and opens it with the default CSV-opening-program
   # of the computer.
   #
@@ -4710,7 +4774,7 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
   #          If NULL an accessible folder in C:/Users/.../Documents will be created automatically.
   # quote = should quotes be written into the csv File? -> see also the help for write.table()
   # na = how should NA values be displayed in the csv File? -> see also the help for write.table()
-  # openfolder = Should the folder with all temporary files be opened after having created the file?
+  # openFolder = Should the folder with all temporary files be opened after having created the file?
   
   names <- match.arg(names)
   if(is.null(dim(x))) {
@@ -4718,12 +4782,21 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
   }
   if(is.null(colnames(x))) colnames(x) <- paste0("V",1:ncol(x))
   
+  # Check if data.frame should be shrinked for faster view
+  if(nrows<0 && ncols<0){
+    maxSize <- 40000000 # On Intel i7-4770 CPU with 3.40 GHz, approx 12 seconds are necessary to save file as csv and open in Excel.
+    objSize <- object.size(x)
+    if(fastViewOfSubset && objSize>maxSize){
+      nrows <- (floor(nrow(x)*maxSize/objSize))
+    }
+  }
   if(nrows<0) nrows <- nrow(x)
   if(ncols<0) ncols <- ncol(x)
+  
   # Shrink data.frame such that it can be saved & viewed faster.
-  nrows <- min(nrow(x), nrows); if(nrows<nrow(x)) warning(paste0("data.frame displays only ",nrows," of ",nrow(x)," rows."))
+  nrows <- min(nrow(x), nrows); if(nrows<nrow(x)) warning(paste0("data.frame displays only ",nrows," of ",nrow(x)," rows. Either change nrows or set fastViewOfSubset=FALSE."))
   if(nrows!=nrow(x)) x <- x[1:nrows,,drop=FALSE]
-  ncols <- min(ncol(x), ncols); if(ncols<ncol(x)) warning(paste0("data.frame displays only ",ncols," of ",ncol(x)," cols."))
+  ncols <- min(ncol(x), ncols); if(ncols<ncol(x)) warning(paste0("data.frame displays only ",ncols," of ",ncol(x)," cols. Change ncols to view the full data.frame."))
   if(ncols!=ncol(x)) x <- x[,1:ncols,drop=FALSE]
   
   
@@ -4791,7 +4864,7 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=10000, ncols=1000,
   }
   
   browseURL(pfad1)
-  if(openfolder) {
+  if(openFolder) {
     Sys.sleep(1)
     browseURL(folder)
   }
@@ -4869,13 +4942,13 @@ load.spb <- function() {
 
 
 load.gb <- function() {
-  warning("in GB sind alle Gewichte=1 wegen Spezialauszug fuer B2015!")
   pfad1 <- "C:/Users/U80823148/_/Data/GB.RData"
   pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/GB/GB.RData"
   if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
   cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
   cat(pfad, "\n", sep="")
   load(pfad)
+  if(any(gb[,"Jahr"])==2015) warning("in GB sind alle Gewichte=1 wegen Spezialauszug fuer B2015!")
   return(gb)
 }
 
@@ -4896,6 +4969,8 @@ load.cost <- function(years=2014, ignore_P_cols=TRUE, non_aggr=FALSE, parentDir=
   cost1 <- NULL
   for(i in 1:length(years)) {
     pfad1 <- paste0(parentDir,"/",years[i],fileName)
+    if(!file.exists(pfad1)) stop(paste("The file does not exist. You might have chosen the wrong parentDir.",
+                                       "The following folders/files are available:", paste0(list.files(parentDir,full.names=TRUE),collapse="\n") ,sep="\n"))
     if(is.null(cost1)) cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
     cat(pfad1, "\n", sep="")
     cost <- load2(pfad1)
@@ -6182,24 +6257,10 @@ find.col <- function(pattern, dat, ignore.case=TRUE, ...){
   }
   return( colnames(dat)[ find.string(pattern=pattern, x=colnames(dat), ignore.case=ignore.case, ...) ] )
 }
-find.gb.col <- function(pattern, dat=gb, ignore.case=TRUE, ...){
-  # This function is a convenience function to find columns in the Grundlagenbericht.
-  # Use it like this: find.gb.col("jae")
-  return( colnames(dat)[ find.string(pattern=pattern, x=colnames(dat), ignore.case=ignore.case, ...) ] )
-}
-find.spa.col <- function(pattern, dat=spa, ignore.case=TRUE, ...){
-  # This function is a convenience function to find columns in the spa data.
-  # Use it like this: find.spa.col("jae")
-  return( colnames(dat)[ find.string(pattern=pattern, x=colnames(dat), ignore.case=ignore.case, ...) ] )
-}
-
-find.spe.col <- function(pattern, dat=spe, ignore.case=TRUE, ...) find.spa.col(pattern=pattern, dat=dat, ignore.case=ignore.case, ...)
-
-
-gbc <- function(...){
-  # Wrapper function (short)
-  find.gb.col(...)
-}
+find.gb.col <- function(...) find.col(..., dat=gb)
+find.spa.col <- function(...) find.col(..., dat=spa)
+find.spe.col <- function(...) find.col(..., dat=spe)
+find.cost.col <- function(...) find.col(..., dat=cost)
 
 harmonize.agis.colnames <- function(col.names){
   # This function harmonizes the colnames of AGIS data from different years.
