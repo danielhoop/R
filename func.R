@@ -729,6 +729,17 @@ try <- function(...) {
   tryCatch(..., error=function(e)e,warning=function(w)w)
 }
 
+rm.gc.keep <- function(keep){
+  # This function removes and garbage collects all objects in the current environment (can also be within a function)
+  # Except for the variables defined in keep (charcter vector).
+  
+  rm1 <- ls(envir=parent.frame())
+  rm1 <- rm1[!rm1%in%keep]
+  rm(list=rm1, envir=parent.frame())
+  invisible(gc())
+}
+
+
 #### CHANGE OBJECT STRUCUTRE ####
 
 # array <- array(0, dim=c(3,4,5), dimnames=list(c("c","b","a"),c(4,3,2,1),c("z","y","x","v","u")))
@@ -782,37 +793,46 @@ dimnames.to.mat <- function(x, dims=c("rowcol","row","col")){
   return(res)
 }
 
-merge.matrices <- function(..., fill="", nbreak=0, aligned=c("left","right"), integrate.dimnames=c("no","rowcol","row","col")) {
+#x <- data.frame(testCol=1:10, testC=10:1); y <- data.frame(testCol2=1:5, testCol3=2:6, testcol4=11:15); z <- 1:3; func=c("rbind","cbind")[1]; fill=""; nbreak=1; aligned=c("left","right")[1]; integrate.dimnames=c("no","rowcol","row","col")[1]
+#li <- list(x,y,z) ;m1erge.matrices(x,y,z, integrate.dimnames = "rowcol", nbreak=1, func="cbind")
+merge.matrices <- function(..., fill="", nbreak=0, aligned=c("left","right"), integrate.dimnames=c("no","rowcol","row","col"), func=c("rbind","cbind")) {
   # Diese Funktion vergleicht die Anzahl Spalten aller gegebenen Matrizen, gleicht sie an und verbindet alle Matrizen in einer einzigen.
+  #
+  # Arguments
   # Mit fill kann gewaehlt werden, was fuer ein Zeichen fuer das Auffuellen der zusaetzlichen Spalten verwendet wird.
   # nbreak gibt an, wie viele Zeilen zwischen zwei Ursprungs-Matrizen eingefuegt werden.
   # Mit integrate.dimnames kann man die dimnames in die End-Matrix integrieren, was mittels dimnames.to.mat() geschieht.
+  # func: Funktion mit welcher die Matrizen zuammengefuehrt werden sollen.
+  
+  func <- match.arg(func)
   aligned <- match.arg(aligned)
   integrate.dimnames <- match.arg(integrate.dimnames)
   
   li <- list(...)
   li <- lapply(li,function(x){
     if(is.null(x)) x <- fill
-    if(is.null(dim(x))) return(t(as.matrix(x))) else return(x)
+    if(is.null(dim(x))) {return(t(as.matrix(x)))} else return(x)
   })
   if(integrate.dimnames!="no") li <- lapply(li, function(x) dimnames.to.mat(x, dims=integrate.dimnames))
   ncolmax <- max(unlist(lapply(li,function(x) ncol(x) )))
   
-  res <- do.call("rbind", 
-                 lapply( li,function(x) {
-                   if(ncol(x)<ncolmax) {
-                     if(aligned=="left") {
-                       x <- cbind(x,array(fill,dim=c(nrow(x),ncolmax-ncol(x))))
-                     } else {
-                       x <- cbind(array(fill,dim=c(nrow(x),ncolmax-ncol(x))),x)
+  tryCatch(
+    res <- do.call("rbind", 
+                   lapply( li,function(x) {
+                     if(ncol(x)<ncolmax) {
+                       if(aligned=="left") {
+                         x <- cbind(x,array(fill,dim=c(nrow(x),ncolmax-ncol(x))))
+                       } else {
+                         x <- cbind(array(fill,dim=c(nrow(x),ncolmax-ncol(x))),x)
+                       }
                      }
-                   }
-                   if(nbreak==0) x else rbind(x,matrix(fill,nrow=nbreak,ncol=ncol(x)))
-                 }))
+                     if(nbreak==0) x else rbind(x,matrix(fill,nrow=nbreak,ncol=ncol(x)))
+                   }))
+    ,error=function(e)stop("If different colnames are provided, you must choose integrate.names=\"col\" or \"rowcol\" "))
   if(nbreak>0) res <- res[ -c((nrow(res)-nbreak+1):nrow(res)), , drop=FALSE]
+  if(func=="cbind") res <- t(res)
   return(res)
 }
-
 
 if(FALSE){
   x <- array(0, dim=c(5,5,2), dimnames=list(c("asdf1","asdf2","asdf3","asdf4","asdf5"),c("asdf1","asdf2","asdf3","asdf4","asdf5"),c("dim3.1", "dim3.2")))
@@ -1338,6 +1358,7 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
       
       # Hier keine Fallunterscheidung zwischen matrix und data.frame einfuegen, sonst funktioniert es nicht!!
       res.prov <- apply(data, 2, function(x)mean.weight(x, weights, index, digits, na.rm) )
+      if(class(res.prov)!="matrix") res.prov <- t(as.matrix(res.prov))
       
       res.list <- list()
       su.index1 <- sort(unique(index[[1]]))
@@ -1397,13 +1418,15 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
   return(result)
 }
 
-#vars <- c("a/ b", "A^B", "c,d", "ifelse(a==b, 1, 2)")
-extract.I.vars <- function(vars, keep.original=FALSE){
+#vars <- c("asd","efe+p", "c-1", "f*c", "a/ b", "A^B", "c,d", "a==b", "ifelse(a==b, 1, 2)")
+extract.I.vars <- function(vars, keep.original=FALSE, keep.only.necessary=TRUE){
   # This function extracts all Variables in a I(a+b*c) formula seperately. This is useful in combination with the function mean.weight()
-  vars_all <- unlist(strsplit(vars,"-|/|\\*|\\+|\\^|,|=|ifelse"))
-  vars_all <- gsub("I\\(|\\(|)| ","",vars_all)
+  vars_all <- vars[grep("\\-|/|\\*|\\+|\\^|,|=|ifelse",vars)]
+  vars_all <- unlist(strsplit(vars_all,"-|/|\\*|\\+|\\^|,|=|ifelse"))
+  vars_all <- gsub("I\\(|\\(|\\)| ","",vars_all)
   vars_all <- unique(vars_all[!vars_all%in%c("")])
   vars_all <- vars_all[is.na(suppressWarnings(as.numeric(vars_all)))]
+  if(keep.only.necessary) vars_all <- vars_all[!vars_all%in%vars]
   if(keep.original) vars_all <- unique(c(vars, vars_all))
   return(vars_all)
 }
@@ -3408,7 +3431,7 @@ if(FALSE){
   char.cols.to.num(x)
   summary(char.cols.to.num(x))
 }
-char.cols.to.num <- function(x, checkrows=NULL, stringsAsFactors=FALSE){
+char.cols.to.num <- function(x, stringsAsFactors=FALSE){
   # This function checks in all cols of a data.frame if they can be coerced to numeric without producing NA values.
   # If it's possible the col is coerced to numeric with as.numeric()
   
@@ -3420,19 +3443,16 @@ char.cols.to.num <- function(x, checkrows=NULL, stringsAsFactors=FALSE){
     names(x) <- NULL
     x <- as.data.frame(as.list(x))
   }
-  
-  if(is.null(checkrows) || checkrows>nrow(x)) checkrows <- nrow(x)
-  
   rn <- rownames(x)
   cn <- colnames(x)
-  
-  res <- as.data.frame(
-    lapply(
-      as.data.frame(x, stringsAsFactors=stringsAsFactors),
-      function(x) if( is( tryCatch(as.numeric(x[1:checkrows]),error=function(e)e,warning=function(w)w), "warning") ) return(x) else return(as.numeric(x))
-    ),
-    stringsAsFactors=stringsAsFactors)
-  
+  res <- as.data.frame(lapply(x,function(x)if(is.character(x)) type.convert(x,as.is=!stringsAsFactors) else x), stringsAsFactors=stringsAsFactors)
+  #if(is.null(checkrows) || checkrows>nrow(x)) checkrows <- nrow(x)
+  #res <- as.data.frame(
+  #  lapply(
+  #    as.data.frame(x, stringsAsFactors=stringsAsFactors),
+  #    function(x) if( is( tryCatch(as.numeric(x[1:checkrows]),error=function(e)e,warning=function(w)w), "warning") ) return(x) else return(as.numeric(x))
+  #  ),
+  #  stringsAsFactors=stringsAsFactors)
   rownames(res) <- rn
   colnames(res) <- cn
   return(res)
@@ -3806,10 +3826,10 @@ if(FALSE){
 #' @param check.duplicated Logical determining whether the ids should be checked for duplicated entries in each vector before matching. Default TRUE.
 #' @param stringsAsFactors Logical determining wheter character vectors be converted to factors. Default FALSE.
 #' @return A data.frame containing i1 and id2 in the first two columns followed by the columns of df1 and df2.
-match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE,check.duplicated=TRUE, stringsAsFactors=FALSE){
+match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE, check.duplicated=TRUE, stringsAsFactors=FALSE){
   # This function matches two data frames by id.
   # If wished (by default) also no matches are kept.
-  # Alternative: merge(df1, df2, by.x="ID1", by.y="ID2")
+  # Alternative: merge(df1, df2, by.x="ID1", by.y="ID2"), see also package data.table.
   
   if(any( colnames(df1)%in%c("id1","id2") )) stop("There must be no colnames(df1) equal 'id1' or 'id2'")
   if(any( colnames(df2)%in%c("id1","id2") )) stop("There must be no colnames(df2) equal 'id1' or 'id2'")
@@ -3870,7 +3890,7 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE,check.duplicated
       prov.return$df2 <- data.frame(id2=id2[prov.return$which.id2.duplicated],df2[prov.return$which.id2.duplicated,,drop=FALSE], stringsAsFactors=stringsAsFactors)
     }
     class(prov.return) <- "match.df.by.id.prov"
-    return(prov.return)
+    rm.gc.keep("prov.return"); return(prov.return)
   }
   
   # Wenn no-matches nicht behalten werden sollen, ist die einfach.
@@ -3879,11 +3899,18 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE,check.duplicated
     df2 <- df2[id2%in%id1,,drop=FALSE]
     id1 <- id1[id1%in%id2]
     id2 <- id2[id2%in%id1]
-    return(data.frame(id1=id1, id2=id2[match(id1,id2)], df1, df2[match(id1,id2),,drop=FALSE], stringsAsFactors=stringsAsFactors))
+    df1 <- data.frame(id1=id1, id2=id2[match(id1,id2)], df1, df2[match(id1,id2),,drop=FALSE], stringsAsFactors=stringsAsFactors)
+    rm.gc.keep("df1"); return(df1) # Do not create not object "res" to save memory.
+    #return(data.frame(id1=id1, id2=id2[match(id1,id2)], df1, df2[match(id1,id2),,drop=FALSE], stringsAsFactors=stringsAsFactors))
     
     
     # Kompliziert, wenn no-matches behalten werden sollen.
   } else {
+    ncol_df1 <- ncol(df1)
+    ncol_df2 <- ncol(df2)
+    colnames_df2 <- colnames(df2)
+    colnames_df1 <- colnames(df1)
+    
     df1.gt.df2 <- nrow(df1)>nrow(df2)
     if(!df1.gt.df2){
       
@@ -3894,13 +3921,15 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE,check.duplicated
       id2.in.id2.new <- id2%in%result[,"id2"]
       if(any(!id2.in.id2.new)){
         #add.df2 <- data.frame(id2=id2[!id2.in.id2.new],df2[!id2.in.id2.new,,drop=FALSE], stringsAsFactors=stringsAsFactors)
-        #add.df1 <- matrix(NA,nrow=nrow(add.df2),ncol=ncol(df1)+1)
-        add.df <- data.frame(matrix(NA,nrow=sum(!id2.in.id2.new),ncol=ncol(df1)+1),
+        #add.df1 <- matrix(NA,nrow=nrow(add.df2),ncol=ncol_df1+1)
+        add.df <- data.frame(matrix(NA,nrow=sum(!id2.in.id2.new),ncol=ncol_df1+1),
                              data.frame(id2=id2[!id2.in.id2.new],df2[!id2.in.id2.new,,drop=FALSE], stringsAsFactors=stringsAsFactors),
                              stringsAsFactors=stringsAsFactors)
         colnames(add.df) <- colnames(result)
         result <- rbind(result,add.df)
       }
+      suppressWarnings(rm(add.df, id1, id2, df1, df2)); invisible(gc())
+      
       #} else {
       #  result <- result[!is.na(result[,"id2"]),,drop=FALSE]
       #}
@@ -3927,23 +3956,24 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE,check.duplicated
       id1.in.id1.new <- id1%in%result[,"id1"]
       if(any(!id1.in.id1.new)){
         #add.df1 <- data.frame(id1=id1[!id1.in.id1.new],df1[!id1.in.id1.new,,drop=FALSE], stringsAsFactors=stringsAsFactors)
-        #add.df2 <- matrix(NA,nrow=nrow(add.df1),ncol=ncol(df2)+1)
-        add.df <- data.frame(matrix(NA,nrow=sum(!id1.in.id1.new),ncol=ncol(df2)+1) ,
+        #add.df2 <- matrix(NA,nrow=nrow(add.df1),ncol=ncol_df2+1)
+        add.df <- data.frame(matrix(NA,nrow=sum(!id1.in.id1.new),ncol=ncol_df2+1) ,
                              data.frame(id1=id1[!id1.in.id1.new],df1[!id1.in.id1.new,,drop=FALSE], stringsAsFactors=stringsAsFactors) ,
                              stringsAsFactors=stringsAsFactors)
         colnames(add.df) <- colnames(result)
         result <- rbind(result,add.df)
       }
+      suppressWarnings(rm(add.df, id1, id2, df1, df2)); invisible(gc())
       #} else {
       #  result <- result[!is.na(result[,"id1"]),,drop=FALSE]
       #}
       ### Block reinkopieren - Ende ###
       
       # Schliesslich Reihenfolge zuruecktauschen:
-      result <- result[,c( (1+ncol(df2)+1)  #id1
-                           ,(1+ncol(df2)+1+1):ncol(result) #df1
+      result <- result[,c( (1+ncol_df2+1)  #id1
+                           ,(1+ncol_df2+1+1):ncol(result) #df1
                            ,1 #id2                  
-                           ,2:(1+ncol(df2))) #df2
+                           ,2:(1+ncol_df2)) #df2
                        ]
     }
     
@@ -3958,20 +3988,19 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE,check.duplicated
     # Am Schluss wieder diejenigen Betriebe einfuegen, die bei ihrer eigenen ID NA Values drinstehen hatten:
     if(any(is.na.id1) & keep.no.matches){
       pseudo.df2 <- as.data.frame(matrix(NA, nrow=nrow(df1.na), ncol=ncol(result)-2-ncol(df1.na)))
-      colnames(pseudo.df2) <- colnames(df2)
+      colnames(pseudo.df2) <- colnames_df2
       result <- rbind(result,  data.frame(id1=NA, id2=NA, df1.na, pseudo.df2, stringsAsFactors=stringsAsFactors) )
     }
     if(any(is.na.id2) & keep.no.matches){
       pseudo.df1 <- as.data.frame(matrix(NA, nrow=nrow(df2.na), ncol=ncol(result)-2-ncol(df2.na)))
-      colnames(pseudo.df1) <- colnames(df1)
+      colnames(pseudo.df1) <- colnames_df1
       result <- rbind(result,  data.frame(id1=NA, id2=NA, pseudo.df1, df2.na, stringsAsFactors=stringsAsFactors) )
     }
     
     colnames(result) <- replace.values(cn_new, cn_orig, colnames(result))
   }
   
-  
-  return(result)
+  rm.gc.keep("result"); return(result)
 }    
 ####
 print.match.df.by.id.prov <- function(object){
@@ -4662,8 +4691,7 @@ write.table.zipped <- function(x, file, ...){
 
 
 
-#df=as.data.frame(matrix(1:12,ncol=3)); colnames(df) <- c(letters[1:3]); write.table(df,"table.csv",sep=";",col.names=TRUE, row.names=FALSE)
-#read.table("table.csv", header=TRUE, sep=";", choose.columns=c(1)); unlink("table.csv")
+#df=as.data.frame(matrix(1:12,ncol=3)); colnames(df) <- c(letters[1:3]); write.table(df,"table.csv",sep=";",col.names=TRUE, row.names=FALSE); read.table("table.csv", header=TRUE, sep=";", choose.columns=c("b")); unlink("table.csv")
 read.table <- function(file, header=FALSE, sep="", ..., choose.columns=NULL, Rtools="C:/Tools/Rtools"){
   # This edited versin of read.table detects compressed files from their file endings and directly reads them without unpacking.
   # It is assumed that only one file is within the zip archive. Otherwise the function will give an error message.
@@ -4676,9 +4704,9 @@ read.table <- function(file, header=FALSE, sep="", ..., choose.columns=NULL, Rto
   
   # If it is not a compressed file, then use the normal read.table() function.
   # If the file does not exist, try to read with read.table() so you will get exact the same error message.
-  if(class(file)!="character" || !grepl("^.*(.gz|.bz2|.tar|.zip|.tgz|.gzip|.7z)[[:space:]]*$", file) || !file.exists(file) ) {
+  if(class(file)!="character" || !grepl("^.*(.gz|.bz2|.tar|.zip|.tgz|.gzip|.7z)[[:space:]]*$", file) || !file.exists(file) || !is.null(choose.columns) ) {
     # Simple reading in without choosing columns
-    if(is.null(choose.columns)){
+    if(!file.exists(file) || is.null(choose.columns)){
       return( utils::read.table(file=file, header=header, sep=sep, ...) )
       # Special reading in when certain columns are chosen...
     } else {
@@ -4690,7 +4718,7 @@ read.table <- function(file, header=FALSE, sep="", ..., choose.columns=NULL, Rto
       }
       if(is.logical(choose.columns)) choose.columns <- which(choose.columns)
       if(any(is.na(choose.columns))) stop("No NA-values allowed in choose.columns.")
-      return(read.table(pipe(paste0(Rtools, " -f",paste0(choose.columns,collapse=","), " -d", sep," ", file) ), header=header, sep=sep, ...))
+      return( utils::read.table(pipe(paste0(Rtools, " -f",paste0(choose.columns,collapse=","), " -d", sep," ", file) ), header=header, sep=sep, ...))
     }
     
     # In case of archive ...
@@ -4707,7 +4735,7 @@ read.table <- function(file, header=FALSE, sep="", ..., choose.columns=NULL, Rto
 }
 
 # file <- "C:/Users/U80823148/_/ME/ME_data_out/data_final/2014/allcosts_info.zip"
-read.table <- function(file, ..., choose.columns=NULL){
+if(FALSE) read.table_OLD_DELETE <- function(file, ..., choose.columns=NULL){
   # This edited versin of read.table detects compressed files from their file endings and directly reads them without unpacking.
   # It is assumed that only one file is within the zip archive. Otherwise the function will give an error message.
   # All arguments are used like in read.table.
@@ -4978,8 +5006,9 @@ load.cost <- function(years=2014, ignore_P_cols=TRUE, non_aggr=FALSE, parentDir=
     if(ignore_P_cols) cost <- cost[,substr.rev(colnames(cost),1,2)!="_P"]
     # Falls gewuenscht, Saatgutproduzenten ausschliessen
     cost1 <- rbind(cost1,cost)
+    rm(cost); invisible(gc())
   }
-  return(cost1);
+return(cost1);
 }
 
 rekid.zaid <- function(id, reverse=FALSE, BHJ=NULL, no.match.NA=TRUE){
