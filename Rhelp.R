@@ -1,4 +1,4 @@
-#### Shortcuts
+### Shortcuts
 browseURL("http://www.rstudio.com/ide/docs/using/keyboard_shortcuts")
 
 #### Load functions and workspace ####
@@ -35,6 +35,8 @@ RSiteSearch("jump regression", restric='functions')
 # Post this on http://support.rstudio.org/help/discussions/problems/5991-slow-execution-of-multiple-lines-of-r-code-or-sourced-r-code
 #I already read this thread
 #http://support.rstudio.org/help/discussions/problems/1232-extremely-slow-execution-of-simple-commands
+# Port anschauen, der gebraucht wird für die Übermittlung von RStudio du Rsession
+#browseURL("https://support.rstudio.com/hc/communities/public/questions/200658363-Slow-response-of-R-from-RStudio-Windows7-Desktop-")
 tools:::httpdPort
 sessionInfo()
 
@@ -54,15 +56,11 @@ bsw <- ???'Bayesian stepwise'
 bs. <- bs|bsw
 summary(bs.)
 
-#### Problem mit RStudio - Langsame ausführung ####
-# Port anschauen, der gebraucht wird für die Übermittlung von RStudio du Rsession
-browseURL("https://support.rstudio.com/hc/communities/public/questions/200658363-Slow-response-of-R-from-RStudio-Windows7-Desktop-")
-tools:::httpdPort
-
 ###### Packages ######
 # Alle installierten Packages wieder installieren mit Funktionen save.packages() & recover.R.installation()
 detach("package:gplots") # Package von Workspace entfernen.
 install.packages("fortunes")
+install.packages("psych") # Skewedness, etc. psych::describe(1:100)
 install.packages("nnls") # Positive Coefficient regressions
 install.packages("mgcv") # Penalized Regressions  (e.g. greater than 0)
 install.packages("rbenchmark") # See how much time a function needs
@@ -78,7 +76,7 @@ install.packages("plyr")      # apply Paket
 install.packages('F:/Mobile Software/R/FEAR_2.0.zip', repos = NULL) # '', nicht ""!
 install.packages("Benchmarking") # DEA
 install.packges("frontier")
-install.packages("agricolae"); install.packages("pgirmess") # Kruskal-Wallis-Test
+install.packages("agricolae"); install.packages("pgirmess") # Kruskal-Wallis-Test mit Unterschieden zwischen mehreren Gruppen.
 install.packages("sos") # findFN("")
 install.packages("ggplot2"); install.packages("gridExtra"); install.packages("reshape2") #
 install.packages("scales"); # Für Farbpaletten.
@@ -92,6 +90,13 @@ install.packages("Ryacas") # Package, um Funktionen abzuleiten
 #  car::scatterplot(y~year|country,  boxplots=FALSE, smooth=TRUE,  reg.line=FALSE, data=Panel)
 install.packages("rpanel") # Package, um mit Buttons R-Funktionen auszufuehren. Oder in Bilder zu zeichnen.
 
+# Working with C++ Code... (Quelle u.a. Youtbe Video https://www.youtube.com/watch?v=UZkaZhsOfT4)
+install.packages("Rcpp") # Easily interact between R and C++.
+install.packages("inline") # Write code in another programming language inside R. Compile, etc. Magnificent! 
+install.packages("pryr") # Easily find C-code behind primitive R functions.
+# Compiler for Windows: https://cran.r-project.org/bin/windows/Rtools/
+
+
 # Fuer zip-files repos=NULL setzten. type nicht setzen!
 install.packages('P:/Software/R/packages/earth_3.2-7.zip', repos=NULL) # '', nicht ""!
 # Fuer tar.gz files repos=NULL, type='source' setzten!
@@ -103,6 +108,13 @@ install.packages('sit', repos = NULL, type='source')
 # Installieren inoffizieller Packages von github
 install.packages("devtools")
 devtools::install_github("kassambara/r2excel") # Ergibt Fehler.
+
+
+## Installing released version vs. development version
+install.packages("roxygen2")
+# install.packages("devtools")
+devtools::install_github("klutometis/roxygen")
+
 
 
 ## Warum funktioniert die Installation von Packages nicht bei tar.gz?!
@@ -153,7 +165,7 @@ lsp(packagename) # oder diese Funktion nutzen
 # Ist ein Paket geladen resp. attached?
 package.attached <- function(name) length(grep(paste0("package:",name), search())) > 0
 package.attached("base")
-# Konditionales detaching eines Paketes
+# Konditionales detaching eines Paketes   unload 
 if(package.attached("Benchmarking")) detach("package:Benchmarking")
 
 
@@ -352,6 +364,8 @@ save(object1, object2, file="pfad.RData")
 # CSV einlesen
  # nicht read.csv!
 dat <- read.table(paste0("pfad.csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
+ # zip Archive
+dat <- read.table(unz(paste0(pfad, "filename.zip"), "nameOfCSVFile.csv"), sep=";", header=TRUE, stringsAsFactors=FALSE)
 
 # 1. Spalte beinhaltet Rownames. Von 1. Spalte in Rownames transferieren.
 dat <- read.table(paste0("pfad.csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!")); rownames(dat) <- dat[,1]; dat <- dat[,2:ncol(dat),drop=FALSE]
@@ -364,7 +378,7 @@ own.datname <- dat; rm(dat)
 # http://www.r-bloggers.com/read-excel-files-from-r/
 # gdata (kein Support fuer xlsx)
 source("https://gist.github.com/schaunwheeler/5825002/raw/3526a15b032c06392740e20b6c9a179add2cee49/xlsxToR.r")
-xlsxToR = function("myfile.xlsx", header = TRUE)
+dat = xlsxToR("myfile.xlsx", header = TRUE)
   
 
 
@@ -506,7 +520,7 @@ factorial <- function(x) {
 # Sonstiges
 
 # Beliebige, auszufuehrende Funktion als Argument in andere Funktion eingeben.
-http://onertipaday.blogspot.de/2007/05/how-can-i-turn-string-into-variable.html
+# http://onertipaday.blogspot.de/2007/05/how-can-i-turn-string-into-variable.html
 funname <- "mean"
 f <- get(funname, mode="function")
 arglist <- c(1,2,3,4,5)
@@ -541,6 +555,101 @@ a <- matrix(1:100,nrow=1)
 x <- y <- 1
 eval(parse(text=paste("a[", x,",",y,"]", sep = "")))
 
+################## Write code in other programming languages ##################
+# Example to count number of lines in a file
+# http://stackoverflow.com/questions/23456170/get-the-number-of-lines-in-a-text-file-using-r 
+
+install.packages("inline")
+library(inline)
+
+rtools <- "C:\\Rtools\\bin"
+gcc <- "C:\\Rtools\\gcc-4.6.3\\bin"
+path <- strsplit(Sys.getenv("PATH"), ";")[[1]]
+new_path <- c(rtools, gcc, path)
+new_path <- new_path[!duplicated(tolower(new_path))]
+Sys.setenv(PATH = paste(new_path, collapse = ";"))
+
+wc.code <- "
+uintmax_t linect = 0; 
+uintmax_t tlinect = 0;
+
+int fd, len;
+u_char *p;
+
+struct statfs fsb;
+
+static off_t buf_size = SMALL_BUF_SIZE;
+static u_char small_buf[SMALL_BUF_SIZE];
+static u_char *buf = small_buf;
+
+PROTECT(f = AS_CHARACTER(f));
+
+if ((fd = open(CHAR(STRING_ELT(f, 0)), O_RDONLY, 0)) >= 0) {
+
+if (fstatfs(fd, &fsb)) {
+fsb.f_iosize = SMALL_BUF_SIZE;
+}
+
+if (fsb.f_iosize != buf_size) {
+if (buf != small_buf) {
+free(buf);
+}
+if (fsb.f_iosize == SMALL_BUF_SIZE || !(buf = malloc(fsb.f_iosize))) {
+buf = small_buf;
+buf_size = SMALL_BUF_SIZE;
+} else {
+buf_size = fsb.f_iosize;
+}
+}
+
+while ((len = read(fd, buf, buf_size))) {
+
+if (len == -1) {
+(void)close(fd);
+break;
+}
+
+for (p = buf; len--; ++p)
+if (*p == '\\n')
+++linect;
+}
+
+tlinect += linect;
+
+(void)close(fd);
+
+}
+SEXP result;
+PROTECT(result = NEW_INTEGER(1));
+INTEGER(result)[0] = tlinect;
+UNPROTECT(2);
+return(result);
+";
+
+setCMethod("wc",
+           signature(f="character"), 
+           wc.code,
+           includes=c("#include <stdlib.h>", 
+                      "#include <stdio.h>",
+                      "#include <sys/param.h>",
+                      "#include <sys/mount.h>",
+                      "#include <sys/stat.h>",
+                      "#include <ctype.h>",
+                      "#include <err.h>",
+                      "#include <errno.h>",
+                      "#include <fcntl.h>",
+                      "#include <locale.h>",
+                      "#include <stdint.h>",
+                      "#include <string.h>",
+                      "#include <unistd.h>",
+                      "#include <wchar.h>",
+                      "#include <wctype.h>",
+                      "#define SMALL_BUF_SIZE (1024 * 8)"),
+           language="C",
+           convention=".Call")
+
+wc("FULLPATHTOFILE")
+
 ################## Grafik ##################
 
 # Geschätze Kurve in Scatterplot einzeichnen
@@ -564,8 +673,12 @@ panel.hist <- function(x, ...) {
 pairs(~Sepal.Length+Sepal.Width+Petal.Length+Petal.Width, data=iris,
       lower.panel=panel.smooth, upper.panel=panel.smooth, diag.panel=panel.hist, pch=20, main="Iris Scatterplot Matrix")
 
-# Kurvenverlauf zeichnen
+# Kurvenverlauf zeichnen # http://stackoverflow.com/questions/26091323/how-to-plot-a-function-curve-in-r
 curve(expr=-2+x*2-x^2,from=-10,to=10)
+# Kurvernverlauf von Weizenduengung zeichnen. Ertrag (dt/ha) in Abhängigkeit von N pro ha. Bei 200mm Niederschlag und 400m Irrigation pro m^2.
+curveChar <- function(expr, ...) curve((function(x) eval(parse(text=expr)))(x), ...)
+expr <- "100*(1-exp(-0.025*(40+x)))*(1-exp(-0.0045*(200+400)))"
+curveChar(expr, from=1, to=160, main=expression(Yield[max] * (1-e^(-alpha*(N[0]+N))) * (1-e^(-beta*(W[0]+W))) ))
 
 # pdf/png Graph ausgeben
 pdf("D:/temp/graph4.pdf")
@@ -613,7 +726,8 @@ plot(..., family"")
 dev.new(width=30, height=18)  # Alternativ in pdf(width=.., height=..) einfuegen.
 
 # Beschriftungen
-  # Griechische Symbolde wie delta etc. in Graphenbeschriftung einfuegen (-> plotmath fuer Hilfesuche)
+  # Griechische Symbolde wie delta etc. in Graphenbeschriftung einfuegen (-> demo(plotmath) fuer Hilfesuche)
+  # Mathematische Ausdrücke Mathematical expressions in plots
   qqnorm(a<-rnorm(100),main=expression(paste(Delta, "FaAK[JAE]")), cex=1, pch=20);mtext("Normal Q-Q Plot", side=3, cex=0.5);qqline(a)
   mtext(expression(paste(Delta ~~  SAK[L], oder," ","SAK[L]")),side=4,line=1)
   # evt. muss man auch mit parse arbeiten:
@@ -658,6 +772,7 @@ mw1 <- structure(c(70501.18728733, 79077.00623248, 55479.72870416, 59665.8388884
 #12_Spez 79077.01 61760.47 62835.59 78428.86 81331.38 99246.96 79875.91 85920.25 69146.78  70727.35 82769.92
 #21_VM   55479.73 52834.84 51441.18 57302.79 60441.80 55207.44 52847.33 57313.91 54619.06  58173.59 67058.73
 library(ggplot2)
+# Hinweis: wide.to.long.df ist function aus Vollkosten.
 ggplot(data=wide.to.long.df(rownames(mw1), mw1), aes(x=index2,y=value,color=index1,linetype=index1,group=index1,size=1))) +
   geom_line() + geom_point() + scale_size(range=c(0.1, 2), guide=FALSE)
 
@@ -776,6 +891,7 @@ breaks.x <- seq(10,35,5); labels.x <- seq(10,35,5)
 angle.x <- 45
 ggplot(mtcars.long, aes(mpg, value, colour = variable)) + geom_line()  +  scale_colour_manual(values = colors)  +  theme_bw()  +  scale_x_continuous(breaks=breaks.x, labels=labels.x)  +  theme(axis.text.x = element_text(angle=angle.x))
 
+
 # Kumulative Wahrscheinlichkeitsverteilung macht man mit qplot(stat="ecdf", geom="step")
 qplot(cost[i,], stat = "ecdf", geom = "step") +
   scale_x_continuous(breaks = round(seq(min(cost[i,]), max(cost[i,]), length.out=n.grids.x),-2)) +
@@ -783,6 +899,28 @@ qplot(cost[i,], stat = "ecdf", geom = "step") +
   ylab("Wahrscheinlichkeit") +
   xlab("Kosten (CHF)") +
   labs(title = plot.names[i])
+
+
+# Monte-Carlo Bootstrapping of sample distribution
+# Quelle: https://www.youtube.com/watch?v=UZkaZhsOfT4&feature=youtu.be
+data(faithful)
+fit <- density(faithful$eruptions)
+plot(fit)
+
+xx <- faithful$eruptions
+fit1 <- density(xx)
+fit2 <- replicate(1000, {
+  x <- sample(xx, replace=TRUE)
+  density(x, from=min(fit1$x), to=max(fit1$x))$y
+})
+fit3 <- apply(fit2, 1, function(x)quantile(x, c(0.025,0.975)))
+plot(fit1, ylim=range(fit3))
+polygon(c(fit1$x, rev(fit1$x)),
+        c(fit3[1,], rev(fit3[2,])),
+        col='grey', border=FALSE)
+lines(fit1)
+
+
 
 ################## Verschiedenes ##################
 
@@ -827,9 +965,13 @@ x; !is.finite(x); x[!is.finite(x)] <- 0; x
 t(matrix(1:100, ncol=10)) # Transponieren
 aperm(array(1:100, dim=c(2,5,10)), c(2,3,1)) # Array Transponieren (Array Permutation)
 
+# Wilcoxon Rank sums or Kruskal-Wallis for non-parametric significan differences in values of groups.
+x <- sample(c(1,1,1,0),100,replace=TRUE)
+y <- sample(c(1,1,0,0),100,replace=TRUE)
+kruskal.test(x=c(x,y), g=as.factor(c(rep(1,100),rep(2,100))))
+wilcox.test(x,y, alternative=c("two.sided", "less", "greater")[1], correct=FALSE)
 pairwise.wilcox.test()
-wilcox.test()
-wilcox.test(variable ,rep(0,length(variable)),alternative="greater") # two.sided greater less
+
 strptime ('12:00:00', format= '%H:%M:%OS') # Handling von Uhrzeiten
 require(mvoutlier); outliers <- aq.plot(aaa); aaa <- aaa[outliers$outliers==FALSE,] # Multivariate Outliers entfernen/remove
 
@@ -897,3 +1039,7 @@ charcols <- apply(dat_colnames,2,function(x){
     }
   })
 })
+
+# Memory requirements fuer einen Datensatz berechnen (RAM)
+# https://www.r-bloggers.com/calculating-memory-requirements/
+# http://adv-r.had.co.nz/memory.html
