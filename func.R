@@ -31,6 +31,7 @@
 # source("O:/Sites/TA/Transfer/hpda/R/func.R")
 # if(!exists("load.gb")) source("O:/Sites/TA/Transfer/hpda/R/func.R")
 # if(!exists("load.gb")) source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/func.R")
+# if(!exists("load.gb")) tryCatch( source("O:/Sites/TA/Transfer/hpda/R/func.R"), error=function(e) source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/func.R"))
 #
 # -- GitHub --
 # if(!exists("mean.weight")) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")
@@ -76,7 +77,7 @@ if(isTRUE(file.info("C:/Users/U80823148/")$isdir)) {
 
 show.pch <- function(show=1:255,mfrow=c(5,5),mar=c(4,1,1,3)){
   # Show what the pch numbers mean (in a graph).
-  mar.orig <- par()$mar; mfrow.orig <- par()$mfrow;  on.exit(par(mar=mar.orig, mfrow=mfrow.orig))
+  mar.orig <- par()$mar; mfrow.orig <- par()$mfrow; #on.exit(par(mar=mar.orig, mfrow=mfrow.orig))
   par(mar=mar, mfrow=mfrow)
   for(i in show) suppressWarnings( plot(1,pch=i,xlab=i) )
   par(mar=mar.orig, mfrow=mfrow.orig)
@@ -472,10 +473,14 @@ color.gradient <- function(x, colors=c("red","yellow","green"), colsteps=100) {
 
 slash <- function(reverse=FALSE){
   # This function changes \ to / in paths (or vice versa if reverse=TRUE)
+  
+  cb <- suppressWarnings(readLines("clipboard"))
+  if(!any(grepl("\\\\",cb)) && grepl("/",cb)) reverse <- TRUE
+  
   if(!reverse){
-    txt <- gsub("\\\\","/",suppressWarnings(readLines("clipboard")))
+    txt <- gsub("\\\\","/",cb)
   } else {
-    txt <- gsub("/{1,10}","\\\\",suppressWarnings(readLines("clipboard"))) # replace several / with only one \
+    txt <- gsub("/","\\\\",cb) # Like this: "/{1,10}" you would replace several / with only one \
   }
   write.table(txt,'clipboard',quote=FALSE,col.names=FALSE,row.names=FALSE,eol=""); cat("Converted string is in clipboard. Use Ctrl+V:\n",txt,"\n",sep="")
 }
@@ -492,14 +497,25 @@ recover.R.installation <- function(){
   # Afterwards the Rprofile.site is edited, such that my own functions are loaded automatically when starting R.
   load(paste0(Sys.getenv("TMP"),"/R_Migration_Package_List.Rdata"))
   install.packages(pkg_list)
+  cat("Packages installed!\n")
   
-  read.table(paste0(R.home("etc"),"/Rprofile.site"), header=FALSE, sep="!" )
-  txt <- scan(paste0(R.home("etc"),"/Rprofile.site"), what=character())
-  addtxt <- "fortunes::fortune();source('//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/func.R')"
-  if(txt[length(txt)]!=addtxt){ 
-    write.table(addtxt, paste0(R.home("etc"),"/Rprofile.site"), quote=FALSE, col.names=FALSE, row.names=FALSE, append=TRUE)
-    cat("Packages installed and Rprofile.site Updated!\n")
+  #txt <- scan(paste0(R.home("etc"),"/Rprofile.site"), what=character())  
+  if(file.exists("C:/Users/U80823148")){
+  txt <- readLines(paste0(R.home("etc"),"/Rprofile.site"))
+  txt <- txt[txt!=""]
+  addtxt <- "fortunes::fortune(); source('//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/func.R')"
+    if(txt[length(txt)]!=addtxt){ 
+      write.table(c(txt,addtxt), paste0(R.home("etc"),"/Rprofile.site"), quote=FALSE, col.names=FALSE, row.names=FALSE, append=TRUE)
+      cat("Rprofile.site updated!\n")
+    } else {
+      cat("Rprofile.site was already up to date!\n")
+    }
+  } else {
+    cat("Rprofile.site *NOT* updated because not Daniel's computer!\n")
   }
+  
+  cat(paste0("Information: If you use RStudio and encounter a warning message like\n***\nIn dir.create(tempPath, recursive = TRUE) :\ncannot create dir '\\\\evdad.admin.ch\\AGROSCOPE_OS', reason 'Permission denied'\n***",
+                 "\nat every start of RStudio then you must edit the file  .../RStudio/R/modules/SessionProfiler.R  and delete delete the according line."))
 }
 
 list.all.package.functions <- function(package, all.names = FALSE, pattern) {
@@ -610,10 +626,8 @@ h <- function(x, n=6) {
     return(x[1:n,,])
   } else {
     if(is.data.frame(x)) {
-      #mode.own <- function(x) if(!is.na(suppressWarnings(as.numeric(x[1]))) && as.character(x[1]) != suppressWarnings(as.numeric(x[1])) ) return("factor") else return(mode(x))
-      #x <- as.data.frame(rbind(paste0("<", substr( sapply(x[1,,drop=FALSE],function(x)mode(x)), 1,3), ">"),as.character(unlist(x[1:n,])))
       # Warnings occur from factors.
-      x <- suppressWarnings(rbind(paste0("<", substr( sapply(x[1,,drop=FALSE],function(x)mode(x)), 1,3), ">"),x[1:n,]))
+      x <- suppressWarnings(rbind(paste0("<", substr( sapply(x[1,,drop=FALSE],function(x)class(x)), 1,3), ">"),x[1:n,]))
       rownames(x) <- 0:n
       return(x)
     }
@@ -657,7 +671,7 @@ MKzeile <- function(string) {if(is.null(dim(string))) substr(string,11,15) else 
 sort.MK <- function(data, order=c("zeile","spalte")){
   order <- match.arg(order)
   cn.data <- colnames(data)
-  change_vec <- substr(cn.data,1,1)=="M" & nchar(cn.data)>=4 & !is.na(is.numeric(substr(cn.data,2,4)))
+  change_vec <- substr(cn.data,1,1)=="M" & nchar(cn.data)>=4 & !is.na(suppressWarnings(as.numeric(substr(cn.data,2,4))))
   data.keep <- data[ , !change_vec, drop=FALSE ]
   data.change <- data[ , change_vec, drop=FALSE ]
   cn.data.change <- colnames(data.change)
@@ -670,7 +684,7 @@ sort.MK <- function(data, order=c("zeile","spalte")){
 sort.MK.colnames <- function(data, order=c("zeile","spalte")){
   order <- match.arg(order)
   cn.data <- colnames(data)
-  change_vec <- substr(cn.data,1,1)=="M" & nchar(cn.data)>=4 & !is.na(is.numeric(substr(cn.data,2,4)))
+  change_vec <- substr(cn.data,1,1)=="M" & nchar(cn.data)>=4 & !is.na(suppressWarnings(as.numeric(substr(cn.data,2,4))))
   cn.keep <- cn.data[!change_vec]
   cn.change <- cn.data[change_vec]
   if(order=="zeile") {
@@ -679,7 +693,6 @@ sort.MK.colnames <- function(data, order=c("zeile","spalte")){
     return( c(cn.keep, cn.change[ order(MKtab(cn.change), MKspalte(cn.change),MKzeile(cn.change)) ] ) )
   }
 }
-
 
 # System ZA2015
 MKcol <- function(string) {if(is.null(dim(string))) substr(string,6,9) else substr(colnames(string),6,9)}
@@ -1982,14 +1995,21 @@ transl.reg <- function(x, give.tab=FALSE){
   return(replace.values(numb, name, x))
 }
 
-transl.lbf <- function(x, give.tab=TRUE){
+transl.kt <- function(x, give.tab=FALSE){
+  name <- c("ZH", "BE", "LU", "UR", "SZ", "OW", "NW", "GL", "ZG", "FR", "SO", "BS", "BL", "SH", "AR", "AI", "SG", "GR", "AG", "TG", "TI", "VD", "VS", "NE", "GE", "JU", "FL")
+  numb <- 1:27
+  if(give.tab){ tab <- matrix(numb); dimnames(tab) <- list(name, "code"); return(tab) }
+  return(replace.values(numb, name, x))
+}
+
+transl.lbf <- function(x, give.tab=FALSE){
   name <- c("konv.","ÖLN","Bio","Bio Umstell.")
   numb <- c(   1,     2,    3,       4)
   if(give.tab){ tab <- matrix(numb); dimnames(tab) <- list(name, "code"); return(tab) }
   return(replace.values(numb, name, x))
 }
 
-transl.ths <- function(x, give.tab=TRUE){
+transl.ths <- function(x, give.tab=FALSE){
   # dat <- read.cb("no") # Quelle: \\evdad.admin.ch\AGROSCOPE_OS\2\5\2\1\1\1860\C_GB\B2014\A_Vers\Druckerei_Adr&Auflage_f_Versand
   ths.name <- c("Agro-Treuhand Rütti AG", "Agro-Treuhand Schwand", "Agro-Treuhand Berner-Oberland",  "Agro-Treuhand Emmental", "Agro-Treuhand Aargau", "Agro-Treuhand Thurgau AG", 
                 "Agro-Treuhand Waldhof", "BBV Treuhand", "Agro-Treuhand Region Zürich AG",  "BBV Treuhand", "BBV Treuhand", "Agro-Treuhand Schwyz GmbH", 
@@ -2128,7 +2148,7 @@ transl.EB.MML <- function(x, reverse=FALSE) {
   return(uebers_tab[match(x,uebers_tab[,col_in]),col_ou])
 }
 
-gsub.multiple <- function(pattern, replacement, x, ...){
+gsub.multi <- function(pattern, replacement, x, ...){
   # gsub implemented for pattern and replacement as vector arguments (recursive implementation).
   # Use: gsub.multiple(c("a","b","c"),c(1,2,3),letters)
   # Agruments: Please consult help page of gsub.
@@ -2144,8 +2164,8 @@ gsub.multiple <- function(pattern, replacement, x, ...){
     return(gsub(pattern, replacement, x, ...))
   }
 }
-gsub.multi <- function(...){
-  stop("gsub.multi is now called gsub.multiple! Please rename in script.")
+gsub.multiple <- function(...){
+  stop("gsub.multiple is now called gsub.multi! Please rename the function in script.")
 }
 
 repl.aou <- function(x){
@@ -3431,7 +3451,7 @@ if(FALSE){
   char.cols.to.num(x)
   summary(char.cols.to.num(x))
 }
-char.cols.to.num <- function(x, stringsAsFactors=FALSE){
+char.cols.to.num <- function(x, checkrowsForInteger=NULL, stringsAsFactors=FALSE){
   # This function checks in all cols of a data.frame if they can be coerced to numeric without producing NA values.
   # If it's possible the col is coerced to numeric with as.numeric()
   
@@ -3445,14 +3465,12 @@ char.cols.to.num <- function(x, stringsAsFactors=FALSE){
   }
   rn <- rownames(x)
   cn <- colnames(x)
-  res <- as.data.frame(lapply(x,function(x)if(is.character(x)) type.convert(x,as.is=!stringsAsFactors) else x), stringsAsFactors=stringsAsFactors)
-  #if(is.null(checkrows) || checkrows>nrow(x)) checkrows <- nrow(x)
-  #res <- as.data.frame(
-  #  lapply(
-  #    as.data.frame(x, stringsAsFactors=stringsAsFactors),
-  #    function(x) if( is( tryCatch(as.numeric(x[1:checkrows]),error=function(e)e,warning=function(w)w), "warning") ) return(x) else return(as.numeric(x))
-  #  ),
-  #  stringsAsFactors=stringsAsFactors)
+  
+  naT <- function(x){x[is.na(x)] <- TRUE; return(x)}
+  if(!is.null(checkrowsForInteger) && checkrowsForInteger>nrow(x)) checkrowsForInteger <- nrow(x)
+  res <- as.data.frame(lapply(x, function(x) if(is.character(x) || (!is.null(checkrowsForInteger) && all(naT(round(x[1:checkrowsForInteger])==x[1:checkrowsForInteger]))) ) type.convert(as.character(x),as.is=!stringsAsFactors) else x), stringsAsFactors=stringsAsFactors)
+  #res <- as.data.frame(lapply(x,function(x)if(is.character(x)) type.convert(x,as.is=!stringsAsFactors) else x), stringsAsFactors=stringsAsFactors)  
+  #res <- as.data.frame(lapply(x, function(x) if( is( tryCatch(as.numeric(x[1:checkrowsForInteger]),error=function(e)e,warning=function(w)w), "warning") ) return(x) else return(as.numeric(x))    ), stringsAsFactors=stringsAsFactors)
   rownames(res) <- rn
   colnames(res) <- cn
   return(res)
@@ -4416,7 +4434,7 @@ group.by.fix.scale <- function(x, selection.levels, method=c("< x <=", "<= x <")
 
 ####
 
-group.by.quantiles <- function(x, selection.levels=seq(0,1,0.1), method=c("< x <=", "<= x <"), include.min.max=TRUE, give.names=FALSE, names.digits=2, names.sep="-", weights=NULL){
+group.by.quantiles <- function(x, selection.levels=seq(0,1,0.1), method=c("< x <=", "<= x <"), include.min.max=TRUE, give.names=FALSE, names.digits=2, names.sep="-", weights=NULL, na.rm=FALSE){
   # Groupy data by quantiles.
   # This is a wrapper for group.by.fix.scale with slightly altered interface.
   
@@ -4669,23 +4687,23 @@ write.table.zipped <- function(x, file, ...){
   # For futher arguments see write.table
   # Alternative:   write.table(x, file=gzfile("filename.csv.gz")))
   # combined with  read.table(gzfile("filename.csv.gz"))
-  
+    
   # Get filename and folder
   fil <- strsplit(file, "/|\\\\")[[1]]
   filename <- fil[length(fil)]
-  parentdir <- paste(fil[-length(fil)],collapse="/")
+  parentdir <- ifelse(length(fil)==1, "", paste0( paste(fil[-length(fil)],collapse="/"), "/"))
   # Remove ending of filename. This is necessary to store csv and zip correctly. Speical paste0(,collapse=".") in case the filename contains several dots.
   filenameWithoutEnding <- strsplit(filename,"\\.")[[1]]
   if(length(filenameWithoutEnding)>1) filenameWithoutEnding <- paste0( filenameWithoutEnding[-length(filenameWithoutEnding)], collapse=".")
   
   # Create temporary file
-  folder <- paste0(Sys.getenv("TMP"), "\\R\\Rzipped")
+  folder <- paste0(Sys.getenv("TMP"), "/R/Rzipped")
   dir.create(folder, recursive=TRUE, showWarnings=FALSE)
-  tmpCSVfile <- paste0(folder, "\\", paste0(filenameWithoutEnding, ".csv") )
+  tmpCSVfile <- paste0(folder, "/", paste0(filenameWithoutEnding, ".csv") )
   write.table(x, tmpCSVfile, ...)
   
   # Create zip file containing csv. Remove temporary folder.
-  zip.nodirs(paste0(parentdir,"\\",filenameWithoutEnding, ".zip"), tmpCSVfile, remove.original=TRUE, showWarnings=FALSE)
+  zip.nodirs(zipfile=paste0(parentdir,filenameWithoutEnding, ".zip"), files=tmpCSVfile, remove.original=TRUE, showWarnings=FALSE)
   unlink(folder)
 }
 
@@ -4793,15 +4811,15 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=-1, ncols=-1, fast
   # This function creates a CSV file from a data.frame/matrix and opens it with the default CSV-opening-program
   # of the computer.
   #
-  # x = data.frame/matrix
-  # names = dimnames to be saved in the file. "col"=colnames, "rowcol"=rownames&colnames, "row"=rownames, "no"=no dimnames
-  # nrows = maximum number of rows    to be saved (for higher speed with large datasets)
-  #         if n=-1, all rows will be displayed.-> see also the help for read.table()
-  # ncols = maximum number of columns to be saved (for higher speed with large datasets)
+  # x      = data.frame/matrix
+  # names  = dimnames to be saved in the file. "col"=colnames, "rowcol"=rownames&colnames, "row"=rownames, "no"=no dimnames
+  # nrows  = maximum number of rows    to be saved (for higher speed with large datasets)
+  #          if n=-1, all rows will be displayed.-> see also the help for read.table()
+  # ncols  = maximum number of columns to be saved (for higher speed with large datasets)
   # folder = directory, where the temporary file should be saved.
   #          If NULL an accessible folder in C:/Users/.../Documents will be created automatically.
-  # quote = should quotes be written into the csv File? -> see also the help for write.table()
-  # na = how should NA values be displayed in the csv File? -> see also the help for write.table()
+  # quote  = should quotes be written into the csv File? -> see also the help for write.table()
+  # na     = how should NA values be displayed in the csv File? -> see also the help for write.table()
   # openFolder = Should the folder with all temporary files be opened after having created the file?
   
   names <- match.arg(names)
@@ -4976,7 +4994,7 @@ load.gb <- function() {
   cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
   cat(pfad, "\n", sep="")
   load(pfad)
-  if(any(gb[,"Jahr"])==2015) warning("in GB sind alle Gewichte=1 wegen Spezialauszug fuer B2015!")
+  cat("**********\nGewichte in Jahr 2015 sind immer 1, da ab dann SpE die offizielle Stichprobe ist.\n**********\n")
   return(gb)
 }
 
@@ -4989,11 +5007,26 @@ load.agis <- function(year=2015){
     return(load2(pfad))
 }
 
-load.cost <- function(years=2014, ignore_P_cols=TRUE, non_aggr=FALSE, parentDir="C:/Users/U80823148/_/ME/ME_data_out/data_final"){
+load.cost <- function(years=2014, ignore_P_cols=TRUE, non_aggr=FALSE, filter_expression=NULL, parentDir=NULL){
   # This function loads full cost data from several years and combines them.
+  #
+  # Arguments
+  # years         = Numerical vector containing the years to be loaded.
+  # igonre_P_cols = Logical indicating if all columns with the ending "_P" (proportional allocation) should be ignored when reading in the data
+  # non_aggr      = Logical indicating if the non aggregated joint costs should be loaded (i.e. animal categories like miku instead of entersprises like Milch)
+  # filter_expression = An expressoin() containing a filter expression that is applied to each year while reading in the data.
+  #                     this could look like expression(cost[ cost[,"BZ"]=="Milch" ,c("ID","Jahr","BZ","ArbeitNAT","Maschinen")])
+  # parentDir     = The parent directory in which the folders of all years are located.
   
+  # Automatically choose the newest folder for the directories of Daniel.
+  if(is.null(parentDir)){
+    parentDir <- "C:/Tools/ME/ME_data_out/data_final"
+    allFolders <- list.files(parentDir,full.names=TRUE); allFolders <- allFolders[file.info(allFolders)$isdir];
+    parentDir <- allFolders[length(allFolders)]
+  }
   if(non_aggr) fileName <- "/allcosts_nonaggr.RData" else fileName <- "/allcosts_info.RData"
   
+  # Loop over all years. Read in the data.
   cost1 <- NULL
   for(i in 1:length(years)) {
     pfad1 <- paste0(parentDir,"/",years[i],fileName)
@@ -5002,13 +5035,17 @@ load.cost <- function(years=2014, ignore_P_cols=TRUE, non_aggr=FALSE, parentDir=
     if(is.null(cost1)) cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
     cat(pfad1, "\n", sep="")
     cost <- load2(pfad1)
+    # Filter data according to special expression
+    if(!is.null(filter_expression)){
+      cost <- eval(filter_expression)
+    }
     # Berechnungen mit propoertionaler Zuteilung entfernen.
     if(ignore_P_cols) cost <- cost[,substr.rev(colnames(cost),1,2)!="_P"]
     # Falls gewuenscht, Saatgutproduzenten ausschliessen
     cost1 <- rbind(cost1,cost)
     rm(cost); invisible(gc())
   }
-return(cost1);
+  return(cost1);
 }
 
 rekid.zaid <- function(id, reverse=FALSE, BHJ=NULL, no.match.NA=TRUE){
@@ -5412,11 +5449,11 @@ read.xlsx <- function(filename, sheet=1, header=TRUE, create=FALSE){
   wb = loadWorkbook(filename)
   return( readWorksheet(wb, sheet=sheet, header=header) )
 }
-write.xlsx <- function(filename, data, sheetName=NULL, row.names=FALSE, col.names=TRUE, append=FALSE){
+write.xlsx <- function(file, data, sheetName=NULL, row.names=FALSE, col.names=TRUE, append=FALSE){
   # This function writes a xls file from either a matrix/data.frame or a list conaining several matrices/data.frames.
   # It is a convenient version of writeWorksheetToFile{XLConnect}
   # Arguments
-  # filename:  The filename of the xls file
+  # file:      The file of the xls file
   # data:      A matrix/data.frame or list containing matrices/data.frames
   # sheetName: Optional sheet names in the Excel file. If NULL, then names Sheet1, Sheet2, etc. are given.
   # row.names: logical indicating if rownames should be written or character giving the header for rowname colum. Single value or list.
@@ -5434,7 +5471,7 @@ write.xlsx <- function(filename, data, sheetName=NULL, row.names=FALSE, col.name
   } else {
     sheetName <- paste0("Sheet",1:length(data))
   }
-
+  
   convertRowColNames <- function(nam, trueVal=TRUE, falseVal=FALSE, errorNam="names", allowCharacters=FALSE){
     if(!is.list(nam)) nam <- as.list(nam)
     if(!allowCharacters) if(any(sapply(nam,function(x)!is.logical(x)))) stop("row.names must be logical.")
@@ -5445,13 +5482,13 @@ write.xlsx <- function(filename, data, sheetName=NULL, row.names=FALSE, col.name
   rownames=convertRowColNames(row.names, trueVal="", falseVal=NULL,  errorNam="row.names", allowCharacters=TRUE)
   header=convertRowColNames(col.names, trueVal=TRUE, falseVal=FALSE, errorNam="col.names", allowCharacters=FALSE)
   
-  if(substr.rev(filename,1,4)==".xls") {
-    warning("Filename must end with xlsx. The filename was appended.")
-    filename <- paste0(filename,"x")
+  if(substr.rev(file,1,4)==".xls") {
+    warning("file must end with xlsx. The file was appended.")
+    file <- paste0(file,"x")
   }
-  if(file.exists(filename) && !append) file.remove(filename)
+  if(file.exists(file) && !append) file.remove(file)
   
-  writeWorksheetToFile(filename, data=data, sheet=sheetName, rownames=rownames, header=col.names)
+  writeWorksheetToFile(file=file, data=data, sheet=sheetName, rownames=rownames, header=col.names)
 }
 
 
@@ -5483,8 +5520,11 @@ zip.nodirs <- function(zipfile, files, remove.original=FALSE, showWarnings=TRUE,
     }
   }
   
+  # Assure that zipfile is fully qualified
+  zipfile <- getFullyQualifiedFileName(zipfile)
+  
   # Save original working directory.
-  wd <- getwd();
+  wd <- getwd()
   # Split filenames by / or \
   fil <- strsplit(files, "/|\\\\")
   
@@ -5511,6 +5551,39 @@ zip.nodirs <- function(zipfile, files, remove.original=FALSE, showWarnings=TRUE,
   # Set original working directory.
   setwd(wd);
 }
+
+getFullyQualifiedFileName <- function(filename){
+  # This function checks if a fully qualified filename was given.
+  # If not, then the working directory is pasted to the filename.
+  # Arguments
+  # filename = Charactor vector containing the filename(s) to be checked.
+  
+  # Recursive definition in case several filenames where given
+  if(length(filename)>1) return(apply(matrix(filename),1,getFullyQualifiedFileName))
+  
+  # Store working directory.
+  wd <- getwd()
+  
+  # Check if the filename is valid only together with the current wd. If so, then expand the filename.
+  # If the splitted filename with / only is of length one, then it can only be a single filename without preceding folder.
+  if(length( strsplit(filename, "/|\\\\")[[1]]  )==1){
+    filename <- paste(wd,filename,sep="/")
+  } else {
+    # Else it is a combination of folders and filename. Then try to write the file when working directory is set to temporary folder.
+    # If filename is not fully qualified, then this should give an error.
+    newFilename <- NULL
+    setwd(Sys.getenv("TMP"))
+    newFilename <- tryCatch(suppressWarnings( write(1,filename) ),
+                            error=function(e) return(paste(wd,filename,sep="/")) )
+    suppressWarnings(file.remove(filename))
+    if(!is.null(newFilename)) filename <- newFilename
+  }
+  setwd(wd)
+  
+  return(filename)
+}
+
+
 
 #### CORRELATIONS, REGRESSIONS ####
 ####
@@ -5964,7 +6037,6 @@ predict.nnls.mod <- function(model, newdata=NULL){
 #  return( nnls.mod(A, b, weights=weights) )
 #}
 ####
-
 
 
 find.collinear.variables.det.cov <- function(indep, data, catinfo=TRUE){
