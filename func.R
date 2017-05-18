@@ -4641,7 +4641,7 @@ write.table <- function(x, file, ...) {
   # This function writes tables much faster if they should be written onto network drives.
   # If a network drive is detected and the file will be larger than approx. 300kb, it first creates a temporary file on the local hard drive.
   # Then it moves the file from local to network drive.
-  create.new <- substr(file,1,1)%in%c("/","\\") && object.size(x)>1400000
+  create.new <- substr( getFullyQualifiedFileName(file) ,1,1)%in%c("/","\\") && object.size(x)>1400000
   if(!create.new){
     utils::write.table(x=x, file=file, ...)
   } else {
@@ -5520,8 +5520,9 @@ zip.nodirs <- function(zipfile, files, remove.original=FALSE, showWarnings=TRUE,
     }
   }
   
-  # Assure that zipfile is fully qualified
+  # Assure fully qualified filenames.
   zipfile <- getFullyQualifiedFileName(zipfile)
+  files <- getFullyQualifiedFileName(files)
   
   # Save original working directory.
   wd <- getwd()
@@ -5552,6 +5553,7 @@ zip.nodirs <- function(zipfile, files, remove.original=FALSE, showWarnings=TRUE,
   setwd(wd);
 }
 
+#filename <- "Eink_A/delete"
 getFullyQualifiedFileName <- function(filename){
   # This function checks if a fully qualified filename was given.
   # If not, then the working directory is pasted to the filename.
@@ -5559,31 +5561,36 @@ getFullyQualifiedFileName <- function(filename){
   # filename = Charactor vector containing the filename(s) to be checked.
   
   # Recursive definition in case several filenames where given
-  if(length(filename)>1) return(apply(matrix(filename),1,getFullyQualifiedFileName))
+  if(length(filename)>1) return( apply(matrix(filename),1,getFullyQualifiedFileName) )
   
-  # Store working directory.
-  wd <- getwd()
-  
-  # Check if the filename is valid only together with the current wd. If so, then expand the filename.
   # If the splitted filename with / only is of length one, then it can only be a single filename without preceding folder.
   if(length( strsplit(filename, "/|\\\\")[[1]]  )==1){
-    filename <- paste(wd,filename,sep="/")
+    return( paste(getwd(),filename,sep="/") )
   } else {
-    # Else it is a combination of folders and filename. Then try to write the file when working directory is set to temporary folder.
-    # If filename is not fully qualified, then this should give an error.
+    # Check if the filename is valid only together with the current wd. If so, then expand the filename.
+    wd <- getwd() # Store working directory.
+    setwd(Sys.getenv("TMP")) # Set wd to tmp.
+    if(file.exists(filename)){  # If file exists, then it is an absolute path
+      setwd(wd)
+      return( filename )
+    }
+    # Now try to write a file. If filename is not fully qualified, then this should give an error.
     newFilename <- NULL
-    setwd(Sys.getenv("TMP"))
     newFilename <- tryCatch(suppressWarnings( write(1,filename) ),
                             error=function(e) return(paste(wd,filename,sep="/")) )
     suppressWarnings(file.remove(filename))
     if(!is.null(newFilename)) filename <- newFilename
+    setwd(wd)
+    # Alternative but slower on network drives. Original takes 1.54 secs for 1000 files. This one takes 6.86 secs for 1000 files.
+    #appendWd <- tryCatch({ suppressWarnings(write(1,paste0(getwd(),"/",filename))); suppressWarnings(file.remove(filename)); return(FALSE) },  error=function(e) return(TRUE) )
+    #if(appendWd) filename <- paste0(getwd(),"/",filename)
   }
-  setwd(wd)
   
   return(filename)
 }
-
-
+ 
+ 
+ 
 
 #### CORRELATIONS, REGRESSIONS ####
 ####
