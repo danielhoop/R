@@ -31,7 +31,7 @@
 # source("O:/Sites/TA/Transfer/hpda/R/func.R")
 # if(!exists("load.gb")) source("O:/Sites/TA/Transfer/hpda/R/func.R")
 # if(!exists("load.gb")) source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/func.R")
-# if(!exists("load.gb")) tryCatch( source("O:/Sites/TA/Transfer/hpda/R/func.R"), error=function(e) source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/func.R"))
+# if(!exists("load.gb")) tryCatch( source("O:/Sites/TA/Transfer/hpda/R/func.R"), error=function(e) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R"))
 #
 # -- GitHub --
 # if(!exists("mean.weight")) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")
@@ -4693,17 +4693,24 @@ write.table.zipped <- function(x, file, ...){
   filename <- fil[length(fil)]
   parentdir <- ifelse(length(fil)==1, "", paste0( paste(fil[-length(fil)],collapse="/"), "/"))
   # Remove ending of filename. This is necessary to store csv and zip correctly. Speical paste0(,collapse=".") in case the filename contains several dots.
-  filenameWithoutEnding <- strsplit(filename,"\\.")[[1]]
-  if(length(filenameWithoutEnding)>1) filenameWithoutEnding <- paste0( filenameWithoutEnding[-length(filenameWithoutEnding)], collapse=".")
+  fileNameSplitted <- strsplit(filename,"\\.")[[1]]
+  if(length(fileNameSplitted)>1) {
+    filenameWithoutEnding <- paste0( fileNameSplitted[-length(fileNameSplitted)], collapse=".")
+    ending <- fileNameSplitted[length(fileNameSplitted)]
+  } else {
+    filenameWithoutEnding <- fileNameSplitted
+    ending <- ""
+  }
+  if(ending=="zip") stop("Please use the ending of the data file (e.g. csv), not zip!")
   
   # Create temporary file
   folder <- paste0(Sys.getenv("TMP"), "/R/Rzipped")
   dir.create(folder, recursive=TRUE, showWarnings=FALSE)
-  tmpCSVfile <- paste0(folder, "/", paste0(filenameWithoutEnding, ".csv") )
+  tmpCSVfile <- paste0(folder, "/", filename )
   write.table(x, tmpCSVfile, ...)
   
   # Create zip file containing csv. Remove temporary folder.
-  zip.nodirs(zipfile=paste0(parentdir,filenameWithoutEnding, ".zip"), files=tmpCSVfile, remove.original=TRUE, showWarnings=FALSE)
+  zip.nodirs(zipfile=paste0(parentdir,filenameWithoutEnding, ".zip"), files=tmpCSVfile, remove.original=TRUE, showWarnings=FALSE, invoked.internally=TRUE)
   unlink(folder)
 }
 
@@ -5503,7 +5510,7 @@ list.nodirs <- function(path = ".", ...){
 #files <- c("C:/Users/U80823148/_/ME/ME_data_out/data_final/2013/allcosts_info - Kopie.csv", "C:/Users/U80823148/_/ME/ME_data_out/data_final/2014/allcosts_info - Kopie.csv")
 #remove.original=TRUE; showWarnings=TRUE
 #z1ip.nodirs(zipfile, files, remove.original=TRUE, showWarnings=FALSE)
-zip.nodirs <- function(zipfile, files, remove.original=FALSE, showWarnings=TRUE, ...){
+zip.nodirs <- function(zipfile, files, remove.original=FALSE, showWarnings=TRUE, invoked.internally=FALSE, ...){
   # This function packs all files with full path names into a zip file that will not contain the subfolders.
   # Arguments
   # zipfile         = The zipfile containing all compressed files.
@@ -5536,6 +5543,15 @@ zip.nodirs <- function(zipfile, files, remove.original=FALSE, showWarnings=TRUE,
     stop(paste0("Some filenames are identical. Duplicated filenames would be overwritten within the zip. Please choose unique filenames of the following files:\n", paste0(unique(filcheck[duplicated(filcheck)]),collapse=", ")))
   }
   
+  # Prepare function to call in case of error or warning
+  errorFunc <- function(filename){
+    setwd(wd)
+    if(invoked.internally && remove.original) suppressWarnings(file.remove(files))
+    if( isTRUE(!file.info(zipfile)$isdir) ) suppressWarnings(file.remove(zipfile)) # Remove zip anyway.
+    stop(paste0(filename, " was not zipped!", if(!invoked.internally && remove.original) " Original files were *NOT* removed!"))
+  }
+  
+  
   # Pack all files into zipfile.
   # x <- fil[[1]]
   lapply(fil, function(x){
@@ -5544,13 +5560,15 @@ zip.nodirs <- function(zipfile, files, remove.original=FALSE, showWarnings=TRUE,
       parentdir <- paste(x[-length(x)],collapse="/")
       setwd(parentdir)
     }
-    zip(zipfile, filename)
+    tryCatch( zip(zipfile, filename),
+              error=function(e)errorFunc(filename),
+              warning=function(w)errorFunc(filename))
   })
-  
-  # Remove original files if wished.
-  if(remove.original) file.remove(files)
+
   # Set original working directory.
   setwd(wd);
+  # Remove original files if wished.
+  if(remove.original) invisible(file.remove(files))
 }
 
 #filename <- "Eink_A/delete"
