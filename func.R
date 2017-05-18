@@ -1312,19 +1312,21 @@ if(FALSE) slapply <- function(X, MARGIN=2, FUN, ...){
   }
 }
 
-mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE, edit.I.colnames=TRUE, del.I.help.columns=FALSE, I.help.columns=NULL){
+mean.weight <- function(data, weights=NULL, index=NULL, calc.sum=FALSE, digits=NULL, na.rm=TRUE, edit.I.colnames=TRUE, del.I.help.columns=FALSE, I.help.columns=NULL){
   # This function calculates the weighted mean of all variables in a possibly indexed data.frame or matrix.
   
+  # Arguments
   # data = data of which the weighted means should be calculated. Can be data.frame, matrix or vector
   #        If any colname of data contains an expression like I(Var_A/Var_B), then the the "weighted mean of the ratio" is calculated.
   #        This is done by building a model.matrix() of the result matrix.
   #        Use function extract.I.vars() to add all variables to your data frame that are used in the formula
   # weights = weights for the weighted mean calculation
   # index = index in the same structure as used in tapply(). Can be a vector or list of vectors.
+  # calc.sum = Should sum(data*weights) should be calculated, rather than weighted means?
   # digits = digits for rounding the results
   # na.rm = na action
   # edit.I.colnames = Should the colnames containing expressions with I() be edited, such that I() won't be there anymore? TRUE/FALSE
-
+  
   # Wenn innerhalb eines Indexes mehrere Indexe als Listen abgelegt sind, wird die Berechnung fuer alle Indexe gemacht.
   #if(is.list(index)){
   #  if(any(sapply(index,function(x)is.list(x)))){
@@ -1332,23 +1334,23 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
   #  }
   #}
   if(!is.list(index)) index <- list(index)
-
+  
   # Im Falle, dass !is.null(dim(data)) folgt eine rekursive Funktionsdefinition!
   if(!is.null(dim(data))) {
     # Wenn !is.null(dim(data))
     # & es keinen oder nur einen Index gibt:
     if(is.null(index) || length(index)==1) {
       if(is.matrix(data)) {
-        result <- apply(data, 2, function(x)mean.weight(data=x, weights=weights, index=index, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))
+        result <- apply(data, 2, function(x)mean.weight(data=x, weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))
       } else if(is.data.frame(data)) {
-        result <- sapply(data, function(x)mean.weight(data=x, weights=weights, index=index, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))
+        result <- sapply(data, function(x)mean.weight(data=x, weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))
       }
       # Wieder zu Marix machen, falls es ein Vektor ist
       if(is.null(dim(result))) result <- t(as.matrix(result))
       #if(nrow(result)==1) rownames(result) <- NULL
       # Wieder die alten Colnames vergeben
       colnames(result) <- colnames(data)
-
+      
       # Falls eine Expression mit I() in einem der colnames ist, werden diese Kennzahlen neu berechnet.
       # Konkret wird statt "weighted mean of ratio" das "ratio of weighted means" berechnet.
       cn.res <- cn.res.orig <- colnames(result)
@@ -1363,7 +1365,7 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
       if(nrow(result)==1) rownames(result) <- NULL
       return(result)
       
-
+      
       # Wenn !is.null(dim(data))
       # & 2 Indexe eingegeben wurden:
     } else if(length(index)==2) {
@@ -1399,15 +1401,15 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
   }
   
   
-  # Tatsächliche mean.weight() Funktion.
+  # TatsÃ¤chliche mean.weight() Funktion.
   # Falls es keine numerische Variable ist (weil z.B. ein durchmischter data.frame eingegeben wird),
   # wird daraus eine 0 gemacht, damit die Funktion trotzdem funktioniert.
   if(! (is.numeric(data)||is.logical(data)) ) data <- rep(0, length(data))
-
+  
   if(is.null(weights)) weights <- rep(1,length(data))
   
   # Falls kein index gegeben wurde, einfache Berechnung (mit weighted.mean)
-  if(is.null(index) | is.null(index[[1]])){
+  if(!calc.sum && (is.null(index) | is.null(index[[1]]))){
     result <- weighted.mean(data,weights,na.rm=na.rm)
     
     # Sonst muss mit index und tapply() gerechnet werden.
@@ -1422,14 +1424,21 @@ mean.weight <- function(data, weights=NULL, index=NULL, digits=NULL, na.rm=TRUE,
     dataweights <- data*weights
     weights[is.na(dataweights)] <- NA
     
-    # Resultat =   Summe ( Werte * Gewichte )     /    Summe( Gewichte )
-    result <-  tapply(dataweights,index,function(x)sum(x, na.rm=na.rm)) / tapply(weights,index,function(x)sum(x, na.rm=na.rm))
+    if(calc.sum){
+      # Resultat = Summe ( Werte * Gewichte )
+      result <-  tapply(dataweights,index,  sum,na.rm=na.rm)
+    } else {
+      # Resultat = Summe ( Werte * Gewichte )                             / Summe( Gewichte )
+      result <-  tapply(dataweights,index,  sum,na.rm=na.rm) / tapply(weights,index,  sum,na.rm=na.rm)
+    }
+    
   }
   
   # Falls gewuenscht, runden, dann Ergebnis ausgeben.
   if(!is.null(digits)) result <- round(result, digits)
   return(result)
 }
+
 
 #vars <- c("asd","efe+p", "c-1", "f*c", "a/ b", "A^B", "c,d", "a==b", "ifelse(a==b, 1, 2)")
 extract.I.vars <- function(vars, keep.original=FALSE, keep.only.necessary=TRUE){
