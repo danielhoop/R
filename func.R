@@ -950,7 +950,10 @@ c.1b1 <- function(..., add.names=c("char","num","obj.names","own.names","none"),
   # c.1b1(a,b,c,add.names=c("char","num","obj.names","own.names","none")[5],own.names=c("x","y","z"),names.at.front=TRUE,sep.sign="_")
   
   add.names <- match.arg(add.names)
+  
+  # Create List and delete NULL elements.
   dat <- list(...)
+  dat <- dat[ sapply(dat,function(x)!is.null(x)) ]
   
   # Test if all length is the same for all arguments.
   n.arg <- length(dat)
@@ -1001,7 +1004,9 @@ rbind.1b1 <- function(..., add.names=c("char","num","obj.names","own.names","non
   #cbind.1b1(a,b,c,add.names=c("char","num","obj.names","own.names","none")[5],own.names=own.names,names.at.front=TRUE)
   
   add.names <- match.arg(add.names)
+  # Create List and delete NULL elements.
   dat <- list(...)
+  dat <- dat[ sapply(dat,function(x)!is.null(x)) ]
   if(cbind) dat <- lapply(dat,function(x)t(x))
   
   # Test if all nrow is the same for all arguments.
@@ -1369,10 +1374,10 @@ mean.weight <- function(data, weights=NULL, index=NULL, calc.sum=FALSE, digits=N
       # Wenn !is.null(dim(data))
       # & 2 Indexe eingegeben wurden:
     } else if(length(index)==2) {
-      res1 <- mean.weight(data[,1], weights, index, na.rm)
+      res1 <- mean.weight(data=data[,1], weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm)
       
       # Hier keine Fallunterscheidung zwischen matrix und data.frame einfuegen, sonst funktioniert es nicht!!
-      res.prov <- apply(data, 2, function(x)mean.weight(x, weights, index, digits, na.rm) )
+      res.prov <- apply(data, 2, function(x) mean.weight(data=x, weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm) )
       if(class(res.prov)!="matrix") res.prov <- t(as.matrix(res.prov))
       
       res.list <- list()
@@ -1409,8 +1414,12 @@ mean.weight <- function(data, weights=NULL, index=NULL, calc.sum=FALSE, digits=N
   if(is.null(weights)) weights <- rep(1,length(data))
   
   # Falls kein index gegeben wurde, einfache Berechnung (mit weighted.mean)
-  if(!calc.sum && (is.null(index) | is.null(index[[1]]))){
-    result <- weighted.mean(data,weights,na.rm=na.rm)
+  if( is.null(index) | is.null(index[[1]]) ){
+    if(calc.sum){
+      result <- sum( data * weights ,na.rm=na.rm )
+    } else {
+      result <- weighted.mean(data,weights, na.rm=na.rm)
+    }
     
     # Sonst muss mit index und tapply() gerechnet werden.
   } else {
@@ -2037,9 +2046,24 @@ transl.mm <- function(x, gsub=FALSE, excel.format=FALSE){
   # Wenn gsub=TRUE findet suche in Strings statt, statt ganze Character-Vektorplaetze zu uebersetzen.
   # Wenn excel.forma=TRUE wird davor noch ein Abstand gemacht, falls am Anfang ein Rechenoperations-Zeichen steht.
   
-  if(!exists("transmm_list", envir=globalenv())) transmm_list <<- 
-    as.matrix(read.table(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/SekDaten/Sonst/MML/Data_out/MML_Namen_Nummern_full.txt"), sep="\t", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA")))
+  if(!exists("transmm_list", envir=globalenv())) {
+    cat("Reading in translation...\n")
+    transmm_list <<- as.matrix(read.table(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/SekDaten/Sonst/MML/Data_out/MML_Namen_Nummern_full.txt"), sep="\t", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA")))
+    # Check if there are non duplicated tranlsations. If not, then delete the duplicated ones.
+    if(any(duplicated(transmm_list[,"number"]))){
+      transmm_list_dupl <- transmm_list[ duplicated( transmm_list[,"number"] ) | duplicated( transmm_list[,"number"], fromLast=TRUE ) ,];
+      transmm_list_dupl <- transmm_list_dupl[order(transmm_list_dupl[,"number"]),]
+      if( any(duplicated(transmm_list_dupl) & !duplicated(transmm_list_dupl)) ) {
+        stop("Non duplicated entries in translation matrix.")
+      } else {
+        transmm_list <<- transmm_list[ !duplicated(transmm_list[,"number"]) ,]
+      }
+    }
+  }
   
+  if(gsub){
+    transmm_list_tmp <- transmm_list[ grepl(paste(x,collapse="|") ,transmm_list[,"number"]) ,]
+  }
   x <- replace.values(transmm_list[,"number"], transmm_list[,"name"], x, gsub=gsub)
   
   if(excel.format){
@@ -2143,7 +2167,7 @@ transl.spb.320row <- function(x, give.tab=FALSE){
   }
 }
 
-transl.EB.MML <- function(x, reverse=FALSE) {
+transl.EB.MML <- function(x, reverse=FALSE, give.tab=FALSE) {
   # Diese Funktion übersetzt die Merkmalsbezeichnungen zwischen Online-Erhebungsbogen und Merkmalsliste-ZA2015
   # if reverse=TRUE in andere Richtung: MML2015 -> EB
   
@@ -2152,6 +2176,8 @@ transl.EB.MML <- function(x, reverse=FALSE) {
     pfad_uebers <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/1863/1_Entwicklungsphase_2013/1_AG Merkmalsliste/21_transcoding_fuer_R/transcoding_active.csv"
     uebers_tab <<- read.table(pfad_uebers, sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
   }
+  if(give.tab) return(uebers_tab)
+  
   if(!inverse) col_in <- 1 else col_in <- 2
   if(!inverse) col_ou <- 2 else col_ou <- 1
   return(uebers_tab[match(x,uebers_tab[,col_in]),col_ou])
@@ -4042,7 +4068,7 @@ match.multiple.id.left <- function(id_left, id_right) {
   # This function matches unique IDs in the right vector (the vector that provides values) to non-unique IDs in the left vector (the vector that receives values)
   # Ouput is a matrix. First column serves as index for left vector. Second Column serves as index for right vector.
   
-  if(any(duplicated(id_right))) stop("Do duplicated IDs in id_right allowed.")
+  if(any(duplicated(id_right))) stop("Duplicated IDs in id_right are *not* allowed.")
   m_right <- match(id_left,id_right); m_right <- m_right[!is.na(m_right)]; m_right
   m_left <- which(id_left%in%id_right)
   return(cbind(left=m_left,right=m_right))
@@ -4944,6 +4970,18 @@ load2 <- function(file){
   ret <- ls()[ls()!="file"]
   if(length(ret)>1) stop(paste0("More than one object was loaded. The function only works with one object.\n",paste0(ret, collapse=", ")) )
   eval(parse(text=paste0("return(",ret,")")))
+}
+
+format.colnames <- function(x) {
+  # This function converts all characters to lower case if they don't look like P100..., T100... or K100...
+  # Argument x can be a vector of characters or a matrix/data.frame.
+  # The converted character vector is returned.
+  
+  if(!is.null(dim(x))) x <- colnames(x)
+  filtMM <- which( grepl("^([PTK][0-9]{3})",x) )
+  x[-filtMM] <- tolower(x[-filtMM]) # To lower for all which are NOT like P100
+  x[filtMM] <- gsub("\\.","_",x[filtMM]) # Replace . with _ for all which ARE like P100
+  return(x)
 }
 
 load.spa <- function() {
@@ -7277,7 +7315,7 @@ sigtest.1vsall <- function(x,trt,method=c("kruskal","wilcoxon","t.test")) {
 ## insert also: Erst positiv machen, dann transformationen durchfuehren.GEMACHT!
 if(FALSE){
   m <- 10; sd = 2
-  dat <- matrix(NA,nrow=1000, ncol=8)
+  dat <- matrix(NA,nrow=1000, ncol=9)
   dat[,1] <- rnorm(1000,m,sd)
   dat[,2] <- rnorm(1000,m,sd)^(-0.5);     (m^(-0.5))^-2
   dat[,3] <- rnorm(1000,m,sd)^(-1);       (m^(-1))^-1
@@ -7286,7 +7324,7 @@ if(FALSE){
   dat[,6] <- rnorm(1000,m,sd)^(0.5);      (m^(0.5))^(2)
   dat[,7] <- exp(rnorm(1000,m,sd));       exp(log(m))
   dat[,8] <- log(rnorm(1000,m,sd));       log(exp(m))
-  
+  dat[,9] <- 1:1000;
   colnames(dat) <- c("x",
                      "x^(-0.5)",
                      "x^(-1)",
@@ -7294,8 +7332,9 @@ if(FALSE){
                      "x^2",
                      "x^(0.5)",
                      "exp(x)",
-                     "log(x)")
-  normalize.qqplot(dat,window=TRUE)
+                     "log(x)",
+                     "never")
+  normalize.qqplot(dat,window=FALSE)
 }
 
 normalize.qqplot <- function(data,replace.Inf=TRUE,window=FALSE,mar=c(2.1,2.1,2.1,2.1),...){
@@ -7341,17 +7380,42 @@ normalize.qqplot <- function(data,replace.Inf=TRUE,window=FALSE,mar=c(2.1,2.1,2.
   qqplot.multiple(data.new,colnames(data.new),window=window,mt="exp()",mar=mar,...)
 }
 
-normalize <- function(data, sig.level=0.05,qq=FALSE,window=FALSE,...) {
-  if(!any(c(is.matrix(data), is.data.frame(data)))) stop("Data must be a matrix or data.frame.")
-  if(any(  c(data[!is.na(data[]==Inf)]==Inf, data[!is.na(data[]==-Inf)]==-Inf)  ))  stop("Infinite numbers are not allowed")
+# data=dat; sig.level=0.05; qq=FALSE; window=FALSE
+normalize <- function(data, qq=TRUE, window=FALSE, ...) {
+  # This function tries to normalize each columng of a given data.frame by applying different functions.
+  #
+  # Arguments:
+  # data =   data.frame or matrix with data to be normalized.
+  # qq =     logical indicating if qq plot should be plotted.
+  # window = logical indicating if a new window should be opened for the qq plot.
+  #
+  # Value:
+  # A list containing
+  # $data: the new data that has potentially been normalized
+  # $pValsPerCol: the p values that were calculated by the lillifors test -> to check normal distribution.
+  #               values *above* 0.05 indicate normal distribution.
+  # $useFuncsPerCol: the functions that were applied on all columns of data to come closer to normal distribution.
+  #
+  # Detail:
+  # Functions might be applied to different columns even though the lilliefors test did not yield a p.value > 0.05.
+  # This will be the case if the p.value gets larger compared to the original distribution.
   
-  data <- as.data.frame(data)
+  funcs <- list("x^(-2)"=function(x)x^(-2),
+                "x^(-1)"=function(x)x^(-1),
+                "x^(-0.5)"=function(x)x^(-0.5),
+                "log(x)"=function(x)log(x),
+                "x^(0.5)"=function(x)x^(0.5),
+                "x"=function(x)x,
+                "x^(2)"=function(x)x^(2),
+                "exp(x)"=function(x)exp(x)
+  )
+  
   lillie.test <- function (x)         # lillie.test{nortest} modified. Now it also works with data containing always the same number.
   {
     DNAME <- deparse(substitute(x))
     x <- sort(x[complete.cases(x)])
     n <- length(x)
-    if (n > 4) {                                                  # change from original here
+    if (n > 4) {                                                   # change from original here
       
       p <- pnorm((x - mean(x))/sd(x))
       Dplus <- max(seq(1:n)/n - p)
@@ -7367,7 +7431,7 @@ normalize <- function(data, sig.level=0.05,qq=FALSE,window=FALSE,...) {
       pvalue <- exp(-7.01256 * Kd^2 * (nd + 2.78019) + 2.99587 * 
                       Kd * sqrt(nd + 2.78019) - 0.122119 + 0.974598/sqrt(nd) + 
                       1.67997/nd)
-      if (!is.na(pvalue)) {                                           # change from original here
+      if (!is.na(pvalue)) {                                        # change from original here
         if (pvalue > 0.1) {
           KK <- (sqrt(n) - 0.01 + 0.85/sqrt(n)) * K
           if (KK <= 0.302) {
@@ -7385,10 +7449,103 @@ normalize <- function(data, sig.level=0.05,qq=FALSE,window=FALSE,...) {
             pvalue <- 0
           }
         }
-      } else {pvalue <- 0}                                            # change from original here
+      } else {pvalue <- 0}                                          # change from original here
     } else {pvalue <- 0                                             # change from original here
-            K <- 0                                                  # change from original here
-            D <- 0}                                                 # change from original here
+    K <- 0                                                  # change from original here
+    D <- 0}                                                 # change from original here
+    RVAL <- list(statistic = c(D = K), p.value = pvalue, method = "Lilliefors (Kolmogorov-Smirnov) normality test", 
+                 data.name = DNAME)
+    class(RVAL) <- "htest"
+    return(RVAL)
+  }
+  
+  pValsPerCol <- sapply(funcs, function(func){
+    apply( apply(data,2,function(x)func(x)) ,2,function(x)lillie.test(x)$p.value)
+  })
+  
+  useFuncsPerCol <- apply(pValsPerCol,1,function(x)names(funcs)[which.max(x)] )
+  data.new <- data
+  cn1 <- colnames(data)
+  for(i in sort(unique(useFuncsPerCol))){ # i <- sort(unique(useFuncsPerCol))[1]
+    transformCol <- names(useFuncsPerCol)[useFuncsPerCol==i]
+    data.new[,transformCol] <- funcs[[i]]( data.new[,transformCol] )
+  }
+  
+  if(qq) qqplot.multiple(data.new, colnames(data.new), window=window, mt=useFuncsPerCol)
+  return(list(data=data.new,
+              pValsPerCol=pValsPerCol,
+              useFuncsPerCol=useFuncsPerCol
+              ) )
+}
+
+####
+qqplot.multiple <- function(data,variables,plotrows=5,mar=c(2.1,2.1,2.1,2.1),window=FALSE,mt=NULL,...){
+  par.orig <- par()$mar; mfrow.orig <- par()$mfrow; on.exit(par(mar=par.orig, mfrow=mfrow.orig))
+  
+  if(length(mt)==1) mt <- rep(mt,ncol(data))
+  if(window) windows()
+  nvariables <- length(variables)
+  par(mar=mar, mfrow=c(plotrows,if(nvariables%%plotrows==0) nvariables/plotrows else floor(nvariables/plotrows)+1 ))
+  for(i in 1:nvariables) {
+    dat <- as.numeric( data[,variables[i]] )
+    qqnorm(dat,pch=20,main=paste0(variables[i], "  ->  use:", mt[i]))
+    qqline(dat)
+  }
+}
+
+
+
+#### DELETE FUNCTIONS ####
+
+# data=dat; sig.level=0.05; qq=FALSE; window=FALSE
+if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, window=FALSE, ...) {
+  if(!any(c(is.matrix(data), is.data.frame(data)))) stop("Data must be a matrix or data.frame.")
+  if(any(  c(data[!is.na(data[]==Inf)]==Inf, data[!is.na(data[]==-Inf)]==-Inf)  ))  stop("Infinite numbers are not allowed")
+  
+  data <- as.data.frame(data)
+  lillie.test <- function (x)         # lillie.test{nortest} modified. Now it also works with data containing always the same number.
+  {
+    DNAME <- deparse(substitute(x))
+    x <- sort(x[complete.cases(x)])
+    n <- length(x)
+    if (n > 4) {                                                   # change from original here
+      
+      p <- pnorm((x - mean(x))/sd(x))
+      Dplus <- max(seq(1:n)/n - p)
+      Dminus <- max(p - (seq(1:n) - 1)/n)
+      K <- max(Dplus, Dminus)
+      if (n <= 100) {
+        Kd <- K
+        nd <- n
+      }  else {
+        Kd <- K * ((n/100)^0.49)
+        nd <- 100
+      }
+      pvalue <- exp(-7.01256 * Kd^2 * (nd + 2.78019) + 2.99587 * 
+                      Kd * sqrt(nd + 2.78019) - 0.122119 + 0.974598/sqrt(nd) + 
+                      1.67997/nd)
+      if (!is.na(pvalue)) {                                        # change from original here
+        if (pvalue > 0.1) {
+          KK <- (sqrt(n) - 0.01 + 0.85/sqrt(n)) * K
+          if (KK <= 0.302) {
+            pvalue <- 1
+          }    else if (KK <= 0.5) {
+            pvalue <- 2.76773 - 19.828315 * KK + 80.709644 * 
+              KK^2 - 138.55152 * KK^3 + 81.218052 * KK^4
+          }    else if (KK <= 0.9) {
+            pvalue <- -4.901232 + 40.662806 * KK - 97.490286 * 
+              KK^2 + 94.029866 * KK^3 - 32.355711 * KK^4
+          }    else if (KK <= 1.31) {
+            pvalue <- 6.198765 - 19.558097 * KK + 23.186922 * 
+              KK^2 - 12.234627 * KK^3 + 2.423045 * KK^4
+          }    else {
+            pvalue <- 0
+          }
+        }
+      } else {pvalue <- 0}                                          # change from original here
+    } else {pvalue <- 0                                             # change from original here
+    K <- 0                                                  # change from original here
+    D <- 0}                                                 # change from original here
     RVAL <- list(statistic = c(D = K), p.value = pvalue, method = "Lilliefors (Kolmogorov-Smirnov) normality test", 
                  data.name = DNAME)
     class(RVAL) <- "htest"
@@ -7401,7 +7558,7 @@ normalize <- function(data, sig.level=0.05,qq=FALSE,window=FALSE,...) {
   too.small <- names(too.small[too.small[]==TRUE])
   if (length(too.small)==0) too.small <- NULL
   data.orig <- data
-  data <- data[,minsize,drop=F]
+  data <- data[,minsize,drop=FALSE]
   
   # 0 ok without operation
   # 1 ok with ^(-2)
@@ -7410,79 +7567,88 @@ normalize <- function(data, sig.level=0.05,qq=FALSE,window=FALSE,...) {
   # 4 ok with log()
   # 5 ok with ^(0.5)
   # 6 ok with ^(2)
+  # 7 ok with exp()
   
   if(qq) qqplot.multiple(data,colnames(data),window=window,mt="orig")#,...)
-  a0 <- apply(data,2,function(x)lillie.test(x)$p.value >=sig.level)
-  a0.ok <- names(a0[a0[]==TRUE]); if(length(a0.ok)==0) a0.ok <- NULL
-  a0.next <- names(a0[a0[]==FALSE])
+  a0.p <- apply(data,2,function(x)lillie.test(x)$p.value)
+  a0 <- a0.p >= sig.level
+  a0.ok <- names(a0)[a0]; if(length(a0.ok)==0) a0.ok <- NULL
+  a0.next <- names(a0)[!a0]
   # Einschub: alle Werte positiv machen, zusaetzlich wurde ganz unten fuer data[,a0.ok] data.orig[,a0.ok] eingefuegt
   mins <- apply(data,2,function(x) if (min(x,na.rm=TRUE)<0) -min(x,na.rm=TRUE) else 0)
   min.matrix <- t(matrix( rep(mins,nrow(data)), ncol=nrow(data) ))
   data <- data + min.matrix
   # Ende Einschub
-  data.new <- data[,a0.next,drop=F]^(-2)
-  data.new[data.new==Inf] <- 10^12; data.new[data.new==-Inf] <- -10^12
+  data.new <- data[,a0.next,drop=FALSE]^(-2)
+  data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
   if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(-2)")#,...)
   
   
   if(ncol(data.new)>0){
-    a1 <- apply(data.new,2,function(x)lillie.test(x)$p.value >=sig.level)
-    a1.ok <- names(a1[a1[]==TRUE]); if(length(a1.ok)==0) a1.ok <- NULL
-    a1.next <- names(a1[a1[]==FALSE])
-    data.new <- data[,a1.next,drop=F]^(-1)
-    data.new[data.new==Inf] <- 10^12; data.new[data.new==-Inf] <- -10^12
+    a1.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
+    a1 <- a1.p >= sig.level
+    a1.ok <- names(a1)[a1]; if(length(a1.ok)==0) a1.ok <- NULL
+    a1.next <- names(a1)[!a1]
+    data.new <- data[,a1.next,drop=FALSE]^(-1)
+    data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
     if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(-1)")#,...)
   } else {a1.ok <- NULL}
   
   if(ncol(data.new)>0){
-    a2 <- apply(data.new,2,function(x)lillie.test(x)$p.value >=sig.level)
-    a2.ok <- names(a2[a2[]==TRUE]); if(length(a2.ok)==0) a2.ok <- NULL
-    a2.next <- names(a2[a2[]==FALSE])
-    data.new <- data[,a2.next,drop=F]^(-0.5)
-    data.new[data.new==Inf] <- 10^12; data.new[data.new==-Inf] <- -10^12
+    a2.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
+    a2 <- a2.p >= sig.level
+    a2.ok <- names(a2)[a2]; if(length(a2.ok)==0) a2.ok <- NULL
+    a2.next <- names(a2)[!a2]
+    data.new <- data[,a2.next,drop=FALSE]^(-0.5)
+    data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
     if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(-0.5)")#,...)
   } else {a2.ok <- NULL}
   
   if(ncol(data.new)>0){
-    a3 <- apply(data.new,2,function(x)lillie.test(x)$p.value >=sig.level)
-    a3.ok <- names(a3[a3[]==TRUE]); if(length(a3.ok)==0) a3.ok <- NULL
-    a3.next <- names(a3[a3[]==FALSE])
-    data.new <- log(data[,a3.next,drop=F])
-    data.new[data.new==Inf] <- 10^12; data.new[data.new==-Inf] <- -10^12
+    a3.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
+    a3 <- a3.p >= sig.level
+    a3.ok <- names(a3)[a3]; if(length(a3.ok)==0) a3.ok <- NULL
+    a3.next <- names(a3)[!a3]
+    data.new <- log(data[,a3.next,drop=FALSE])
+    data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
     if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="log()")#,...)
   } else {a3.ok <- NULL}
   
   if(ncol(data.new)>0){
-    a4 <- apply(data.new,2,function(x)lillie.test(x)$p.value >=sig.level)
-    a4.ok <- names(a4[a4[]==TRUE]); if(length(a4.ok)==0) a4.ok <- NULL
-    a4.next <- names(a4[a4[]==FALSE])
-    data.new <- data[,a4.next,drop=F]^(0.5)
-    data.new[data.new==Inf] <- 10^12; data.new[data.new==-Inf] <- -10^12
+    a4.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
+    a4 <- a4.p >= sig.level
+    a4.ok <- names(a4)[a4]; if(length(a4.ok)==0) a4.ok <- NULL
+    a4.next <- names(a4)[!a4]
+    data.new <- data[,a4.next,drop=FALSE]^(0.5)
+    data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
     if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(0.5)")#,...)
   } else {a4.ok <- NULL}
   
   if(ncol(data.new)>0){
-    a5 <- apply(data.new,2,function(x)lillie.test(x)$p.value >=sig.level)
-    a5.ok <- names(a5[a5[]==TRUE]); if(length(a5.ok)==0) a5.ok <- NULL
-    a5.next <- names(a5[a5[]==FALSE])
+    a5.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
+    a5 <- a5.p >= sig.level
+    a5.ok <- names(a5)[a5]; if(length(a5.ok)==0) a5.ok <- NULL
+    a5.next <- names(a5)[!a5]
     data.new <- data[,a5.next,drop=F]^(2)
-    data.new[data.new==Inf] <- 10^12; data.new[data.new==-Inf] <- -10^12
+    data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
     if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(2)")#,...)
   } else {a5.ok <- NULL}
   
   if(ncol(data.new)>0){
-    a6 <- apply(data.new,2,function(x)lillie.test(x)$p.value >=sig.level)
-    a6.ok <- names(a6[a6[]==TRUE]); if(length(a6.ok)==0) a6.ok <- NULL
-    a6.next <- names(a6[a6[]==FALSE])
-    data.new <- exp(data[,a6.next,drop=F])
-    data.new[data.new==Inf] <- 10^12; data.new[data.new==-Inf] <- -10^12
+    a6.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
+    a6 <- a6.p >= sig.level
+    a6.ok <- names(a6)[a6]; if(length(a6.ok)==0) a6.ok <- NULL
+    a6.next <- names(a6)[!a6]
+    data.new <- exp(data[,a6.next,drop=FALSE])
+    data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
     if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="exp()")#,...)
   } else {a6.ok <- NULL}
   
   if(ncol(data.new)>0){
-    a7 <- apply(data.new,2,function(x)lillie.test(x)$p.value >=sig.level)
-    a7.ok <- names(a7[a7[]==TRUE]); if(length(a7.ok)==0) a7.ok <- NULL
-    a7.next <- names(a7[a7[]==FALSE])
+    a7.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
+    a7 <- a7.p >= sig.level
+    a7.ok <- names(a7)[a7]; if(length(a7.ok)==0) a7.ok <- NULL
+    a7.next <- names(a7)[!a7]
   } else {a7.ok <- NULL; a7.next <- NULL}
   
   ok.data <- c(a0.ok, a1.ok, a2.ok, a3.ok, a4.ok, a5.ok, a6.ok, a7.ok)
@@ -7499,39 +7665,30 @@ normalize <- function(data, sig.level=0.05,qq=FALSE,window=FALSE,...) {
   if (length(a6.ok)>0) data.new[,a6.ok] <- data[,a6.ok]^(2)
   if (length(a7.ok)>0) data.new[,a7.ok] <- exp(data[,a7.ok])
   
+  toImproveMessage <- ""
+  toImproveP <- toImprove <- NULL
   if (length(a7.next)>0 | length(too.small)>0) {
+    # Check if a transformation is at least better than the original. Although the significance value was not achieved.
+    toImproveP <- cbind(a0.p[a7.next], a1.p[a7.next], a2.p[a7.next], a3.p[a7.next], a4.p[a7.next], a5.p[a7.next], a6.p[a7.next], a7.p[a7.next])
+    colnames(toImproveP) <- c("original","x^(-2)","x^(-1)","x^(-0.5)","log(x)","x^(0.5)","x^(2)","exp(x)")
+    if(any( apply(toImproveP,1,function(x)any(x>x[1]))  )) {
+      toImprove <- apply(toImproveP,1,function(x) x > x[1] )
+      if(ncol(toImprove)==1) toImprove <- t(toImprove)
+      colnames(toImprove) <- colnames(toImproveP)
+      toImproveMessage <- "Some variables can be improved by using other transformations. See $to.improve in result."
+    }
+    # Make the new data set.
     data.mixed <- data.new
-    if (length(a7.next)>0) {
-      data.mixed <- cbind(data.mixed, data.orig[,a7.next])
-      colnames(data.mixed)[(ncol(data.mixed)-length(a7.next)+1):ncol(data.mixed)] <- a7.next
-    }
-    if (length(too.small)>0) {
-      data.mixed <- cbind(data.mixed, data.orig[,too.small])
-      colnames(data.mixed)[(ncol(data.mixed)-length(too.small)+1):ncol(data.mixed)] <- too.small
-    }
+    if (length(a7.next)>0)   data.mixed <- cbind(data.mixed, data.orig[,a7.next,drop=FALSE])
+    if (length(too.small)>0) data.mixed <- cbind(data.mixed, data.orig[,too.small,drop=FALSE])
+    data.mixed <- data.mixed[,colnames(data.orig),drop=FALSE]
   }
-  qqplot.multiple(data.mixed,colnames(data.mixed),window=window,mt="mixed")
+  if(qq) qqplot.multiple(data.mixed,colnames(data.mixed),window=window,mt="mixed")
   explanation <- "normal: data was already normally distributed, reciprocal.square: ^(-2) was needed to normalize, reciprocal: ^(-1) ..., reciprocal.square.root: ^(-0.5) ..., log: log() ..., square.root: ^0.5 ..., square: ^2 ..., exp: exp() ..."
-  result <- list(normalized.data=data.new, mixed.normalized.data=data.mixed,normal=a0.ok, reciprocal.square=a1.ok, reciprocal=a2.ok, reciprocal.square.root=a3.ok, log=a4.ok, square.root=a5.ok, square=a6.ok, exp=a7.ok, never.normal=a7.next, not.enough.observations.for.analysis=too.small, explanation=explanation)
+  result <- list(normalized.data=data.new, mixed.normalized.data=data.mixed, normal=a0.ok, reciprocal.square=a1.ok, reciprocal=a2.ok, reciprocal.square.root=a3.ok, log=a4.ok, square.root=a5.ok, square=a6.ok, exp=a7.ok, never.normal=a7.next, not.enough.observations.for.analysis=too.small, to.improve.p.val=toImproveP, to.improve=toImprove, explanation=explanation, to.improve.message=toImproveMessage)
   return(result)
 }
-####
-qqplot.multiple <- function(data,variables,plotrows=5,mar=c(2.1,2.1,2.1,2.1),window=FALSE,mt=NULL,...){
-  par.orig <- par()$mar; mfrow.orig <- par()$mfrow; on.exit(par(mar=par.orig, mfrow=mfrow.orig))
-  
-  if(window) windows()
-  nvariables <- length(variables)
-  par(mar=mar, mfrow=c(plotrows,if(nvariables%%plotrows==0) nvariables/plotrows else floor(nvariables/plotrows)+1 ))
-  for(i in 1:nvariables) {
-    dat <- as.numeric( data[,variables[i]] )
-    qqnorm(dat,pch=20,main=variables[i])
-    qqline(dat)
-  }
-}
 
-
-
-#### DELETE FUNCTIONS ####
 
 #### Anzeige, dass Funktionen geladen wurden ####
 cat("**********************************************************************\nFunctions loaded\n**********************************************************************\n")
