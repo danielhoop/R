@@ -4,8 +4,8 @@
 ### Or read it in via R console > source("filedirectory of this file")
 ### Or simply copy it into your R console.
 
-# Most useful funcitons
-# -------------------------
+# Most useful functions
+# *************************
 # Grouping
 # group.by.quantiles / group.by.fix.scale
 # group.by.wtd.quantiles (in combination with mean.weight -> to calculate weighted means of upper and lower income quartile)
@@ -14,13 +14,20 @@
 # mean.weight (in combination with extract.I.vars & create.cols)
 # median.weight (as wrapper for quantile.weight)
 #
-# Load data 
+# Find columns / view data / clipboard copying
+# find.col, find.gb.col, find.spa.col (quickly find column names with string pattern)
+# read.cb, write.cb, view (read/write from clipboard. save as csv and view in Excel)
+#
+# Convenience functions
+# slash  (convert back slashes to front slashes. Useful if copying file paths from windows to R scripts)
+# categ.to.bin / categ.to.ordinal  (transform categorial variables to binary or ordinal)
+# char.cols.to.num (check columns of data frame. If somethin is like " 23.3 " and interpreted as character -> Automatically convert to numeric )
+#
+# For Agroscoepe ZA-BH
+# *************************
+# Load data
 # load.spa, load.gb, load.agis, load.cost (quickly load data, e.g. full costs)
 # vergleichslohn, vergleichszins (quickly load data, e.g. opportunity costs)
-#
-# Find columns / view data / clipboard copying
-# find.col, find.gb.col, find.spa.col, (quickly find column names with string pattern)
-# read.cb, write.cb, view (read/write from clipboard. save as csv and view in Excel)
 #
 # Other (translate coding and decrypt IDs)
 # transl.reg, transl.typ, transl.ths, transl.lbf, transl.mm, transl.spb.330col.340row, transl.spb.320row, transl.ref.210row, transl.EB.MM
@@ -30,7 +37,7 @@
 # -- Source locally  --
 # source("O:/Sites/TA/Transfer/hpda/R/func.R")
 # if(!exists("load.gb")) source("O:/Sites/TA/Transfer/hpda/R/func.R")
-# if(!exists("load.gb")) source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/func.R")
+# if(!exists("load.gb")) source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/R/func.R")
 # if(!exists("load.gb")) tryCatch( source("O:/Sites/TA/Transfer/hpda/R/func.R"), error=function(e) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R"))
 #
 # -- GitHub --
@@ -55,7 +62,7 @@ if(FALSE) if(length(list.files("C:/Users/U80823148/"))>0) {
 #### Automatisches Kopieren auf W ####
 # Nicht auf anderen Computern (falls Script-Ausfuehrung ueber Laufwerk W:)
 if(isTRUE(file.info("C:/Users/U80823148/")$isdir)) {
-  pathP <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/"
+  pathP <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/R/"
   pathW <- "O:/Sites/TA/Transfer/hpda/R/"
   pathFilesize <- paste0(pathP, "funcSize.txt")
   filesize0 <- scan(pathFilesize, quiet=TRUE)
@@ -110,7 +117,7 @@ cornerlegend <- function(v=c("o","m","u")[3],h=c("l","m","r")[3],ply=0,plx=0, ..
   # v= vertical orientation, h= horizontal orientation. In german! "o","r" means for example: oben-rechts (upper right).
   # ply: plus y coord., plx: plus x coord.
   # Alternative: Try legend() and simply write: "bottomright", "bottom", "bottomleft", "left", "topleft", "top", "topright", "right", "center"
-  
+
   yxlim <- par("usr")
   if(v=="o") {yjust <- 1; y <- yxlim[4];} else if(v=="m") {yjust <- 0.5; y <- mean(c(yxlim[3],yxlim[4]));} else if(v=="u") {yjust <- 0; y <- yxlim[3]+ply;}
   if(h=="l") {xjust <- 0; x <- yxlim[1];} else if(h=="m") {xjust <- 0.5; x <- mean(c(yxlim[1],yxlim[2]));} else if(h=="r") {xjust <- 1; x <- yxlim[2]+plx;}
@@ -125,7 +132,7 @@ curveChar <- function(expr, ...) {
 
 linreg.plot <- function(form,data,method=c("lm","rlm"),...){
   # see also curve()
-  
+
   method <- match.arg(method)
   if(method=="lm") {
     reg <- lm(form, data=data)
@@ -168,7 +175,7 @@ pairs.smooth <- function(x, pch=20, cors=c("no","upper","lower"), cor.method=c("
     points(x, y, pch = pch, col = pointscol, bg = bg, cex = cex)
     ok <- is.finite(x) & is.finite(y)
     if (any(ok)) {
-      lines(stats::lowess(x[ok], y[ok], f = span, iter = iter), 
+      lines(stats::lowess(x[ok], y[ok], f = span, iter = iter),
             col = col.smooth, ...)
       if(abline01) {
         abline(0,1,col=ablinecol)
@@ -190,9 +197,9 @@ pairs.smooth <- function(x, pch=20, cors=c("no","upper","lower"), cor.method=c("
 boxplot.multi <- function(data,grouping=NULL,meansd=FALSE,notch=TRUE,mark.notch=NULL,ovrl.median=TRUE,main=NULL,plotrows=3,split=1,mar=c(2,2.6,2,0.4),newwin=FALSE, info=FALSE, ...){
   # Make boxplots for several columns of a data.frame or matrix
   # Attention: The colnames of the data must not contain " ". Fill with "_"
-  
+
   par.orig <- par()$mar; mfrow.orig <- par()$mfrow; on.exit(par(mar=par.orig, mfrow=mfrow.orig))
-  
+
   if(is.null(dim(data))) {data <- matrix(data,ncol=1); colnames(data) <- "check_variable"}
   if(ncol(data)==1) {
     plotrows <- 1
@@ -202,7 +209,7 @@ boxplot.multi <- function(data,grouping=NULL,meansd=FALSE,notch=TRUE,mark.notch=
   if(!is.null(mark.notch)) if(!mark.notch%in%unique(grouping)) stop("mark.notch must be one of ",paste(sort(unique(grouping)),collapse=", "))
   if(is.null(colnames(data))) stop("the data must have colnames")
   data.orig <- data
-  
+
   choose <- list()
   for(s in 1:split) {
     if(s==1) {choose[[s]] <- 1:floor(ncol(data.orig)/split)
@@ -211,7 +218,7 @@ boxplot.multi <- function(data,grouping=NULL,meansd=FALSE,notch=TRUE,mark.notch=
       } else choose[[s]] <-  ((s-1)*ceiling(ncol(data.orig)/split)) : ncol(data.orig)
     }
     data <- data.orig[,choose[[s]],drop=FALSE]
-    
+
     if(is.null(main)) mains <- colnames(data) else if(length(main)==1) mains <- rep(main,ncol(data)) else mains <- main[choose[[s]]]
     nvariables <- ncol(data)
     data <- cbind(data,grouping=grouping)
@@ -241,19 +248,19 @@ boxplot.multi <- function(data,grouping=NULL,meansd=FALSE,notch=TRUE,mark.notch=
 
 boxplot.probabilities <- function(y=NULL, grouping=NULL, list=NULL, probs=c(0.025,0.25,0.5,0.75,0.975), outline=FALSE, ...) {
   # Boxplot with probability quantiles (not the original whisker definition).
-  
+
   if(is.null(list)&any(c(is.null(y),is.null(grouping)))) stop("specify either list or y and grouping")
   if(!is.null(list)&any(c(!is.null(y),!is.null(grouping)))) stop("specify either list or y and grouping")
   if(length(probs)!=5) stop("length(probs) != 5")
-  
+
   if(is.null(list)) {
     bp <- boxplot(as.formula("y~grouping"),plot=FALSE, ...)
     uniquegrouping <- sort(unique(grouping))
-  } else { 
+  } else {
     bp <- boxplot(list,plot=FALSE,outline=outline, ...)
     uniquegrouping <- 1:length(list)
   }
-  
+
   for(i in uniquegrouping) {
     if(is.null(list)) { x <- y[grouping==i]
     } else { x <- list[[uniquegrouping[i]]] }
@@ -268,7 +275,7 @@ boxplot.probabilities <- function(y=NULL, grouping=NULL, list=NULL, probs=c(0.02
 boxplot.3.lines <- function(y, ...){
   # Draws a boxplot with only 3 horizontal lines.
   # Enter a 3 * (number of groups) matrix with upper, middle and lower value for boxplot
-  
+
   grouping <- 1:ncol(y)
   y1 <- y[c(1),]
   bp <- boxplot(as.formula("y1~grouping"),plot=FALSE)#, ...)
@@ -290,7 +297,7 @@ boxplot.meansd <- function(y,grouping, ...){
 ####
 
 histogram.overlap <- function(data, grouping, bins=10, transparency=1/4, ...){
-### WORK IN PROGRESS. DOES NOT WORK!  
+### WORK IN PROGRESS. DOES NOT WORK!
   h <- mids <- counts <- breaks.list <- list()
   for(j in grp) {
     hi <- hist(data[grouping==j],plot=FALSE)
@@ -298,7 +305,7 @@ histogram.overlap <- function(data, grouping, bins=10, transparency=1/4, ...){
     nbreaks <- seq(min(breaks), max(breaks), length.out=bins)
     breaks.list[[j]] <- nbreaks
   }
-  
+
   h <- mids <- counts <- list()
   for(j in grp) {
     hi <- hist(data[grouping==j],breaks=nbreaks,plot=FALSE)
@@ -306,12 +313,12 @@ histogram.overlap <- function(data, grouping, bins=10, transparency=1/4, ...){
     mids[[j]] <- hi$mids
     counts[[j]] <- hi$counts
   }
-  
-  binwidth <- h[[grp[1]]]$mids[2] - h[[grp[1]]]$mids[1] # Die bins sind für alle Gruppen gleich gross.
+
+  binwidth <- h[[grp[1]]]$mids[2] - h[[grp[1]]]$mids[1] # Die bins sind f?r alle Gruppen gleich gross.
   xlim <- c(min(mids.call<-do.call("c",mids))-binwidth, max(mids.call)+binwidth)
   ylim <- c(min(counts.call<-do.call("c",counts)), max(counts.call))
   col <- rgb(colsrgb[1,grp[1]],colsrgb[2,grp[1]],colsrgb[3,grp[1]],alpha=colsrgb[4,grp[1]])
-  
+
   plot(h[[grp[1]]], col=col, xlim=xlim, ylim=ylim, main=mains[i],xlab=xlab[i])
   if(length(grp)>1) for(j in grp[2:length(grp)]){
     col <- rgb(colsrgb[1,j],colsrgb[2,j],colsrgb[3,j],alpha=colsrgb[4,j])
@@ -322,14 +329,14 @@ histogram.overlap <- function(data, grouping, bins=10, transparency=1/4, ...){
 ####
 histogram.overlap.multi <- function(data,grouping=NULL,plotrows=3,mar=c(2,2.6,2,0.4),bins=10,cols=NULL,transparency=1/4,main=NULL,xlab="",split=1,newwin=FALSE) {
   # Plot several overlapping histograms in one plot (possible for 1 or more variables)
-  
+
   if(is.null(cols)) cols <- c("red","darkgreen","blue","cyan","green","gray87","yellowgreen","steelblue1","orchid1","purple","orange","yellow")
   colsrgb <- col2rgb(cols, alpha = 1)
   colsrgb <- colsrgb/255
   colsrgb[4,] <- transparency
-  
+
   par.orig <- par()$mar; mfrow.orig <- par()$mfrow; on.exit(par(mar=par.orig, mfrow=mfrow.orig))
-  
+
   if(is.null(dim(data))) {data <- matrix(data,ncol=1); colnames(data) <- "check variable"}
   if(ncol(data)==1) {
     plotrows <- 1
@@ -339,7 +346,7 @@ histogram.overlap.multi <- function(data,grouping=NULL,plotrows=3,mar=c(2,2.6,2,
   if(is.null(grouping)) grouping <- rep(1,nrow(data))
   grp <- sort(unique(grouping))
   data.orig <- data
-  
+
   choose <- list()
   for(s in 1:split) {
     if(s==1) {choose[[s]] <- 1:floor(ncol(data.orig)/split)
@@ -348,13 +355,13 @@ histogram.overlap.multi <- function(data,grouping=NULL,plotrows=3,mar=c(2,2.6,2,
       } else choose[[s]] <- ((s-1)*ceiling(ncol(data.orig)/split)) : ncol(data.orig)
     }
     data <- data.orig[,choose[[s]],drop=FALSE]
-    
+
     if(is.null(main)) mains <- colnames(data) else if(length(main)==1) mains <- rep(main,ncol(data)) else mains <- main[choose[[s]]]
     if(length(xlab)==1) xlab <- rep(xlab,ncol(data.orig))
     if(newwin) windows()
     nvariables <- ncol(data)
     par(mar=mar, mfrow=c(plotrows,if(nvariables%%plotrows==0) nvariables/plotrows else floor(nvariables/plotrows)+1 ))   # %% gibt Rest wieder
-    
+
     h <- breaks <- mids <- counts <- list()
     for(i in 1:ncol(data)){
       #h <- list()
@@ -370,12 +377,12 @@ histogram.overlap.multi <- function(data,grouping=NULL,plotrows=3,mar=c(2,2.6,2,
         mids[[j]] <- hi$mids
         counts[[j]] <- hi$counts
       }
-      
-      binwidth <- h[[grp[1]]]$mids[2] - h[[grp[1]]]$mids[1] # Die bins sind für alle Gruppen gleich gross.
+
+      binwidth <- h[[grp[1]]]$mids[2] - h[[grp[1]]]$mids[1] # Die bins sind f?r alle Gruppen gleich gross.
       xlim <- c(min(mids.call<-do.call("c",mids))-binwidth, max(mids.call)+binwidth)
       ylim <- c(min(counts.call<-do.call("c",counts)), max(counts.call))
       col <- rgb(colsrgb[1,grp[1]],colsrgb[2,grp[1]],colsrgb[3,grp[1]],alpha=colsrgb[4,grp[1]])
-      
+
       plot(h[[grp[1]]], col=col, xlim=xlim, ylim=ylim, main=mains[i],xlab=xlab[i])
       if(length(grp)>1) for(j in grp[2:length(grp)]){
         col <- rgb(colsrgb[1,j],colsrgb[2,j],colsrgb[3,j],alpha=colsrgb[4,j])
@@ -387,9 +394,9 @@ histogram.overlap.multi <- function(data,grouping=NULL,plotrows=3,mar=c(2,2.6,2,
 ####
 density.overlap.multi <- function(data,grouping=NULL,bw="nrd0",na.rm=TRUE,cols=NULL,xlab="",main=NULL,legends=TRUE,mar=c(2,2.6,2,0.4),plotrows=3,split=1,newwin=FALSE,...) {
   # plot several overlapping density plots in one plot (possible for 1 or more variables)
-  if(is.null(cols)) cols <- c("red","darkgreen","blue","cyan","green","gray87","yellowgreen","steelblue1","orchid1","purple","orange","yellow")  
+  if(is.null(cols)) cols <- c("red","darkgreen","blue","cyan","green","gray87","yellowgreen","steelblue1","orchid1","purple","orange","yellow")
   par.orig <- par()$mar; mfrow.orig <- par()$mfrow; on.exit(par(mar=par.orig, mfrow=mfrow.orig))
-  
+
   if(is.null(dim(data))) {data <- matrix(data,ncol=1); colnames(data) <- "check variable"}
   if(ncol(data)==1) {
     plotrows <- 1
@@ -399,7 +406,7 @@ density.overlap.multi <- function(data,grouping=NULL,bw="nrd0",na.rm=TRUE,cols=N
   if(is.null(grouping)) grouping <- rep(1,nrow(data))
   grp <- sort(unique(grouping))
   data.orig <- data
-  
+
   choose <- list()
   for(s in 1:split) {
     if(s==1) {choose[[s]] <-  1:floor(ncol(data.orig)/split)
@@ -408,13 +415,13 @@ density.overlap.multi <- function(data,grouping=NULL,bw="nrd0",na.rm=TRUE,cols=N
       } else choose[[s]] <-  ((s-1)*ceiling(ncol(data.orig)/split)) : ncol(data.orig)
     }
     data <- data.orig[,choose[[s]],drop=FALSE]
-    
+
     if(is.null(main)) mains <- colnames(data) else if(length(main)==1) mains <- rep(main,ncol(data)) else mains <- main[choose[[s]]]
     if(length(xlab)==1) xlab <- rep(xlab,ncol(data.orig))
     if(newwin) windows()
     nvariables <- ncol(data)
-    par(mar=mar, mfrow=c(plotrows,if(nvariables%%plotrows==0) nvariables/plotrows else floor(nvariables/plotrows)+1 ))   # %% gibt Rest wieder 
-    
+    par(mar=mar, mfrow=c(plotrows,if(nvariables%%plotrows==0) nvariables/plotrows else floor(nvariables/plotrows)+1 ))   # %% gibt Rest wieder
+
     dens <- densx <- densy <- list()
     for(i in 1:ncol(data)) {
       for(j in grp) {
@@ -422,14 +429,14 @@ density.overlap.multi <- function(data,grouping=NULL,bw="nrd0",na.rm=TRUE,cols=N
         dens[[j]] <- de
         densx[[j]] <- de$x
         densy[[j]] <- de$y
-      } 
-      
+      }
+
       xlim <- ylim <- numeric()
       xlim[1] <- min(calldensx <- do.call("c",densx))
       xlim[2] <- max(calldensx)
       ylim[1] <- min(calldensy <- do.call("c",densy))
       ylim[2] <- max(calldensy)
-      
+
       plot(dens[[grp[1]]],xlim=xlim,ylim=ylim,col=cols[grp[1]],xlab=xlab[i],main=mains[i], ...)#,main="Dens. Plot",xlab="Efficiency");
       for(j in grp[2:length(grp)]) lines(dens[[j]],col=cols[j], ...)
       if(legends & length(grp)>1) legend("topright", legend=grp, col=cols[1:length(grp)], lty=1, bty="n", ...)
@@ -465,7 +472,7 @@ color.gradient <- function(x, colors=c("red","yellow","green"), colsteps=100) {
   # If length(unique(x)) is relatively small (<15) it is done in a computation intensive matter in order to to achieve better results.
   # Else it is done with findInterval() which is much faster.
   # Example found in the internet: browseURL("http://stackoverflow.com/questions/18827214/one-colour-gradient-according-to-value-in-column-scatterplot-in-r")
-  
+
   return( colorRampPalette(colors) (colsteps) [ findInterval(x, seq(min(x),max(x), length.out=colsteps)) ] )
 }
 
@@ -473,10 +480,10 @@ color.gradient <- function(x, colors=c("red","yellow","green"), colsteps=100) {
 
 slash <- function(reverse=FALSE){
   # This function changes \ to / in paths (or vice versa if reverse=TRUE)
-  
+
   cb <- suppressWarnings(readLines("clipboard"))
   if(!any(grepl("\\\\",cb)) && grepl("/",cb)) reverse <- TRUE
-  
+
   if(!reverse){
     txt <- gsub("\\\\","/",cb)
   } else {
@@ -498,13 +505,13 @@ recover.R.installation <- function(){
   load(paste0(Sys.getenv("TMP"),"/R_Migration_Package_List.Rdata"))
   install.packages(pkg_list)
   cat("Packages installed!\n")
-  
-  #txt <- scan(paste0(R.home("etc"),"/Rprofile.site"), what=character())  
+
+  #txt <- scan(paste0(R.home("etc"),"/Rprofile.site"), what=character())
   if(file.exists("C:/Users/U80823148")){
   txt <- readLines(paste0(R.home("etc"),"/Rprofile.site"))
   txt <- txt[txt!=""]
-  addtxt <- "fortunes::fortune(); source('//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/R/func.R')"
-    if(txt[length(txt)]!=addtxt){ 
+  addtxt <- "fortunes::fortune(); source('//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/R/func.R')"
+    if(txt[length(txt)]!=addtxt){
       write.table(c(txt,addtxt), paste0(R.home("etc"),"/Rprofile.site"), quote=FALSE, col.names=FALSE, row.names=FALSE, append=TRUE)
       cat("Rprofile.site updated!\n")
     } else {
@@ -513,7 +520,7 @@ recover.R.installation <- function(){
   } else {
     cat("Rprofile.site *NOT* updated because not Daniel's computer!\n")
   }
-  
+
   cat(paste0("Information: If you use RStudio and encounter a warning message like\n***\nIn dir.create(tempPath, recursive = TRUE) :\ncannot create dir '\\\\evdad.admin.ch\\AGROSCOPE_OS', reason 'Permission denied'\n***",
                  "\nat every start of RStudio then you must edit the file  .../RStudio/R/modules/SessionProfiler.R  and delete delete the according line."))
 }
@@ -539,38 +546,38 @@ require.package <- function(...){
 }
 
 vergleichslohn <- function(region=NULL, jahr=NULL){
-  
+
   # This function returns a matrix containing the Vergleichsloehne for the ZA. Optionally, regions and years can be chosen.
   # The following code is for import of data.
   #t1 <- read.cb("col")
   #colnames(t1) <- substr.rev(colnames(t1),1,4)
   #t1 <- as.matrix(t1)
   #dput(t1)
-  
-  vgl <- structure(c(42301.656, 38300.148, 35066.52, 43789.056, 39646.848, 
-                     36299.52, 44800.488, 40562.604, 37137.96, 46406.88, 42017.04, 
-                     38469.6, 48132.264, 43579.212, 39899.88, 50988.072, 46164.876, 
-                     42267.24, 54498.336, 49343.088, 45177.12, 57116.16, 51713.28, 
-                     47347.2, 58663.056, 53113.848, 48629.52, 59496, 53868, 49320, 
-                     60269.448, 54568.284, 49961.16, 61320, 56328, 51996, 61626.6, 
-                     56609.64, 52255.98, 62055.84, 57003.936, 52619.952, 62864.028, 
-                     56749.74, 53090.796, 63678.816, 57485.28, 53778.912, 65854.2, 
-                     60885, 55128.6, 67010.664, 61954.2, 56096.712, 67629.744, 62434.008, 
-                     56934.072, 68230.008, 62988.156, 57439.404, 68938.56, 63084.6, 
-                     58188.12, 69689.376, 63771.66, 58821.852, 71091.552, 64520.064, 
-                     60204.096, 72560.964, 65853.648, 61448.472, 73279.212, 66993.936, 
-                     62387.184, 73853.388, 67518.864, 62876.016, 74198.64, 66963, 
-                     62587.68, 74786.352, 67493.4, 63083.424, 73712.4, 69108.396, 
+
+  vgl <- structure(c(42301.656, 38300.148, 35066.52, 43789.056, 39646.848,
+                     36299.52, 44800.488, 40562.604, 37137.96, 46406.88, 42017.04,
+                     38469.6, 48132.264, 43579.212, 39899.88, 50988.072, 46164.876,
+                     42267.24, 54498.336, 49343.088, 45177.12, 57116.16, 51713.28,
+                     47347.2, 58663.056, 53113.848, 48629.52, 59496, 53868, 49320,
+                     60269.448, 54568.284, 49961.16, 61320, 56328, 51996, 61626.6,
+                     56609.64, 52255.98, 62055.84, 57003.936, 52619.952, 62864.028,
+                     56749.74, 53090.796, 63678.816, 57485.28, 53778.912, 65854.2,
+                     60885, 55128.6, 67010.664, 61954.2, 56096.712, 67629.744, 62434.008,
+                     56934.072, 68230.008, 62988.156, 57439.404, 68938.56, 63084.6,
+                     58188.12, 69689.376, 63771.66, 58821.852, 71091.552, 64520.064,
+                     60204.096, 72560.964, 65853.648, 61448.472, 73279.212, 66993.936,
+                     62387.184, 73853.388, 67518.864, 62876.016, 74198.64, 66963,
+                     62587.68, 74786.352, 67493.4, 63083.424, 73712.4, 69108.396,
                      63839.772, 74298, 69657.42, 64346.94, 74010.864, 69035.04, 66239.904
-  ), .Dim = c(3L, 31L), .Dimnames = list(1:3, c("1985", "1986", 
-                                                 "1987", "1988", "1989", "1990", "1991", "1992", "1993", "1994", 
-                                                 "1995", "1996", "1997", "1998", "1999", "2000", "2001", "2002", 
-                                                 "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", 
+  ), .Dim = c(3L, 31L), .Dimnames = list(1:3, c("1985", "1986",
+                                                 "1987", "1988", "1989", "1990", "1991", "1992", "1993", "1994",
+                                                 "1995", "1996", "1997", "1998", "1999", "2000", "2001", "2002",
+                                                 "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010",
                                                  "2011", "2012", "2013", "2014", "2015")))
   if(is.null(region)) region <- 1:nrow(vgl)
   if(is.null(jahr)) jahr <- 1:ncol(vgl)
   if(min(jahr)>1000) jahr <- as.character(jahr)
-  
+
   return(vgl[region,jahr])
 }
 
@@ -581,14 +588,14 @@ vergleichszins <- function(jahr=NULL){
   #colnames(t1) <- substr.rev(colnames(t1),1,4)
   #t1 <- as.matrix(t1)
   #dput(t1)
-  
-  vgl <- structure(c(4.53, 4.71, 4.24, 4.04, 4, 5.13, 6.4, 6.23, 6.42, 
-                     4.58, 4.93, 4.57, 4, 3.4, 2.81, 3.02, 3.95, 3.36, 3.22, 2.63, 
+
+  vgl <- structure(c(4.53, 4.71, 4.24, 4.04, 4, 5.13, 6.4, 6.23, 6.42,
+                     4.58, 4.93, 4.57, 4, 3.4, 2.81, 3.02, 3.95, 3.36, 3.22, 2.63,
                      2.73, 2.11, 2.5, 2.91, 2.93, 2.22, 1.65, 1.48, 0.66, 0.94, 0.73, 0
-  ), .Dim = c(1L, 32L), .Dimnames = list(NULL, c("1984", "1985", 
-                                                 "1986", "1987", "1988", "1989", "1990", "1991", "1992", "1993", 
-                                                 "1994", "1995", "1996", "1997", "1998", "1999", "2000", "2001", 
-                                                 "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", 
+  ), .Dim = c(1L, 32L), .Dimnames = list(NULL, c("1984", "1985",
+                                                 "1986", "1987", "1988", "1989", "1990", "1991", "1992", "1993",
+                                                 "1994", "1995", "1996", "1997", "1998", "1999", "2000", "2001",
+                                                 "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009",
                                                  "2010", "2011", "2012", "2013", "2014","2015")))
   if(is.null(jahr)) jahr <- 1:ncol(vgl)
   return(vgl[,jahr,drop=FALSE])
@@ -660,8 +667,8 @@ na0 <- function(x){
 
 
 
-#### Funktionen, mit denen einfach die Tabellennr. Spaltennr. Zeilennr. etc. aus den Spaltenüberschriften des Merkmals
-#### Katalogs rausgelesen werden können.
+#### Funktionen, mit denen einfach die Tabellennr. Spaltennr. Zeilennr. etc. aus den Spalten?berschriften des Merkmals
+#### Katalogs rausgelesen werden k?nnen.
 
 # REFERENZBETRIEBE
 MKtab <- function(string) {if(is.null(dim(string))) substr(string,1,4) else substr(colnames(string),1,4)}
@@ -745,7 +752,7 @@ try <- function(...) {
 rm.gc.keep <- function(keep){
   # This function removes and garbage collects all objects in the current environment (can also be within a function)
   # Except for the variables defined in keep (charcter vector).
-  
+
   rm1 <- ls(envir=parent.frame())
   rm1 <- rm1[!rm1%in%keep]
   rm(list=rm1, envir=parent.frame())
@@ -761,17 +768,17 @@ c.dimnames <- function(array, sep.sign="_"){
   # This function brings the dimnames of an array into the array itself
   # Example
   # , , x
-  #   a       b       c      
+  #   a       b       c
   # 1 "1_a_x" "1_b_x" "1_c_x"
   # 2 "2_a_x" "2_b_x" "2_c_x"
   # 3 "3_a_x" "3_b_x" "3_c_x"
-  
+
   if(is.null(dim(array))) stop("Input has to be an array, not vector.")
-  
+
   dn1 <- dimnames(array)
   dn1.1 <- dn1[[1]]; if(is.null(dn1.1)) dn1.1 <- rep("",dim(array)[[1]])
   dn1.2 <- dn1[[2]]; if(is.null(dn1.2)) dn1.2 <- rep("",dim(array)[[2]])
-  
+
   res0 <- paste( rep(dn1.1, length(dn1.2)) , rep(dn1.2, each=length(dn1.1)) , sep=sep.sign)
   if(length(dn1)>2){
     for(i in 3:length(dn1)){
@@ -792,7 +799,7 @@ dimnames.to.mat <- function(x, dims=c("rowcol","row","col")){
   # Arguments
   # x     = The matrix into which the dimnames should be integrated.
   # dims  = Which dimnames should be integrated? row&colnames? only rownames? only colnames?
-  
+
   dims <- match.arg(dims)
   #if(is.null(dim(x))) x <- as.matrix(x)
   x <- as.matrix(x)
@@ -816,11 +823,11 @@ merge.matrices <- function(..., fill="", nbreak=0, aligned=c("left","right"), in
   # nbreak gibt an, wie viele Zeilen zwischen zwei Ursprungs-Matrizen eingefuegt werden.
   # Mit integrate.dimnames kann man die dimnames in die End-Matrix integrieren, was mittels dimnames.to.mat() geschieht.
   # func: Funktion mit welcher die Matrizen zuammengefuehrt werden sollen.
-  
+
   func <- match.arg(func)
   aligned <- match.arg(aligned)
   integrate.dimnames <- match.arg(integrate.dimnames)
-  
+
   li <- list(...)
   li <- lapply(li,function(x){
     if(is.null(x)) x <- fill
@@ -828,9 +835,9 @@ merge.matrices <- function(..., fill="", nbreak=0, aligned=c("left","right"), in
   })
   if(integrate.dimnames!="no") li <- lapply(li, function(x) dimnames.to.mat(x, dims=integrate.dimnames))
   ncolmax <- max(unlist(lapply(li,function(x) ncol(x) )))
-  
+
   tryCatch(
-    res <- do.call("rbind", 
+    res <- do.call("rbind",
                    lapply( li,function(x) {
                      if(ncol(x)<ncolmax) {
                        if(aligned=="left") {
@@ -865,41 +872,41 @@ dim3.to.mat <- function(x, sep.line=TRUE, sep.sign=NA, keep.colnames=TRUE, keep.
   # sep.sign = The sign to separate the sub-matrices (character)
   # keep.colnames = Should the colnames be written into the result matrix as pseudo colnames above each sub-matrix? (logical)
   # keep.dim3names = Should the dimnames of the 3rd dimension be written into the rownames of the result matrix? (logical)
-  
+
   if(length(dim(x))!=3) stop("x must be an array with 3 dimensions.")
-  
+
   di <- dim(x)
   cnx <- colnames(x)
   ncx <- ncol(x)
-  
+
   if(keep.dim3names & !keep.colnames) sep.line <- TRUE
   if(is.null(colnames(x))) keep.colnames <- FALSE
   if(is.null(rownames(x))) rownames(x) <- 1:nrow(x)
   if(is.null(dimnames(x)[[3]]) & keep.dim3names) dimnames(x)[[3]] <- 1:dim(x)[3]
-  
+
   # Transform colnames to numeric if there are no letters. If there were letters, it would result in a warning "NAs introduced by coercion"
   if( !is( tryCatch(as.numeric(cnx),error=function(e)e,warning=function(w)w), "warning") ) cnx <- as.numeric(cnx)
-  
+
   res <- NULL
   for(i in 1:dim(x)[3]){
     res <- rbind( res, if(sep.line)rep(sep.sign ,ncx), if(keep.colnames)cnx,  x[,,i])
   }
   if(sep.line & !(keep.dim3names&!keep.colnames)) res <- res[-1,]
-  
+
   if(keep.dim3names){
     if(!sep.line &  keep.colnames) places <- seq(1, nrow(res), 1+dim(x)[1])
     if( sep.line &  keep.colnames) places <- seq(1, nrow(res), 2+dim(x)[1])
     if( sep.line & !keep.colnames) places <- seq(1, nrow(res), 1+dim(x)[1])
     rownames(res)[places] <- dimnames(x)[[3]]
   }
-  
+
   return(res)
 }
 
 rep.1b1 <- function(vector,times){
   if(length(times)==1) {
     return(rep(vector,each=times))
-    #return(as.vector(   apply(matrix(vector,ncol=1),1,function(x)rep(x,times))   )) 
+    #return(as.vector(   apply(matrix(vector,ncol=1),1,function(x)rep(x,times))   ))
   } else {
     if(length(vector)!=length(times)) stop("If length(times)>1 then condition length(vector)==length(times) must hold.")
     return(rep(vector,times))
@@ -942,31 +949,31 @@ if(FALSE) rep.rows.1b1_OLD_DELETE <- function(x, times) {
 c.1b1 <- function(..., add.names=c("char","num","obj.names","own.names","none"), own.names=NULL, names.at.front=FALSE, sep.sign="_") {
   # This function concenates given vectors ... element by element
   # See function description of rbind.1b1 for further information on arguments
-  
+
   # a <- 1:10
   # names(a) <- LETTERS[1:10]
   # b <- c <- a
   # dat <- list(a,b,c)
   # c.1b1(a,b,c,add.names=c("char","num","obj.names","own.names","none")[5],own.names=c("x","y","z"),names.at.front=TRUE,sep.sign="_")
-  
+
   add.names <- match.arg(add.names)
-  
+
   # Create List and delete NULL elements.
   dat <- list(...)
   dat <- dat[ sapply(dat,function(x)!is.null(x)) ]
-  
+
   # Test if all length is the same for all arguments.
   n.arg <- length(dat)
   length.arg.logical <- logical()
   for(i in 1:n.arg) length.arg.logical[[i]] <- length(dat[[1]]) != length(dat[[i]])
   if(any(length.arg.logical)) stop("length of all arguments must be equal!")
   length.dat <- length(dat[[1]])
-  
+
   # Concenate in the wrong order
   res <- do.call("c", dat)
   # Now order correctly
   res <- res [order(rep(1:length.dat, n.arg))]
-  
+
   if(add.names=="char") {
     if(!names.at.front) names(res) <- paste0(names(res), sep.sign, rep(letters[1:n.arg],length.dat))
     if( names.at.front) names(res) <- paste0(rep(letters[1:n.arg],length.dat), sep.sign, names(res))
@@ -996,32 +1003,32 @@ rbind.1b1 <- function(..., add.names=c("char","num","obj.names","own.names","non
   # sep.sign separates the original rownames from the add.names-endings
   # if add.names="own.names" then own.names must be given.
   # cbind is only used for the cbind.1b1 function (below) which is some kind of wrapper function for rbind.1b1
-  
+
   #a <- b <- c <- matrix(1:100,nrow=10,dimnames=list(letters[1:10],letters[11:20]) )
   #dat <- list(a,b,c)
   #add.names <- c("char","num","obj.names","own.names","none")[5]; sep.sign="_"; own.names <- c("x","y","z")
   #rbind.1b1(a,b,c,add.names=c("char","num","obj.names","own.names","none")[5],own.names=own.names,names.at.front=TRUE)
   #cbind.1b1(a,b,c,add.names=c("char","num","obj.names","own.names","none")[5],own.names=own.names,names.at.front=TRUE)
-  
+
   add.names <- match.arg(add.names)
   # Create List and delete NULL elements.
   dat <- list(...)
   dat <- dat[ sapply(dat,function(x)!is.null(x)) ]
   if(cbind) dat <- lapply(dat,function(x)t(x))
-  
+
   # Test if all nrow is the same for all arguments.
   n.arg <- length(dat)
   nrow.arg.logical <- logical()
   for(i in 1:n.arg) nrow.arg.logical[[i]] <- nrow(dat[[1]]) != nrow(dat[[i]])
   if(any(nrow.arg.logical)) stop("nrow of all arguments must be equal!")
   nrow.dat <- nrow(dat[[1]])
-  
+
   # Test if all ncol is the same for all arguments.
   ncol.arg.logical <- logical()
   for(i in 1:n.arg) ncol.arg.logical[[i]] <- ncol(dat[[1]]) != ncol(dat[[i]])
   if(any(ncol.arg.logical)) stop("ncol of all arguments must be equal!")
   ncol.dat <- ncol(dat[[1]])
-  
+
   # Bind the rows with wrong order
   res <- do.call("rbind", dat)
   # Now order correctly
@@ -1029,7 +1036,7 @@ rbind.1b1 <- function(..., add.names=c("char","num","obj.names","own.names","non
   # Get original rownames and order correctly.
   rn_res <- unlist(lapply(dat, function(x)rownames(x)))
   rn_res <- rn_res[order(rep(1:nrow.dat, n.arg))]
-  
+
   if(add.names=="char") {
     if(!names.at.front) rownames(res) <- paste0(rn_res, sep.sign, rep(letters[1:n.arg],nrow.dat))
     if( names.at.front) rownames(res) <- paste0(rep(letters[1:n.arg],nrow.dat), sep.sign, rn_res)
@@ -1077,7 +1084,7 @@ insert <- function(what, inobject, where, how=c("c","list","rbind","cbind")){
   how <- match.arg(how)
   where <- rev(sort(where))
   if(is.list(inobject) & !is.data.frame(inobject)) how <- "list" else if(is.null(dim(inobject))) how <- "c"
-  if(how=="c") { 
+  if(how=="c") {
     for(ii in 1:length(where)){
       if(where[[ii]]==1) {
         inobject <- c(what, inobject[1:length(inobject)]      )
@@ -1088,7 +1095,7 @@ insert <- function(what, inobject, where, how=c("c","list","rbind","cbind")){
       }
     }
     return(inobject)
-    
+
   } else if(how=="list") {
     for(ii in 1:length(where)) {
       newlist <- list()
@@ -1102,7 +1109,7 @@ insert <- function(what, inobject, where, how=c("c","list","rbind","cbind")){
         for(i in 1:length(inobject)) newlist[[i+1]] <- inobject[[i]]
         #  }
         inobject <- newlist
-        
+
         #} else if(where[[ii]]==length(inobject)){
         #newlist <- inobject
         ##if(is.list(what)) {
@@ -1111,7 +1118,7 @@ insert <- function(what, inobject, where, how=c("c","list","rbind","cbind")){
         #newlist[[length(inobject)+1]] <- what
         ##}
         #inobject <- newlist
-        
+
       } else {
         for(i in 1:(where[ii]-1)) newlist[[i]] <- inobject[[i]]
         #if(is.list(what)){
@@ -1125,7 +1132,7 @@ insert <- function(what, inobject, where, how=c("c","list","rbind","cbind")){
       }
     }
     return(newlist)
-    
+
   } else if(how=="rbind") {
     for(ii in 1:length(where)){
       if(where[[ii]]==1) {
@@ -1139,7 +1146,7 @@ insert <- function(what, inobject, where, how=c("c","list","rbind","cbind")){
       }
     }
     return(inobject)
-    
+
   } else if(how=="cbind") {
     for(ii in 1:length(where)){
       if(where[[ii]]==1) {
@@ -1153,7 +1160,7 @@ insert <- function(what, inobject, where, how=c("c","list","rbind","cbind")){
       }
     }
     return(inobject)
-    
+
   }
 }
 
@@ -1164,7 +1171,7 @@ trim <- function(x, probs=c(0.025,0.975)) {
   # Arguments:
   # x     = vector of values
   # probs = probabilities to exclude extreme values using the quantlie() function. Both quantile probabilities are included like: prob1[1] <= x <= probs[2]
-  
+
   if(length(probs)!=2) stop("probs must be a vector of length 2")
   q1 <- quantile(x, sort(probs), na.rm=TRUE)
   return(x[ which(x>=q1[1] & x<=q1[2]) ]) # Use which to exclude NA values.
@@ -1172,15 +1179,15 @@ trim <- function(x, probs=c(0.025,0.975)) {
 
 summarysd <- function(x,na.rm=TRUE,digits=2,...) {
   if(is.null(x)) {
-    result <- rep(NA,7);  names(result) <- c("Min.", "1st Qu.","Media","Mean","3rd Qu.","Max.","SD") 
+    result <- rep(NA,7);  names(result) <- c("Min.", "1st Qu.","Media","Mean","3rd Qu.","Max.","SD")
     return(result)
   } else if(length(x)==0) {
     result <- rep(NA,7)
-    names(result) <- c("Min.", "1st Qu.","Media","Mean","3rd Qu.","Max.","SD") 
+    names(result) <- c("Min.", "1st Qu.","Media","Mean","3rd Qu.","Max.","SD")
     return(result)
   } else if(all(is.na(x))) {
     result <- rep(NA,7)
-    names(result) <- c("Min.", "1st Qu.","Media","Mean","3rd Qu.","Max.","SD") 
+    names(result) <- c("Min.", "1st Qu.","Media","Mean","3rd Qu.","Max.","SD")
     return(result)
   } else {
     return(round(c(summary(x,na.rm=na.rm,...),"SD"=sd(x,na.rm=na.rm,...))),digits=digits)
@@ -1217,7 +1224,7 @@ if(FALSE){
   #data <- as.data.frame(data)
   colnames(data) <- c("asbasdf","asdfgawer")
   data <- data.frame(asbasdf=1:1000, asdfgawer=100:1099, rep("a", 1000))
-  
+
   weights <- rnorm(1000,1,0); weights[weights<0] <- 0
   index <- list(sample(c(1,2),1000,replace=TRUE))
   #index <- list(sample(c(1,2),1000,replace=TRUE), sample(c(3,4),1000,replace=TRUE))
@@ -1238,9 +1245,9 @@ summary.long <- function(x,quant=10,digits=2,na.rm=TRUE,margin=2,reverse=FALSE,.
     if(is.data.frame(x)) return( as.data.frame( lapply(x,function(x)summary.long(x,quant=quant,digits=digits,na.rm=na.rm,margin=2,reverse=TRUE, ...)) ,stringsAsFactors=FALSE) )
   }
   if(is.list(x)) return(lapply(x,function(x)summary.long(x,quant=quant,digits=digits,na.rm=na.rm,margin=2,reverse=TRUE, ...)))
-  
+
   if(!is.numeric(x)) x <- rep(0, length(quant+1))
-  
+
   result <- numeric()
   quants <- seq(0,1,length.out=quant+1)
   if(reverse) quants <- rev(quants)
@@ -1252,15 +1259,15 @@ summary.long <- function(x,quant=10,digits=2,na.rm=TRUE,margin=2,reverse=FALSE,.
 summary.quart <- function(x,digits=2,na.rm=TRUE,margin=2,reverse=FALSE,...){
   # Gives a specified summary with Quantiles: Min., 5%, 25%, Median, Mean, 75%, 95%, Max
   # margin is only used when a dataframe/matrix is given. Then apply() is used.
-  
+
   if(!is.null(dim(x))) {
     if(is.matrix(x))     return( apply(x,2,function(x)summary.quart(x,digits=digits,na.rm=na.rm,margin=margin,reverse=TRUE,...))  )
     if(is.data.frame(x)) return( as.data.frame( lapply(x,function(x)summary.quart(x,digits=digits,na.rm=na.rm,margin=margin,reverse=TRUE,...)) ,stringsAsFactors=FALSE) )
   }
   if(is.list(x)) return(lapply(x,function(x)summary.quart(x,digits=digits,na.rm=na.rm,margin=margin,reverse=TRUE,...)))
-  
+
   if(!is.numeric(x)) x <- rep(0, length(quant+1))
-  
+
   result <- numeric()
 
   probs <- c(0, 0.05, 0.25, 0.5, 0.75, 0.95, 1)
@@ -1268,9 +1275,9 @@ summary.quart <- function(x,digits=2,na.rm=TRUE,margin=2,reverse=FALSE,...){
   result <- c(result[1:4], "Mean"=mean(x, na.rm=na.rm), result[5:7])
   names(result) <- c("Min.","5%","25%","Median","Mean","75%","95%","Max.")
   #names(result) <- paste0(round(100*probs,digits=2), "%")
-  
+
   if(reverse) result <- rev(result)
-  
+
   return(result)
 }
 
@@ -1282,23 +1289,23 @@ if(FALSE){
   data[,"Variable_1_pro_Variable_2"] <- data[,"Variable_1"]/ data[,"Variable_2"]
   na.rm=TRUE; digits=2
   weights <- rnorm(1000,40,20); weights[weights<0] <- 0
-  
+
   # Rechnung mit keinem Index
   index <- NULL
   mean.weight(data,weights,index)
-  
+
   # Rechnung mit 1-Dimensionalem Index (koennte z.B. das Jahr sein)
   index <- list(sample(c(2012,2013),1000,replace=TRUE))
   mean.weight(data,weights,index)
-  
+
   # Rechnung mit 2-Dimensionalem Index z.B. Jahr x Region
   index <- list(sample(c("1_Tal","2_Huegel","3_Berg"),1000,replace=TRUE), sample(c(2012,2013),1000,replace=TRUE))
   mean.weight(data,weights,index)
-  
+
   # Rechnung ohne Index
   index <- NULL
   mean.weight(data,weights,index)
-  
+
   gb <- load.gb()
   gb[,c("I((LE-eigenZinsanspruch)/JAE_FamAK)","I(LE/LN)","_",".")] <- 0
   mean.weight(data=gb[,c("I((LE-eigenZinsanspruch)/JAE_FamAK)","I((LE-eigenZinsanspruch)/JAE_FamAK)","I(LE/LN)","LE","LN","eigenZinsanspruch","JAE_FamAK","_",".","I(LE/LN)")],
@@ -1319,7 +1326,7 @@ if(FALSE) slapply <- function(X, MARGIN=2, FUN, ...){
 
 mean.weight <- function(data, weights=NULL, index=NULL, calc.sum=FALSE, digits=NULL, na.rm=TRUE, edit.I.colnames=TRUE, del.I.help.columns=FALSE, I.help.columns=NULL){
   # This function calculates the weighted mean of all variables in a possibly indexed data.frame or matrix.
-  
+
   # Arguments
   # data = data of which the weighted means should be calculated. Can be data.frame, matrix or vector
   #        If any colname of data contains an expression like I(Var_A/Var_B), then the the "weighted mean of the ratio" is calculated.
@@ -1331,7 +1338,7 @@ mean.weight <- function(data, weights=NULL, index=NULL, calc.sum=FALSE, digits=N
   # digits = digits for rounding the results
   # na.rm = na action
   # edit.I.colnames = Should the colnames containing expressions with I() be edited, such that I() won't be there anymore? TRUE/FALSE
-  
+
   # Wenn innerhalb eines Indexes mehrere Indexe als Listen abgelegt sind, wird die Berechnung fuer alle Indexe gemacht.
   #if(is.list(index)){
   #  if(any(sapply(index,function(x)is.list(x)))){
@@ -1339,7 +1346,7 @@ mean.weight <- function(data, weights=NULL, index=NULL, calc.sum=FALSE, digits=N
   #  }
   #}
   if(!is.list(index)) index <- list(index)
-  
+
   # Im Falle, dass !is.null(dim(data)) folgt eine rekursive Funktionsdefinition!
   if(!is.null(dim(data))) {
     # Wenn !is.null(dim(data))
@@ -1355,7 +1362,7 @@ mean.weight <- function(data, weights=NULL, index=NULL, calc.sum=FALSE, digits=N
       #if(nrow(result)==1) rownames(result) <- NULL
       # Wieder die alten Colnames vergeben
       colnames(result) <- colnames(data)
-      
+
       # Falls eine Expression mit I() in einem der colnames ist, werden diese Kennzahlen neu berechnet.
       # Konkret wird statt "weighted mean of ratio" das "ratio of weighted means" berechnet.
       cn.res <- cn.res.orig <- colnames(result)
@@ -1365,30 +1372,30 @@ mean.weight <- function(data, weights=NULL, index=NULL, calc.sum=FALSE, digits=N
         # Wert der I() columns berechnen
         result <- calc.I.cols(result, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns)
       }
-      
+
       # Resultat ausgeben.
       if(nrow(result)==1) rownames(result) <- NULL
       return(result)
-      
-      
+
+
       # Wenn !is.null(dim(data))
       # & 2 Indexe eingegeben wurden:
     } else if(length(index)==2) {
       res1 <- mean.weight(data=data[,1], weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm)
-      
+
       # Hier keine Fallunterscheidung zwischen matrix und data.frame einfuegen, sonst funktioniert es nicht!!
       res.prov <- apply(data, 2, function(x) mean.weight(data=x, weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm) )
       if(class(res.prov)!="matrix") res.prov <- t(as.matrix(res.prov))
-      
+
       res.list <- list()
       su.index1 <- sort(unique(index[[1]]))
-      su.index2 <- sort(unique(index[[2]]))                  
+      su.index2 <- sort(unique(index[[2]]))
       for(i in 1:ncol(res.prov)){
         res.list[[i]] <- matrix(res.prov[,i],nrow=length(su.index1), ncol=length(su.index2))
         dimnames(res.list[[i]]) <- list(su.index1, su.index2)
       }
       names(res.list) <- colnames(data)
-      
+
       # Falls eine Expression mit I() in einem der colnames ist, werden diese Kennzahlen neu berechnet.
       # Konkret wird statt "weighted mean of ratio" das "ratio of weighted means" berechnet.
       cn.res <- names(res.list)
@@ -1399,20 +1406,20 @@ mean.weight <- function(data, weights=NULL, index=NULL, calc.sum=FALSE, digits=N
         res.list <- calc.I.cols(res.list, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns)
       }
       return(res.list)
-      
+
     } else if(length(index)>2) {
       stop("more than 2 indexes not possible if data is a matrix/data.frame. Please enter data as vector.")
     }
   }
-  
-  
+
+
   # TatsÃ¤chliche mean.weight() Funktion.
   # Falls es keine numerische Variable ist (weil z.B. ein durchmischter data.frame eingegeben wird),
   # wird daraus eine 0 gemacht, damit die Funktion trotzdem funktioniert.
   if(! (is.numeric(data)||is.logical(data)) ) data <- rep(0, length(data))
-  
+
   if(is.null(weights)) weights <- rep(1,length(data))
-  
+
   # Falls kein index gegeben wurde, einfache Berechnung (mit weighted.mean)
   if( is.null(index) | is.null(index[[1]]) ){
     if(calc.sum){
@@ -1420,7 +1427,7 @@ mean.weight <- function(data, weights=NULL, index=NULL, calc.sum=FALSE, digits=N
     } else {
       result <- weighted.mean(data,weights, na.rm=na.rm)
     }
-    
+
     # Sonst muss mit index und tapply() gerechnet werden.
   } else {
     index <- lapply(index, function(x)if(length(x)==1) return(rep(x,length(weights))) else return(x))
@@ -1428,11 +1435,11 @@ mean.weight <- function(data, weights=NULL, index=NULL, calc.sum=FALSE, digits=N
     if(any(length.index!=length.index[1])) stop("All vectors in the index have to have the same length!")
     #print(length(weights)); print(length.index)
     if(!all(length(weights)==length.index)) stop("length(weights)!=length(index)")
-    
+
     # NA Werte in weights uebertragen. Muss so sein, nicht mit na.rm innerhalb der Funktionen, da sonst data und weights evtl. nicht korrespondieren!!
     dataweights <- data*weights
     weights[is.na(dataweights)] <- NA
-    
+
     if(calc.sum){
       # Resultat = Summe ( Werte * Gewichte )
       result <-  tapply(dataweights,index,  sum,na.rm=na.rm)
@@ -1440,9 +1447,9 @@ mean.weight <- function(data, weights=NULL, index=NULL, calc.sum=FALSE, digits=N
       # Resultat = Summe ( Werte * Gewichte )                             / Summe( Gewichte )
       result <-  tapply(dataweights,index,  sum,na.rm=na.rm) / tapply(weights,index,  sum,na.rm=na.rm)
     }
-    
+
   }
-  
+
   # Falls gewuenscht, runden, dann Ergebnis ausgeben.
   if(!is.null(digits)) result <- round(result, digits)
   return(result)
@@ -1470,16 +1477,16 @@ create.cols <- function(data, cols, non.I.value=NA_integer_){
   # data         data.frame to which columns should be added
   # cols         all new colums that should be created in data.frame. Can also be without I().
   # non.I.value  The value that is filled into columns that don't have colnames I().
-  
+
   # Create new columns
   cols_new <- cols[!cols%in%colnames(data)]
   data[,cols_new] <- non.I.value
-  
+
   # Calculate the value of the new columns with I()
   if(any(substr(cols,1,2)=="I(")){
     data <- calc.I.cols(data)
   }
-  
+
   # Return result
   return(data)
 }
@@ -1495,19 +1502,19 @@ calc.I.cols <- function(data, edit.I.colnames=FALSE, del.I.help.columns=FALSE, I
   # data               matrix/data.frame/list. Columns to be calculated must have names like I(a+b), I(a/b). Only "a+b" does not work.
   # edit.I.colnames    Should the brackets I() in the colnames be removed after the calculations?
   # del.I.help.colums  If e.g. I(a+b) is calculated. Should the columns "a" and "b" be removed after the calculation because they are of no interest?
-  # I.help.columns     If del.I.help.colums=TRUE: The list of the columns to be deleted can be specified. 
+  # I.help.columns     If del.I.help.colums=TRUE: The list of the columns to be deleted can be specified.
   #                    Otherwise the help columns are dectected automatically.
-  
+
   ismat <- is.matrix(data)
   if(ismat) data <- as.data.frame(data)
-  
+
   i_cols <- names(data)
   i_cols <- i_cols[substr(i_cols,1,2)=="I(" & substr.rev(i_cols,1,1)==")"]
   for(i in 1:length(i_cols)){
     data[[i_cols[i]]] <- with(data, eval(parse(text=i_cols[i])) )
   }
-  
-  
+
+
   if(del.I.help.columns){
     i_cols <- substr(names(data),1,2)=="I(" & substr.rev(names(data),1,1)==")"
     if(!is.null(I.help.columns)){
@@ -1523,7 +1530,7 @@ calc.I.cols <- function(data, edit.I.colnames=FALSE, del.I.help.columns=FALSE, I
     names(data)[which(i_cols)] <- substr( names(data)[which(i_cols)], 3, nchar(names(data)[which(i_cols)])-1 )
     #names(data) <- rm.I.from.names(names(data))
   }
-  
+
   if(ismat) data <- as.matrix(data)
   return(data)
 }
@@ -1544,10 +1551,10 @@ quantile.weight <- function(x, weights=NULL, index=NULL, probs=0.5, na.rm=TRUE) 
   # x       = Vector of numbers of which quantiles should be calculated
   # weights = vector of weights
   # probs   = probabilities of quantiles
-  
+
   # Original function was cwhmisc::w.median. Alternative function with same result is reldist::wtd.quantile
   # Differents result calculated by these functions: Hmisc::wtd.quantile, matrixStats::weightedMedian (test with RefB, Jahr 2012, gb[,"ArbVerd_jeFJAE"])
-  
+
   # Recursive function definition if x is given as matrix, data.frame or list
   if(!is.null(dim(x))) {
     cn_x <- colnames(x)
@@ -1557,7 +1564,7 @@ quantile.weight <- function(x, weights=NULL, index=NULL, probs=0.5, na.rm=TRUE) 
     return(res)
   }
   if(is.list(x)) return( lapply(x,function(x)quantile.weight(x=x,weights=weights,index=index,probs=probs,na.rm=na.rm)) )
-  
+
   # Recursive function definition if index is given
   if(!is.null(index)){
     res <- by(cbind(x=x, weights=weights),index,function(x) quantile.weight(x[,"x"], x[,"weights"], probs=probs, na.rm=na.rm))
@@ -1565,16 +1572,16 @@ quantile.weight <- function(x, weights=NULL, index=NULL, probs=0.5, na.rm=TRUE) 
     if(length(res[[1]])>1) res <- do.call("rbind", res) else if(length(dim(res))==1) res <- c(res) else class(res) <- "array"
     return(res)
   }
-  
+
   if(is.null(weights)) weights <- rep(1, length(x))
   w <- weights
-  
+
   # Recursive function definition for more than 1 probs
   if(length(probs)>1){
     res <- apply(matrix(probs),1,function(probs)  quantile.weight(x=x, weights=w, probs=probs, na.rm=na.rm) )
     names(res) <- paste0(round(probs*100,2),"%")
     return(res)
-    
+
     # Now follows the actual function to calculate weighted means
   } else {
     if(na.rm) {
@@ -1585,9 +1592,9 @@ quantile.weight <- function(x, weights=NULL, index=NULL, probs=0.5, na.rm=TRUE) 
     w_not0 <- w!=0
     x <- x[w_not0]
     w <- w[w_not0]
-    
+
     if(length(x)==0) return(NA)
-    
+
     ind <- sort.list(x)
     x <- x[ind]
     w <- w[ind]
@@ -1623,7 +1630,7 @@ meansd <- function(x,na.rm=TRUE) {
 mean.geom <- function(x,na.rm=TRUE) {
   if(na.rm==TRUE) x <- x[!is.na(x)]
   result <- (prod(x))^(1/length(x))
-  # Wenn das Ergebnis zu gross wird (Inf) müssen die Anfangswerte erst verkleinert werten.
+  # Wenn das Ergebnis zu gross wird (Inf) m?ssen die Anfangswerte erst verkleinert werten.
   if(is.infinite(result)){
     for(i in seq(1,6,1)){
       result <- mean.geom(x=x*10^(-i),na.rm=na.rm)*10^(i)
@@ -1644,11 +1651,11 @@ meansd.geom <- function(x,na.rm=TRUE){
 ####
 # data <- tab_ch0; margin=1; front.back=1; method="sum"; name="Total"; digits=NULL; na.rm=FALSE
 add.means <- function(data, margin=c(1,2), front.back=c(1,2), method=c("arith","geom","sum","median"), name=NULL, digits=NULL, na.rm=FALSE, ...){
-  
+
   if(is.list(data) & !is.data.frame(data)) return(lapply(data, function(data)add.means(data=data, margin=margin, front.back=front.back, method=method, name=name, digits=digits, ...)))
-  
+
   if(na.rm) data[is.na(data)] <- 0
-  
+
   margin <- margin[1]
   front.back <- front.back[1]
   matrix.opposite <- matrix(c(1,2,2,1),ncol=2)
@@ -1670,7 +1677,7 @@ add.means <- function(data, margin=c(1,2), front.back=c(1,2), method=c("arith","
   }
   if(method=="arith") mean.func <- mean else if(method=="geom") mean.func <- mean.geom else if(method=="sum") mean.func <- sum else if(method=="median") mean.func <- median
   if(is.null(digits)) digits <- max(do.call("c",lapply(diag(data),function(x)n.decimals(x))))
-  
+
   if(margin==1) {
     bind.func <- cbind
     count.func <- ncol
@@ -1680,10 +1687,10 @@ add.means <- function(data, margin=c(1,2), front.back=c(1,2), method=c("arith","
   }
   means <- apply(data,margin,function(x)mean.func(x))
   means <- round(means,digits)
-  
+
   if(front.back==1) {
     res <- bind.func(means, data)
-    attributes(res)$dimnames[[margin.opposite]][1] <- name  
+    attributes(res)$dimnames[[margin.opposite]][1] <- name
   } else {
     res <- bind.func(data,means)
     attributes(res)$dimnames[[margin.opposite]][count.func(res)] <- name
@@ -1699,7 +1706,7 @@ gb.diffs <- function(x,cols=list(c("2013","2014")), # cols=list(c("2013","2014")
   # First, calculate weighted means with the function mean.weights()
   # Then use gb.diffs() to calculate the differences between years.
   if(is.list(x) & !is.data.frame(x)) return( lapply(x,function(x)gb.diffs(x=x, cols=cols, short.names=short.names, digits=digits)) )
-  
+
   allcols <- unlist(cols)
   if(any(!allcols%in%colnames(x))){
     stop(paste0("The following columns are not available in the data: ", paste0(allcols[!allcols%in%colnames(x)],collapse="  ")))
@@ -1733,10 +1740,10 @@ if(FALSE){
   INDEX <- list( c(rep(1,50), rep(2,20), rep(3,30)) ,
                  c(rep("a",30),rep("b",20), rep("c",50)),
                  c(rep("u",15),rep("v",60), rep("w",25)),
-                 c(rep("x",10),rep("y",25), rep("z",65))               
+                 c(rep("x",10),rep("y",25), rep("z",65))
   )
   vector.result=FALSE
-  
+
   X=round(runif(100,1,15));
   INDEX <- list( c(rep(1,50), rep(2,20), rep(3,30)) ,
                  c(rep("a",30),rep("b",20), rep("d",50)),
@@ -1745,7 +1752,7 @@ if(FALSE){
   FUN=function(x)mean(x); missing.value=NA
   names.result <- list(c(1,2,3),c("a","c","d"),c("u","v","w"))
   vector.result=FALSE
-  
+
   sep.sign="_"
   res <- t1apply.f1ixed(X, INDEX, FUN=function(x)mean(x), names.result=names.result, vector.result=vector.result)
   res
@@ -1766,10 +1773,10 @@ tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, vec
   # missing.value = Which value should be put into the resulting vector if there were no entries in INDEX?
   # sep.sign = The sign to separate the new vector index and names.result if INDEX is a list.
   # vector.result = Should the result be presentet in a vector (one dimension) or in a multidimensional array?
-  
+
   if(!is.null(dim(X))) stop("This function only works for vectors! dim(X) must be NULL!")
   if(length(INDEX)==1) vector.result=TRUE
-  
+
   # Falls names.result eine Liste ist, werden alle moeglichen Kombinationen der Listenplaetze
   # zusammengestelt und damit ein Vektor erstellt
   if(is.list(names.result) & vector.result){
@@ -1788,13 +1795,13 @@ tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, vec
       }
     }
   }
-  
+
   # Vorbereiten von INDEX und names.result
   # Wenn der Index eine Liste ist...
   if(is.list(INDEX)) {
     l.INDEX <- sapply(INDEX, function(x)length(x))
     if(any(l.INDEX!=l.INDEX[1])) stop(paste0("All indexes must have the same length! ", paste0(l.INDEX,collapse=" ") ))
-    
+
     # Wenn das Resultat 1 Dimension haben soll.
     if(vector.result){
       if(is.null(names.result)){
@@ -1815,7 +1822,7 @@ tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, vec
       }
       pasteown <- function(...) paste(..., sep=sep.sign)
       INDEX <- do.call(pasteown, INDEX)
-      
+
       # Wenn das Resultat mehrere Dimensionen haben soll.
     } else {
       if(is.null(names.result)){
@@ -1826,14 +1833,14 @@ tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, vec
   } else {
     if(is.null(names.result)) names.result <- sort(unique(INDEX))
   }
-  
-  
+
+
   # Resultate-Berechnung im Falle mehrdimensionaler Ergebnisstruktur.
   if(is.list(INDEX) & !vector.result){
     # Hier Ergebnis-Berechnung
     res0 <- tapply(X,INDEX,FUN)
     if(!is.na(missing.value)) res0[is.na(res0)] <- missing.value
-    
+
     nres0 <- unlist(dimnames(res0))
     nres1 <- unlist(names.result)
     # Warnung ausgeben, falls nicht alle Ergebnisse ausgegeben werden wegen zu kurzem names.result
@@ -1870,12 +1877,12 @@ tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, vec
     } else {
       return(res0)
     }
-    
+
     # Resultate-Berechnung im Falle von Vektor-Ergebnisstruktur
   } else{
     res0 <- tapply(X,INDEX,FUN)
     if(!is.na(missing.value)) res0[is.na(res0)] <- missing.value
-    
+
     # Warnung ausgeben, falls nicht alle Ergebnisse ausgegeben werden wegen zu kurzem names.result
     if(warn) if(any(!names(res0)%in%names.result))
       warning(paste0("For some entries in X no corresponding entries in names.result were given. The resulting array is incomplete!\n", paste(names(res0)[ !names(res0)%in%names.result ], collapse=" ") ))
@@ -1906,7 +1913,7 @@ table.fixed <- function(..., names.result=NULL, vector.result=FALSE, sep.sign="_
   # For information on the arguments see tapply.fixed()
   INDEX <- list(...)
   if(is.list(INDEX[[1]])) INDEX <- INDEX[[1]]
-  tapply.fixed(X=rep(1,length(INDEX[[1]])), INDEX=INDEX, FUN=function(x)length(x), names.result=names.result, missing.value=0, vector.result=vector.result, sep.sign=sep.sign)  
+  tapply.fixed(X=rep(1,length(INDEX[[1]])), INDEX=INDEX, FUN=function(x)length(x), names.result=names.result, missing.value=0, vector.result=vector.result, sep.sign=sep.sign)
 }
 
 ####
@@ -1931,13 +1938,13 @@ by.add.df.cols <- function(data, relevantColnames, INDICES, FUN, showWarnings=TR
   # Is is designed to be faster than by() over the whole data.frame because is takes only these columns into by() that are really needed for the function.
   # After the calculation a data.frame is returned instead of the usual list that is returned by the by function().
   # The initial order of the rows in data is kept in the result. The additionally calculated columns from FUN are added to the original data.frame.
-  
+
   # Arguments
   # data             = The data frame over which by() should be applied.
   # relevantColnames = The relevant colnames that are needed for the calculations in FUN.
   # INDICES          = The indices for the application of by(). This will be pasted to a signle string if !is.null(dim(INDICES)).
   # FUN              = The function to apply within by()
-  
+
   # Combine INDICES to a single string if it is given as several columns of a data.frame/matrix
   if(is.matrix(data)) data <- as.data.frame(data)
   if(is.list(INDICES) & !is.data.frame(INDICES)) INDICES <- as.data.frame(INDICES)
@@ -1989,25 +1996,25 @@ is.dir <- function(path) {
 #}
 
 transl.typ <- function(x, short=FALSE, FAT99=FALSE, give.tab=FALSE){
-  
+
   # Wenn Typennummern in Vektor groesser als 99, dann ist es in der Schreibweise 15..
   s3.numb <- c(   11,           12,           21,          22,               23,                   31,                41,                   51,                          52,                          53,                   54)
-  
+
   if(!short){
-    s3.name <- c("Ackerbau","Spezialkulturen","Milchkühe", "Mutterkühe", "Rindvieh gemischt", "Pferde/Schafe/Ziegen", "Veredelung", "Kombiniert Milchkühe/Ackerbau", "Kombiniert Mutterkühe", "Kombiniert Veredelung", "Kombiniert Andere")
+    s3.name <- c("Ackerbau","Spezialkulturen","Milchk?he", "Mutterk?he", "Rindvieh gemischt", "Pferde/Schafe/Ziegen", "Veredelung", "Kombiniert Milchk?he/Ackerbau", "Kombiniert Mutterk?he", "Kombiniert Veredelung", "Kombiniert Andere")
     if(FAT99) s3.name[c(3,5,8)] <- c("Verkehrsmilch", "Anderes Rindvieh", "Kombiniert Verkehrsmilch/Ackerbau")
   } else {
     s3.name <- c("Ackb","Spez","Milk","MuKu","RiGe","PfSZ","Vere","MiAc","KoMu","KoVe","KoAn")
     if(FAT99) s3.name[c(3,5,8)] <- c("VMil","AnRi","VMAc")
   }
   if(give.tab){ tab <- matrix(s3.numb); dimnames(tab) <- list(s3.name, "code"); return(tab) }
-  
+
   if(x[1]>99) s3.numb <- s3.numb + 1500
   return(replace.values(s3.numb, s3.name, x))
 }
 
 transl.reg <- function(x, give.tab=FALSE){
-  name <- c("Tal","Hügel","Berg")
+  name <- c("Tal","H?gel","Berg")
   numb <- c(  1,     2,      3)
   if(give.tab){ tab <- matrix(numb); dimnames(tab) <- list(name, "code"); return(tab) }
   return(replace.values(numb, name, x))
@@ -2021,7 +2028,7 @@ transl.kt <- function(x, give.tab=FALSE){
 }
 
 transl.lbf <- function(x, give.tab=FALSE){
-  name <- c("konv.","ÖLN","Bio","Bio Umstell.")
+  name <- c("konv.","?LN","Bio","Bio Umstell.")
   numb <- c(   1,     2,    3,       4)
   if(give.tab){ tab <- matrix(numb); dimnames(tab) <- list(name, "code"); return(tab) }
   return(replace.values(numb, name, x))
@@ -2029,14 +2036,14 @@ transl.lbf <- function(x, give.tab=FALSE){
 
 transl.ths <- function(x, give.tab=FALSE){
   # dat <- read.cb("no") # Quelle: \\evdad.admin.ch\AGROSCOPE_OS\2\5\2\1\1\1860\C_GB\B2014\A_Vers\Druckerei_Adr&Auflage_f_Versand
-  ths.name <- c("Agro-Treuhand Rütti AG", "Agro-Treuhand Schwand", "Agro-Treuhand Berner-Oberland",  "Agro-Treuhand Emmental", "Agro-Treuhand Aargau", "Agro-Treuhand Thurgau AG", 
-                "Agro-Treuhand Waldhof", "BBV Treuhand", "Agro-Treuhand Region Zürich AG",  "BBV Treuhand", "BBV Treuhand", "Agro-Treuhand Schwyz GmbH", 
-                "SBV Treuhand und Schätzungen", "Fidasol S.A.", "AgriGenève",  "Cofida S.A.", "Service des comptabilités agricoles", "Service des comptabilités agricoles", 
-                "Service de l'Agriculture", "Fiduciaire SEGECA", "Fiduciaire SEGECA",  "Fondation Rurale Interjurassienne", "Landwirtschaftszentrum Visp", 
-                "Agro-Treuhand Seeland AG", "Agro-Treuhand Sursee", "Agro-Treuhand Uri, Nid- und Obwalden GmbH",  "Agro-Treuhand Uri, Nid- und Obwalden GmbH", "Agro-Treuhand Glarus", 
-                "Bündner Bauernverband", "Agro-Treuhand Solothurn-Baselland",  "Fessler Treuhand GmbH", "Studer-Korner Treuhand")
+  ths.name <- c("Agro-Treuhand RÃ¼tti AG", "Agro-Treuhand Schwand", "Agro-Treuhand Berner-Oberland",  "Agro-Treuhand Emmental", "Agro-Treuhand Aargau", "Agro-Treuhand Thurgau AG",
+                "Agro-Treuhand Waldhof", "BBV Treuhand", "Agro-Treuhand Region Z?rich AG",  "BBV Treuhand", "BBV Treuhand", "Agro-Treuhand Schwyz GmbH",
+                "SBV Treuhand und Sch?tzungen", "Fidasol S.A.", "AgriGen?ve",  "Cofida S.A.", "Service des comptabilit?s agricoles", "Service des comptabilit?s agricoles",
+                "Service de l'Agriculture", "Fiduciaire SEGECA", "Fiduciaire SEGECA",  "Fondation Rurale Interjurassienne", "Landwirtschaftszentrum Visp",
+                "Agro-Treuhand Seeland AG", "Agro-Treuhand Sursee", "Agro-Treuhand Uri, Nid- und Obwalden GmbH",  "Agro-Treuhand Uri, Nid- und Obwalden GmbH", "Agro-Treuhand Glarus",
+                "B?ndner Bauernverband", "Agro-Treuhand Solothurn-Baselland",  "Fessler Treuhand GmbH", "Studer-Korner Treuhand")
   ths.numb <- c(101L, 102L, 103L, 104L, 105L, 110L, 111L, 112L, 113L, 115L, 116L, 117L, 121L, 201L, 202L, 203L, 204L, 224L, 205L, 206L, 226L, 207L, 225L, 336L, 338L, 340L, 342L, 362L, 401L, 402L, 403L, 404L)
-  
+
   if(give.tab){ tab <- matrix(ths.numb); dimnames(tab) <- list(ths.name, "code"); return(tab) }
   return(replace.values(ths.numb, ths.name, x))
 }
@@ -2045,10 +2052,10 @@ transl.mm <- function(x, gsub=FALSE, excel.format=FALSE){
   # Diese Funktion uebersetzt die Merkmalsnummern der Merkmalsliste ZA2015 in die Zeilen-Bezeichnungen laut REX.
   # Wenn gsub=TRUE findet suche in Strings statt, statt ganze Character-Vektorplaetze zu uebersetzen.
   # Wenn excel.forma=TRUE wird davor noch ein Abstand gemacht, falls am Anfang ein Rechenoperations-Zeichen steht.
-  
+
   if(!exists("transmm_list", envir=globalenv())) {
     cat("Reading in translation...\n")
-    transmm_list <<- as.matrix(read.table(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/SekDaten/Sonst/MML/Data_out/MML_Namen_Nummern_full.txt"), sep="\t", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA")))
+    transmm_list <<- as.matrix(read.table(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/4/3/4285/MML/Berechn_Uebersetz_in_R/Data/Data_out/MML_Namen_Nummern_full.txt"), sep="\t", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA")))
     # Check if there are non duplicated tranlsations. If not, then delete the duplicated ones.
     if(any(duplicated(transmm_list[,"number"]))){
       transmm_list_dupl <- transmm_list[ duplicated( transmm_list[,"number"] ) | duplicated( transmm_list[,"number"], fromLast=TRUE ) ,];
@@ -2060,12 +2067,12 @@ transl.mm <- function(x, gsub=FALSE, excel.format=FALSE){
       }
     }
   }
-  
+
   if(gsub){
     transmm_list_tmp <- transmm_list[ grepl(paste(x,collapse="|") ,transmm_list[,"number"]) ,]
   }
   x <- replace.values(transmm_list[,"number"], transmm_list[,"name"], x, gsub=gsub)
-  
+
   if(excel.format){
     filt <- substr(x,1,1)%in%c("=","+","-","/","*")
     x[filt] <- paste0(" ",x[filt])
@@ -2101,7 +2108,7 @@ transl.ref.210row <- function(x, give.tab=FALSE){
   rownames(t1) <- t1[,1]
   t1 <- t1[,2,drop=FALSE]
   colnames(t1) <- "code"
-  
+
   if(give.tab) {
     return(t1)
   } else {
@@ -2116,22 +2123,22 @@ transl.spb.330col.340row <- function(x, reverse=FALSE, give.tab=FALSE, nice.name
   # x        = The number to be translated from one tab to another
   # inverse  = Translate from 340 row -> 330 col
   # give.tab = Return translation table without translating anything.
-  
+
   #dput(as.numeric(unname(unlist(read.cb("no")))))
   #dput(unname(as.matrix(read.cb("no"))))
-  t1 <- t(structure(c(2011L, 11000L, 2012L, 13000L, 2013L, 15000L, 2014L, 16000L, 2015L, 17000L, 2018L, 19000L, 2019L, 18000L, 2021L, 61000L, 
-                      2022L, 62000L, 2023L, 63000L, 2024L, 64000L, 2028L, 69000L, 2031L, 71000L, 2032L, 72000L, 2033L, 73000L, 2034L, 75000L, 2038L, 79000L, 
+  t1 <- t(structure(c(2011L, 11000L, 2012L, 13000L, 2013L, 15000L, 2014L, 16000L, 2015L, 17000L, 2018L, 19000L, 2019L, 18000L, 2021L, 61000L,
+                      2022L, 62000L, 2023L, 63000L, 2024L, 64000L, 2028L, 69000L, 2031L, 71000L, 2032L, 72000L, 2033L, 73000L, 2034L, 75000L, 2038L, 79000L,
                       2075L, 21000L, 2080L, 33000L, 2085L, 34000L, 2090L, 35000L, 2095L, 81000L, 2100L, 83000L), .Dim = c(2L, 23L)))
   colnames(t1) <- c("Tab330col", "Tab340row")
   rownames(t1) <- c("Milch","Muku","Kaelberm","Rindviehm","fremdesRindvieh","Rind/Kaelberm-3","uebrigesRindvieh","SchweineAllg","Schweinezucht","Schweinemast","Ferkelprod","Schweinemast-3","Konsumeier","Bruteier","Pouletmast","Truten","Gefluegel-3","Pferde","Schafe","Ziegen","sonstigeRaufu","Kaninchen","uebrigesGeflu")
-  if(nice.names) rownames(t1) <- c("Milchkühe","Mutterkühe","Kälbermast","Rindviehmast","Haltung fremdes Rindvieh","Rinder- & Kälbermast für Dritte","Übriges Rindvieh",
-                                   "Schweine (Zucht & Mast)","Schweinezucht","Schweinemast","Arbeitsteilige Ferkelproduktion","Schweinemast für Dritte","Konsumeierproduktion","Bruteierproduktion","Pouletmast","Truten","Gefluegelmast für Dritte","Pferde","Schafe","Ziegen","Andere Raufutter verzehrende Tiere","Kaninchen","Übriges Geflügel")
+  if(nice.names) rownames(t1) <- c("Milchk?he","Mutterk?he","K?lbermast","Rindviehmast","Haltung fremdes Rindvieh","Rinder- & K?lbermast f?r Dritte","?briges Rindvieh",
+                                   "Schweine (Zucht & Mast)","Schweinezucht","Schweinemast","Arbeitsteilige Ferkelproduktion","Schweinemast f?r Dritte","Konsumeierproduktion","Bruteierproduktion","Pouletmast","Truten","Gefluegelmast f?r Dritte","Pferde","Schafe","Ziegen","Andere Raufutter verzehrende Tiere","Kaninchen","?briges Gefl?gel")
   t1 <- t1[order(t1[,"Tab340row"]),]
-  
+
   if(give.tab) {
     return(t1)
   }
-  
+
   if(!inverse) col_in <- 1 else col_in <- 2
   if(!inverse) col_ou <- 2 else col_ou <- 1
   row_ou <- match(x,t1[,col_in])
@@ -2145,21 +2152,21 @@ transl.spb.320row <- function(x, give.tab=FALSE){
   # Arguments
   # x        = The number to be translated to enterprise name.
   # give.tab = Return translation vector without translating anything.
-  
+
   # Import the data from MML: Copy the following columns of tab 320 side by side: 1) Zeile [UID, 2nd col], 2) Total Leistung [col no 4000], 3) all cols containing the culture names (no matter how many). They will be pasted together.
   #t1 <- read.cb("no"); t1[is.na(t1)] <- ""; t1 <- t1[t1[,2]!="",]; t1 <- cbind(t1[,1:2], apply(t1[,3:ncol(t1)],1,function(x)paste0(x,collapse="")), stringsAsFactors=FALSE); dput(as.numeric(t1[,1])); dput(t1[,3])
-  
+
   t1 <- matrix(c(11110, 11120, 11130, 11140, 11180, 11310, 11320, 11330, 11340, 11380, 12100, 12200, 12500, 12600, 13000, 14100, 14300, 15100, 15200, 15300, 15900, 16100, 16200, 16900, 18100, 18200, 18300,
           18400, 19000, 20000, 20100, 20200, 21100, 21200, 21300, 21400, 30100, 35000, 41000, 42100, 42200, 43000, 43500, 44000, 44500, 46000, 48000, 49000, 61000, 65000, 70000, 81000, 85000))
   colnames(t1) <- "code"
-  rownames(t1) <- c("Weizen (Brotgetreide)", "Roggen (Brotgetreide)", "Dinkel (Brotgetreide)", "Emmer, Einkorn", "Mischel Brotgetreide", "Gerste (Futtergetreide)", "Hafer (Futtergetreide)", "Triticale (Futtergetreide)", "Futterweizen", 
-                 "Mischel Futtergetreide", "Körnermais", "Silo- & Grünmais", "Saatmais", "Hirse", "Kartoffeln", "Zuckerrüben", "Futterrüben", "Raps zur Speiseölgewinnung", "Soja", "Sonnenblumen zur Speiseölgewinnung", "übrige Ölsaaten", 
-                 "Ackerbohnen zu Futterzwecken", "Eiweisserbsen zu Futterzwecken", "übrige Körnerleguminosen", "Tabak", "Einjährige gärtnerische Freilandkulturen", "Einjährige nachwachsende Rohstoffe", "Freiland Frischgemüse", 
-                 "Freiland Konservengemüse", "Einjährige Beeren (z.B Erdbeeren)", "Einjährige Gewürz- & Medizinalpflanzen", "Übrige Ackerkulturen", "Buntbrache", "Rotationsbrache", "Saum auf Ackerfläche", "Ackerschonstreifen", 
-                 "Futterbau (ohne Silomais, Futterrüben und Samenproduktion)", "Samenproduktion Futterbau", "Reben", "Obst, Streuobst ohne Fläche", "Obstanlagen", "Mehrjährige Beeren", "Mehrjährige nachwachsende Rohstoffe", 
-                 "Hopfen", "Mehrjährige Gewürz- & Medizinalpflanzen", "Gemüse-Dauerkulturen", "Christbäume, Baumschulen und ähnliches", "Übrige Dauerkulturen", "Gewächshaus- und Tunnel-Frischgemüse", "Gärtnerische Kulturen in geschütztem Anbau", 
-                 "Weitere Flächen innerhalb der LN", "Wald", "Weitere Flächen ausserhalb der LN")
-  
+  rownames(t1) <- c("Weizen (Brotgetreide)", "Roggen (Brotgetreide)", "Dinkel (Brotgetreide)", "Emmer, Einkorn", "Mischel Brotgetreide", "Gerste (Futtergetreide)", "Hafer (Futtergetreide)", "Triticale (Futtergetreide)", "Futterweizen",
+                 "Mischel Futtergetreide", "K?rnermais", "Silo- & Gr?nmais", "Saatmais", "Hirse", "Kartoffeln", "Zuckerr?ben", "Futterr?ben", "Raps zur Speise?lgewinnung", "Soja", "Sonnenblumen zur Speise?lgewinnung", "?brige ?lsaaten",
+                 "Ackerbohnen zu Futterzwecken", "Eiweisserbsen zu Futterzwecken", "?brige K?rnerleguminosen", "Tabak", "Einj?hrige g?rtnerische Freilandkulturen", "Einj?hrige nachwachsende Rohstoffe", "Freiland Frischgem?se",
+                 "Freiland Konservengem?se", "Einj?hrige Beeren (z.B Erdbeeren)", "Einj?hrige Gew?rz- & Medizinalpflanzen", "?brige Ackerkulturen", "Buntbrache", "Rotationsbrache", "Saum auf Ackerfl?che", "Ackerschonstreifen",
+                 "Futterbau (ohne Silomais, Futterr?ben und Samenproduktion)", "Samenproduktion Futterbau", "Reben", "Obst, Streuobst ohne Fl?che", "Obstanlagen", "Mehrj?hrige Beeren", "Mehrj?hrige nachwachsende Rohstoffe",
+                 "Hopfen", "Mehrj?hrige Gew?rz- & Medizinalpflanzen", "Gem?se-Dauerkulturen", "Christb?ume, Baumschulen und ?hnliches", "?brige Dauerkulturen", "Gew?chshaus- und Tunnel-Frischgem?se", "G?rtnerische Kulturen in gesch?tztem Anbau",
+                 "Weitere Fl?chen innerhalb der LN", "Wald", "Weitere Fl?chen ausserhalb der LN")
+
   if(give.tab) {
     return(t1)
   } else {
@@ -2167,17 +2174,17 @@ transl.spb.320row <- function(x, give.tab=FALSE){
   }
 }
 
-transl.EB.MML <- function(x, reverse=FALSE, give.tab=FALSE) {
-  # Diese Funktion übersetzt die Merkmalsbezeichnungen zwischen Online-Erhebungsbogen und Merkmalsliste-ZA2015
-  # if reverse=TRUE in andere Richtung: MML2015 -> EB
-  
+transl.EB.MML <- function(x, inverse=FALSE, give.tab=FALSE) {
+  # Diese Funktion ?bersetzt die Merkmalsbezeichnungen zwischen Online-Erhebungsbogen und Merkmalsliste-ZA2015
+  # if inverse=TRUE in andere Richtung: MML2015 -> EB
+
   if(!exists("uebers_tab", envir=globalenv())){
-    #pfad_uebers <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/1863/1_Entwicklungsphase_2013/1_AG Merkmalsliste/21_transcoding_fuer_R/Umbenennung_UID_Reglen_Alle_Merkmale_uebersetzt.csv"
-    pfad_uebers <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/1863/1_Entwicklungsphase_2013/1_AG Merkmalsliste/21_transcoding_fuer_R/transcoding_active.csv"
+    #pfad_uebers <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/4/3/4285/MML/transcoding_fuer_R/Umbenennung_UID_Reglen_Alle_Merkmale_uebersetzt.csv"
+    pfad_uebers <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/4/3/4285/MML/transcoding_fuer_R/transcoding_active.csv"
     uebers_tab <<- read.table(pfad_uebers, sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
   }
   if(give.tab) return(uebers_tab)
-  
+
   if(!inverse) col_in <- 1 else col_in <- 2
   if(!inverse) col_ou <- 2 else col_ou <- 1
   return(uebers_tab[match(x,uebers_tab[,col_in]),col_ou])
@@ -2189,7 +2196,7 @@ gsub.multi <- function(pattern, replacement, x, ...){
   # Agruments: Please consult help page of gsub.
   if(length(replacement)==1) replacement <- rep(replacement, length(pattern))
   if(length(pattern)!=length(replacement)) stop("length(pattern) must be equal length(replacement).")
-  
+
   if(length(pattern)>1) {
     newo <- order(nchar(pattern))
     pattern <- pattern[newo]
@@ -2204,17 +2211,17 @@ gsub.multiple <- function(...){
 }
 
 repl.aou <- function(x){
-  # Funktion, um äöü in Text wiederherzustellen. Wird bei read.table umgeschrieben.
-  x <- gsub("Ã¤","ä",x)
-  x <- gsub("Ã¶","ö",x)
-  return( gsub("Ã¼","ü",x) )
+  # Funktion, um ??? in Text wiederherzustellen. Wird bei read.table umgeschrieben.
+  x <- gsub("Ã¤","?",x)
+  x <- gsub("Ã¶","?",x)
+  return( gsub("Ã¼","?",x) )
 }
 
 #x <- "Differenz = PrivatbezÃ¼ge fÃ¼r Privatkosten"
 repl.utf8 <- function(x) {
-  # This function recodes UTF8 (e.g. Ã¶ to ö) by using a translation matrix & gsub()
-  
-  pfad_utf8 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/zz_Vers/UTF8-ANSI/utf8-ansi.csv"  
+  # This function recodes UTF8 (e.g. Ã¶ to ?) by using a translation matrix & gsub()
+
+  pfad_utf8 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4272/UTF8-ANSI/utf8-ansi.csv"
   if(!exists("utf8ansi", envir=globalenv())){
     # Uebersetzungstabelle utf8 & ANSI laden und vorbereiten
     utf8ansi <- as.matrix(read.table(pfad_utf8, sep=";", header=TRUE))
@@ -2233,13 +2240,13 @@ repl.utf8 <- function(x) {
     utf8ansi.orig <- utf8ansi
     un1 <- sort(unique(utf8ansi[,"sign"]))
     utf8ansi <- utf8ansi[numeric(),c("sign","utf8")]
-    
+
     for(i in 1:length(un1)){
       utf8ansi <- rbind(utf8ansi, c(un1[i], paste0(utf8ansi.orig[utf8ansi.orig[,"sign"]==un1[i],"utf8"],collapse="|")) )
     }
     utf8ansi <- rbind(utf8ansi,utf8ansi_singlechar[,c("sign","utf8")])
   }
-  
+
   # Hier Uebersetzung
   for(i in 1:nrow(utf8ansi)){
     x <- gsub(utf8ansi[i,"utf8"],utf8ansi[i,"sign"], x)
@@ -2252,10 +2259,10 @@ repl.utf8 <- function(x) {
 random.string <- function(n=1, length=10, capitals=2, numbers=3){
   # Create n random strings of specified number of characters (length), capital letters and numbers.
   if(n>1) return(replicate(n, random.string(n=1, length=10, capitals=2, numbers=3)))
-  
+
   nlower <- length-capitals-numbers
   if(nlower<0) stop("capitals+numbers must be smaller equal length")
-  
+
   if(nlower==0)   lower <- character() else  lower <- sample(letters,nlower,replace=TRUE)
   if(capitals==0) upper <- character() else  upper <- sample(LETTERS,capitals,replace=TRUE)
   if(numbers==0)  numbe <- character() else  numbe <- sample(0:9,numbers,replace=TRUE)
@@ -2266,7 +2273,7 @@ set.args <- function(string){
   # This function reads a string of arguments looking like:
   # y=y, trt=grouping, sig=sig, sig.level=sig.level ,digits=digits, median.mean="mean", ranked=ranked, print.result=FALSE
   # and sets the variables accordingly in the global environment. For function debugging.
-  
+
   string <- gsub("\\=","<<-",string)
   string <- gsub(",",";",string)
   eval(parse(text=string))
@@ -2287,12 +2294,12 @@ sec.to.hms <- function(sec, digits=0){
   h <- floor( sec / 3600 )
   m <- floor( sec%%3600 / 60 )
   s <- as.matrix(round( sec%%60 , digits))
-  
+
   ind <- nchar(h )==1; h[ind] <- paste0("0",h[ind])
   ind <- nchar(m )==1; m[ind] <- paste0("0",m[ind])
   s1 <- sapply(strsplit(as.character(s),"\\."),function(x)x[[1]])
   ind <- nchar(s1)==1; s[ind] <- paste0("0",s[ind])
-  
+
   return(paste(h,m,s,sep=":"))
 }
 
@@ -2304,16 +2311,16 @@ covar <- coef.of.variance <- function(x,na.rm=TRUE) {
 find.deriv.0 <- function(expr, dat=c(-1e20, 1e20), variablename="x") {
   # This function derivates a given expression in form of a string (with 1 unknown variable x) and
   # returns the point where the slope equals zero.
-  
+
   # If values of variables are passed into the function just use paste0()
   # coefs <- c(2, -0.5)
   # expr <- paste0(coefs[1],"*x + ", coefs[2], "*x^2")
   # find.deriv.0(expr)
   # curve(coefs[1]*x +  coefs[2]*x^2, 0, 5)
   # abline(v=find.deriv.0(expr))
-  
+
   # dat can be given (optional), in order to determin the interval where the solution is searched.
-  
+
   d_expr <- D( parse(text=expr) , name=variablename)
   f <- function(x)  eval(d_expr)
   res <- uniroot(f, c(min(dat), max(dat)) )$root
@@ -2323,7 +2330,7 @@ find.deriv.0 <- function(expr, dat=c(-1e20, 1e20), variablename="x") {
 
 if(FALSE){
   undebug(find.deriv.0)
-  
+
   # Beide Varianten funktionieren:
   expr <- "1.0338e-01*x - 1.0941e-02*x^2"
   find.deriv.0(expr)
@@ -2339,11 +2346,11 @@ deriv.value <- function(expr, at, variablename="x", times=1) {
   # at a given point "at"
   # expression must be a String!
   # times = number of derivations
-  
+
   # Falls times <= 0, wird nichts gemacht. Dann muesse man die Funktion eigentlich auch gar nicht verwenden...
   if(times<=0) {
     d_expr <-  parse(text=expr)
-    
+
     # Sonst wird abgeleitet
   } else {
     d_expr <- D( parse(text=expr) , name=variablename)
@@ -2354,7 +2361,7 @@ deriv.value <- function(expr, at, variablename="x", times=1) {
     }
   }
   assign( variablename,  at)
-  
+
   return( eval(d_expr) )
 }
 if(FALSE){
@@ -2367,13 +2374,13 @@ if(FALSE){
 approx.own <- function(x,y,xout) {
   if(length(xout)>1) return(sapply(xout,function(xout1)approx.own(x,y,xout1)))
   if(all(is.na(x)) || all(is.na(y))) return(rep(NA, length(xout)))
-  
+
   isnaxy <- is.na(x)|is.na(y)
   if(any(isnaxy)){
     x <- x[!isnaxy]
     y <- y[!isnaxy]
   }
-  
+
   if(length(x)==1){
     return(y)
   } else if(all(xout<x)) {
@@ -2388,29 +2395,30 @@ approx.own <- function(x,y,xout) {
 lpsolve <- function(obj_coef, A, LHS_ge=NULL, LHS_le=NULL, opt_val_ge=NULL, opt_val_le=NULL,  maximize=FALSE) {
   # This function transforms a given optimization model in a not very intuitive and rather special form and solves with the
   # functions initProbCLP(), setObjDirCLP(), loadProblemCLP() and solveInitialCLP() of the package clpAPI.
-  
+  # Keywords: Linear Programming, LP
+
   # Arguments:
   # obj_coef = coefficients of the objective function
-  
+
   # A = matrix containing the restriction coefficients
   #       nrow(A) = no. of restrictions
   #       ncol(A) = no. of coefficients
-  
+
   # LHS_ge = "Left hand side greater equal ..."
   #       vector of values of the Right Hand Side that should be exceeded
   # LHS_le = "Left hand side lower equal ..."
   #       vector of values of the Left Hand Side that should NOT be exceeded
   # One of LHS_ge or LHS_le must be given!
-  
+
   # opt_val_ge = "optimal value greater equal"
   #       value of objective function that should be exceeded
   # opt_val_le = "optimal value lower equal"
   #       value of objective function that should NOT be exceeded
   # opt_val_ge and opt_val_le are optional arguments!
-  
+
   # maximize = TRUE  -> the objective function is maximized
   # maximize = FALSE -> the objective function is minimized
-  
+
   if(!is.null(dim(obj_coef))) obj_coef <- as.vector(obj_coef)
   if(ncol(A)!=length(obj_coef)) stop("ncol(A) != length(obj_coef)")
   is.null.LHS_ge <- is.null(LHS_ge)
@@ -2421,7 +2429,7 @@ lpsolve <- function(obj_coef, A, LHS_ge=NULL, LHS_le=NULL, opt_val_ge=NULL, opt_
   if(!is.null.LHS_ge){
     if(!is.null(dim(LHS_ge))) LHS_ge <- as.vetor(LHS_ge)
     if(length(LHS_ge)!=nrow(A)) stop("length(LHS_ge) != nrow(A)")
-  } 
+  }
   if(!is.null.LHS_le) {
     if(!is.null(dim(LHS_le))) LHS_le <- as.vetor(LHS_le)
     if(length(LHS_le)!=nrow(A)) stop("length(LHS_le) != nrow(A)")
@@ -2434,7 +2442,7 @@ lpsolve <- function(obj_coef, A, LHS_ge=NULL, LHS_le=NULL, opt_val_ge=NULL, opt_
     if(length(opt_val_le)==1) opt_val_le <- rep(opt_val_le, ncol(A))
     if(length(opt_val_le)!=ncol(A)) stop("length(opt_val_le) != ncol(A)")
   }
-  
+
   library(clpAPI)
   if(maximize) minmax <- (-1) else minmax <- 1
   lp <- initProbCLP() # Create LP object
@@ -2444,7 +2452,7 @@ lpsolve <- function(obj_coef, A, LHS_ge=NULL, LHS_le=NULL, opt_val_ge=NULL, opt_
   rupper <- LHS_le      # Upper row bound. Use for <= restriction on LHS
   clower <- opt_val_ge  # Upper column bound. Use for >= restriction on optimization coefficients.
   cupper <- opt_val_le  # Lower column bound. Use for <= restriction on optimization coefficients.
-  
+
   # constraint matrix (left hand side). Convert matrix into vector. Give row and column indices for every vector place.
   ia <- c(row(A))-1 # Has to start with row 0, not row1. Otherwise you will get an error!
   ja <- seq(0,length(ia)+nrow(A),nrow(A))
@@ -2458,21 +2466,22 @@ lpsolve <- function(obj_coef, A, LHS_ge=NULL, LHS_le=NULL, opt_val_ge=NULL, opt_
     nc <- which(nc)-1; nc <- c(nc,length(ar))
     ja <- nc
   }
-  
+
   # load problem data
   loadProblemCLP(lp=lp, ncols=ncols, nrows=nrows, ia=ia, ja=ja, ra=ar, lb=clower, ub=cupper, obj_coef=obj_coef, rlb=rlower, rub=rupper)
   solveInitialCLP(lp) # Solve the LP.
-  
+
   result <- list()
   result$lp <- lp
   result$opt_val <- getColPrimCLP(lp)
   result$opt_sol <- getObjValCLP(lp)
-  result$info <-  "getSolStatusCLP(lp)   # Retrieve solve status of LP
-  getObjValCLP(lp)      # Retrieve optimal (minimal/maximal) value of objective function.
-  getColPrimCLP(lp)     # Retrieve the primal values of the structural variables (columns) after optimization.
-  getColDualCLP(lp)     # Retrieve the dual values of the structural variables (columns) after optimization (reduced costs).
-  delProbCLP(lp)        # remove problem object"
-  
+  result$info <-  paste("getSolStatusCLP(lp)   # Retrieve solve status of LP",
+  "getObjValCLP(lp)      # Retrieve optimal (minimal/maximal) value of objective function.",
+  "getColPrimCLP(lp)     # Retrieve the primal values of the structural variables (columns) after optimization.",
+  "getColDualCLP(lp)     # Retrieve the dual values of the structural variables (columns) after optimization (reduced costs).",
+  "delProbCLP(lp)        # remove problem object",
+  sep="\n")
+
   # lp am Schluss loeschen. Wenn man mehrere Optimierungen nacheinander ausfuehrt, kommt es sonst zu Fehlern im solver.
   delProbCLP(lp)
   return(result)
@@ -2485,31 +2494,31 @@ lpsolve <- function(obj_coef, A, LHS_ge=NULL, LHS_le=NULL, opt_val_ge=NULL, opt_
 wgs84.to.ch1903 <- function(N, E){
   # This function convert the he international WGS84 coordinates (N, E) to
   # CH1903 coordinates (that are e.g. used in the AGIS-data)
-  
+
   # N = Vektor mit c(Grad, Minuten, Sekunden)   Nord      oder Grad mit Dezimalstellen
   # E = Vektor mit c(Grad, Minuten, Sekunden)   Ost       oder Grad mit Dezimalstellen
-  # 
-  
+  #
+
   # Swisstopo Beispiel
   # N <- c(46,  2, 38.87)
   # E <- c( 8, 43, 49.79)
   # Resultat
   # y = 700000 , x = 100000
-  
+
   if(length(N)==1){   x0 <- N
   } else {            x0 <- N[1]*3600 + N[2]*60  + N[3]   }
   x1 <- (x0 - 169028.66) / 10000
-  
+
   if(length(N)==1){   y0 <- E
   } else {            y0 <- E[1]*3600 + E[2]*60  + E[3]   }
   y1 <- (y0 - 26782.5) / 10000
-  
+
   x <- 200147.07 + 308807.95 * x1 + 3745.25 * y1^2 + 76.63 * x1^2 + 119.79 * x1^3 - 194.56 * y1^2 * x1  # x0; x1;  x
   y <- 600072.37 + 211455.93 * y1 - 10938.51 * y1 * x1 - 0.36 * y1 * x1^2 - 44.54 * y1^3  # y0;  y1;  y
-  
+
   x <- round(x)
   y <- round(y)
-  
+
   res <- c(y=y, x=x)
   return(res)
 }
@@ -2521,56 +2530,56 @@ ch1903.to.wgs84 <- function(y, x,  output=c("decimal", "minsec")) {
   # y = y coordinates
   # x = x coordinates
   # Note that the coordinates METER_X and METER_Y in the AGIS data are probably interchanged.
-  
+
   # Swisstopo Beispiel
   # x <- 100000
   # y <- 700000
   # Resultat
-  # N = 46° 02' 38.86"
-  # E =  8° 43' 49.80"
+  # N = 46? 02' 38.86"
+  # E =  8? 43' 49.80"
   # Ist korrekt.
-  
+
   output <- match.arg(output)
-  
+
   y0 <- (y-600000)/1000000
   x0 <- (x-200000)/1000000
-  
+
   y1 <-  2.6779094 + 4.728982 * y0 + 0.791484 * y0 * x0 + 0.1306 * y0 * x0^2 - 0.0436 * y0^3
   x1 <- 16.9023892 + 3.238272 * x0 - 0.270978 * y0^2 - 0.002528 * x0^2 - 0.0447 * y0^2 * x0 - 0.0140 * x0^3
-  
+
   E <- y1*100/36
   N <- x1*100/36
-  
+
   if(output=="decimal") {
     res <- list()
     res$coord <- c(N=N, E=E)
     res$full <- paste0(round(N, 10), " N,   ", round(E, 10), " E")
     return(res)
   }
-  
+
   Eg <- floor(E)
   Em <- floor( (E-Eg) * 60 )
   Es <- round( ( (E-Eg) * 60 - Em ) * 60  ,2)
-  
+
   Ng <- floor(N)
   Nm <- floor( (N-Ng) * 60 )
   Ns <- round( ( (N-Ng) * 60 - Nm ) * 60  ,2)
-  
+
   res <- list()
   res$N <- c(deg=Ng, min=Nm, sec=Ns)
   res$E <- c(deg=Eg, min=Em, sec=Es)
   res$full <- paste0(
-    Ng, "°", Nm, "'", Ns, "'' N,   ",
-    Eg, "°", Em, "'", Es, "'' E"
+    Ng, "?", Nm, "'", Ns, "'' N,   ",
+    Eg, "?", Em, "'", Es, "'' E"
   )
   return(res)
 }
 
-# Veraltet und primitiv! Funktion eins weiter unten verwenden! 
+# Veraltet und primitiv! Funktion eins weiter unten verwenden!
 googlemaps.url <- function(coord, zoom=8, browse=FALSE){
   # Create googlemaps URL and open it in broswer if browse=FALSE
   # zoom is not implementet at the moment.
-  
+
   url <- paste0("http://maps.google.com/?q=",coord[1],",",coord[2]) #, ",", zoom, "z")
   if(!browse)  return(url)
   browseURL(url)
@@ -2590,7 +2599,7 @@ if(FALSE){
   N.center=NULL; E.center=NULL
   zoom=9; map.type=c("HYBRID","ROADMAP","SATELLITE","TERRAIN"); angle=0;
   point.symbol <- c("CIRCLE","BACKWARD_CLOSED_ARROW","BACKWARD_OPEN_ARROW", "FORWARD_CLOSED_ARROW", "FORWARD_OPEN_ARROW")[1]; point.size=2.5; point.lwd=0.5; point.col.in="red"; point.col.out="black"; point.opacity=0.7; del.tmp.file=TRUE
-  
+
   create.googlemaps.markers(N, E, map.type="HYBRID", point.opacity=1, #point.symbol=sample(c("CIRCLE","BACKWARD_CLOSED_ARROW","BACKWARD_OPEN_ARROW", "FORWARD_CLOSED_ARROW", "FORWARD_OPEN_ARROW"), length(N), replace=TRUE),
                             point.size= 2+2*scale.extreme(1:n), point.col.in=color.gradient(1:n), cat.html=FALSE , del.tmp.file=TRUE)
 }
@@ -2602,7 +2611,7 @@ create.googlemaps.markers <- function(N, E, labels="", N.center=NULL, E.center=N
   # labels = optional labels of points
   # N.center = N coords of map center
   # E.center = E coords of map center
-  # 
+  #
   # Choose
   # N.center = 47.06, E.center=8.00
   # For the approximated middle of Switzerland.
@@ -2611,17 +2620,17 @@ create.googlemaps.markers <- function(N, E, labels="", N.center=NULL, E.center=N
   # and other options to costumize the map. Just try.
   # Hint: use point.size   = 2+2*scale.extreme(...) and
   #           point.col.in = color.gradient(...)   for nice results.
-  
-  
+
+
   if(is.null(N.center)) N.center <- (min(N, na.rm=TRUE) + max(N, na.rm=TRUE))/2
   if(is.null(E.center)) E.center <- (min(E, na.rm=TRUE) + max(E, na.rm=TRUE))/2
-  
+
   map.type <- match.arg(map.type)
   if(zoom<18 & angle!=0) warning("angle!=0 only works if zoom>18. Even then it's not available for all regions of the world.", immediate.=TRUE)
-  
+
   point.symbol.choice <- c("CIRCLE","BACKWARD_CLOSED_ARROW","BACKWARD_OPEN_ARROW", "FORWARD_CLOSED_ARROW", "FORWARD_OPEN_ARROW")
   if(any(!point.symbol%in%point.symbol.choice)) stop(paste0("point.symbol must be one of ", paste(point.symbol.choice, collapse=", ")))
-  
+
   LN <- length(N)
   stopifnot( length(labels)==1 | length(labels)==LN )
   stopifnot( length(point.symbol)==1 | length(point.symbol)==LN )
@@ -2633,18 +2642,18 @@ create.googlemaps.markers <- function(N, E, labels="", N.center=NULL, E.center=N
   # Pferformance Verlgeich:
   #system.time(for(i in 1:1000000) LN)
   #system.time(for(i in 1:1000000) length(N))
-  
+
   variable.arguments <- c("labels","point.symbol","point.size","point.lwd","point.col.in","point.col.out","point.opacity")
   length1 <- logical(length=length(variable.arguments)); names(length1) <- variable.arguments
   for(i in 1:length(variable.arguments)){
-    length1[i] <- length(get(variable.arguments[i]))==1 
+    length1[i] <- length(get(variable.arguments[i]))==1
   }
   char.vars <- c("labels","point.col.in","point.col.out")
-  
+
   point.symbol <- paste0("google.maps.SymbolPath.", point.symbol)
-  
+
   #### Erst wird das Skript erstellt
-  
+
   text <- paste0(
     "
     <!--
@@ -2652,9 +2661,9 @@ create.googlemaps.markers <- function(N, E, labels="", N.center=NULL, E.center=N
     https://developers.google.com/maps/documentation/javascript/examples/icon-complex
     Alles was mit
     shape: shape,
-    zu tun hat, einfach aus dem Code löschen.
+    zu tun hat, einfach aus dem Code l?schen.
     -->
-    
+
     <!DOCTYPE html>
     <html>
     <head>
@@ -2670,7 +2679,7 @@ create.googlemaps.markers <- function(N, E, labels="", N.center=NULL, E.center=N
     </style>
     <script src='https://maps.googleapis.com/maps/api/js?v=3.exp'></script>
     <script>
-    
+
     function initialize() {
     var mapOptions = {
     zoom: ",
@@ -2680,17 +2689,17 @@ create.googlemaps.markers <- function(N, E, labels="", N.center=NULL, E.center=N
     "}
     var map = new google.maps.Map(document.getElementById('map-canvas'),  mapOptions);
     map.setTilt(", angle ,");
-    
+
     setMarkers(map, locationProperties);
     }
     "
   )
   # Debugging
   # cat(text)
-  
+
   # Nun werden die Koordinaten der Punkte ins Skript eingefuegt:
   orders <- 1:length(N)
-  # Matrix erzeugen, die alle Kennzahlen enthält
+  # Matrix erzeugen, die alle Kennzahlen enth?lt
   info <- cbind(orders, N, E, labels, point.symbol, point.size, point.lwd, point.col.in, point.col.out, point.opacity)
   # NAs entfernen
   info <- info[!is.na(info[,"N"]),,drop=FALSE]
@@ -2705,7 +2714,7 @@ create.googlemaps.markers <- function(N, E, labels="", N.center=NULL, E.center=N
   info[,char.vars] <- paste0("'", info[,char.vars],"'")
   # Alle Spalten entfernen, die immer dieselben sind.
   info1 <- info[,!colnames(info)%in%names(length1)[length1] ,drop=FALSE]
-  
+
   js.matrix <- function(x){
     mat <- apply(x,1,function(x)paste("[", paste(x,collapse=", "), "],"))
     mat <- paste0(mat, collapse="\n")
@@ -2713,26 +2722,26 @@ create.googlemaps.markers <- function(N, E, labels="", N.center=NULL, E.center=N
     mat <- paste0("[\n",mat,"\n];\n")
     return(mat)
   }
-  
+
   text2 <- paste0( text, "\nvar locationProperties = ", js.matrix(info1))
   # Debugging
   # cat(text2)
-  
+
   # Rest des Sktips schreiben (inkl. Aussehen der Punkte.)
   text4 <- paste0(
     text2,
     "
     function setMarkers(map, locations) {
     // Add markers to the map
-    
+
     // Marker sizes are expressed as a Size of X,Y
     // where the origin of the image (0,0) is located
     // in the top left of the image.
-    
+
     for (var i = 0; i < locations.length; i++) {
     var locationProperty = locations[i];
     var myLatLng = new google.maps.LatLng(locationProperty[1], locationProperty[2]);
-    
+
     var image = {
     path: ",if(length1["point.symbol"]) info[1,"point.symbol"] else paste0("locationProperty[",which(colnames(info1)%in%"point.symbol")-1,"]"), ",
     scale: ",if(length1["point.size"]) info[1,"point.size"] else paste0("locationProperty[",which(colnames(info1)%in%"point.size")-1,"]"), ",
@@ -2741,7 +2750,7 @@ create.googlemaps.markers <- function(N, E, labels="", N.center=NULL, E.center=N
     strokeColor: ",if(length1["point.col.out"]) info[1,"point.col.out"] else paste0("locationProperty[",which(colnames(info1)%in%"point.col.out")-1,"]"), ",
     fillOpacity: ",if(length1["point.opacity"]) info[1,"point.opacity"] else paste0("locationProperty[",which(colnames(info1)%in%"point.opacity")-1,"]"), "
     };
-    
+
     var marker = new google.maps.Marker({
     position: myLatLng,
     map: map,
@@ -2751,9 +2760,9 @@ create.googlemaps.markers <- function(N, E, labels="", N.center=NULL, E.center=N
     });
     }
     }
-    
+
     google.maps.event.addDomListener(window, 'load', initialize);
-    
+
     </script>
     </head>
     <body>
@@ -2764,23 +2773,23 @@ create.googlemaps.markers <- function(N, E, labels="", N.center=NULL, E.center=N
   )
   # Debugging:
   if(cat.html) cat(text4)
-  
-  
-  
+
+
+
   #### Skript ist fertig
-  
-  # Temporäre Datei erstellen
+
+  # Tempor?re Datei erstellen
   write.table(text4, paste0(Sys.getenv("TMP"),"\\googlemaps_tmp.html"), col.names=FALSE, row.names=FALSE, quote=FALSE)
-  # Öffnen
+  # ?ffnen
   browseURL(paste0(Sys.getenv("TMP"),"\\googlemaps_tmp.html"))
-  
-  if(!del.tmp.file){ # length(unique(labels))>1 & labels[1]!="" | 
+
+  if(!del.tmp.file){ # length(unique(labels))>1 & labels[1]!="" |
     cat("File is stored in the folder:   ", Sys.getenv("TMP"),"\\\n", sep="")
     cat("                    filename:   googlemaps_tmp.html\n" )
     cat("Use\nfile.remove(paste0(Sys.getenv('TMP'),'\\\\googlemaps_tmp.html'))\nto delete the file when you don't need it anymore\n")
-    
-    # Wenn keine Labels gesetzt wurden, macht es keinen Sinn, die Datei länger zu behalten.
-    # Es wird 8 Sekunden gewartet, bis der Browser die Datei sicher geöffnet hat. Dann wird die temporäre Datei wieder gelöscht.
+
+    # Wenn keine Labels gesetzt wurden, macht es keinen Sinn, die Datei l?nger zu behalten.
+    # Es wird 8 Sekunden gewartet, bis der Browser die Datei sicher ge?ffnet hat. Dann wird die tempor?re Datei wieder gel?scht.
   } else {
     Sys.sleep(8)
     if( file.remove(paste0(Sys.getenv('TMP'),'\\googlemaps_tmp.html')) ) cat("File was removed. If you want to use it, set argument del.tmp.file=TRUE")
@@ -2796,10 +2805,10 @@ if(FALSE){
 get.googlemaps.adress <- function(N, E, result=c("full", "splitted"), language="de"){
   # This function finds the approximate adress of a coordinate.
   adr <- unlist( read.table( paste0("http://maps.googleapis.com/maps/api/geocode/json?latlng=", N, "," ,E,"&language=",language), sep=";", stringsAsFactors=FALSE) )
-  
+
   result <- match.arg(result)
   extract.adr <- function(x)  return(unname(substr(x, 2+gregexpr(":", x)[[1]][1], nchar(x)-1)))
-  
+
   if(result=="full"){
     return(   extract.adr( adr[grep("formatted_address",adr)[1]] )   )
   } else {
@@ -2834,18 +2843,18 @@ get.googlemaps.slopes <- function(N, E){
   # In dieser Funktion mehrere Positionen in der Naehe des Orts abfragen (gleichzeitig)
   # Dann die absolute Hoehendifferenz zwischen dem Mittelpunkt und allen aeusseren Punkten aufsummieren.
   # z.B. Kreisform, oder Sternform mit bestimmem Radius.
-  
+
   # google search:   polygonal city boundaries
   #                  worldwide polygonal city boundaries
   #                  gis database locality boundaries
   # http://wiki.openstreetmap.org/wiki/AT/Gemeinden
   # http://www.openstreetmap.org/relation/16239
   # http://www.gadm.org/                             GADM database of Global Administrative Areas
-  # http://www.naturalearthdata.com/                 
+  # http://www.naturalearthdata.com/
   # SRTM-Daten ( http://de.wikipedia.org/wiki/SRTM-Daten )
   # GRASS GIS - http://grass.osgeo.org/
   # Using GRASS with R - http://grasswiki.osgeo.org/wiki/R_statistics
-  
+
   # http://stackoverflow.com/questions/8135243/finding-towns-within-a-10-mile-radius-of-postcode-google-maps-api
   # http://www.mullie.eu/geographic-searches/
   #  // convert latitude/longitude degrees for both coordinates
@@ -2854,35 +2863,35 @@ get.googlemaps.slopes <- function(N, E){
   #  $lng1 = deg2rad($lng1);
   #  $lat2 = deg2rad($lat2);
   #  $lng2 = deg2rad($lng2);
-  #  
+  #
   #  // calculate great-circle distance
   #  $distance = acos(
   #    sin($lat1) * sin($lat2) +
   #      cos($lat1) * cos($lat2) *
   #      cos($lng1 - $lng2)
   #  );
-  #  
+  #
   #  // distance in human-readable format:
   #    // earth's radius in km = ~6371
   # $distance = 6371 * $distance;
-  
-  
+
+
   # Runden um Zeichen zu sparen
   N <- round(N, 5)
   E <- round(E, 5)
   # Erst Adresse zusammenstellen. Darf maximal 2048 Zeichen haben. mit nchar pruefen.
   coord <- paste0(N, ",", E)
   coord <- paste(coord, collapse="|")
-  
+
   # URL Vorlage:
   # http://maps.googleapis.com/maps/api/elevation/json?locations=39.7391536,-104.9847034|36.455556,-116.866667
-  
+
   url <- paste0("http://maps.googleapis.com/maps/api/elevation/json?locations=", coord)
   if(nchar(url)>2048) {
     print(url, quote=FALSE)
     stop("URL darf maximal 2048 Zeilen lang sein.")
   }
-  
+
   adr <- unlist( read.table( url , sep=";", stringsAsFactors=FALSE) )
   # extract.adr <- function(x)  return(unname(substr(x, 2+gregexpr(":", x)[[1]][1], nchar(x)-1)))
 }
@@ -2893,19 +2902,19 @@ get.googlemaps.slopes <- function(N, E){
 gsub.only.dirs <- function(path=".", pattern, replace, recursive=FALSE) {
   # This function renames all directories and if recursive=TRUE all subdirectories of a given path.
   # pattern & replace shall be used as is used in the gsub() function.
-  
+
   # Find all files
   allfiles <- list.files(path, full.names=TRUE, recursive=recursive)
   # Count maximal number of subdirectories by replacing all slashes and counting the difference.
   nsubdirs <- max(nchar(allfiles)-nchar(gsub("/", "", allfiles)))
-  
+
   # Prepare vector to indicate if the renaming worked.
   worked.fil <- worked.log <- l.name1 <- NULL
-  
+
   # Loop over all subdirectories.
   i <- 1
   for(i in nsubdirs:1){
-    
+
     # Rename the highest subdirectory level, then go one step downwards and rename the next subdirectory level, again and again
     # until all directories are renamed.
     remove.downwards.dirs <- function(char){
@@ -2913,25 +2922,25 @@ gsub.only.dirs <- function(path=".", pattern, replace, recursive=FALSE) {
       until <- max( length(splitchar)-i , 1)
       return( paste(splitchar[ 1:until ], collapse="/") )
     }
-    
+
     name1 <- unique( apply(matrix(allfiles),1,function(x)remove.downwards.dirs(x)) )
     # Shorten directoy vector such that only dirs are renamed that containt pattern.
     name1 <- name1[grepl(pattern, name1)]
     l.name1 <- c(l.name1, length(name1) )
-    
+
     # Replace pattern.
     name2 <- gsub(pattern, replace, name1)
-    
+
     # Rename directories and store information about wheter file.rename() was successful.
     worked.fil <- c(worked.fil, name1)
     worked.log <- c(worked.log, file.rename(name1, name2) )
   }
-  
+
   # Display warning if pattern was not found in any directory and end function
   if(all(l.name1)==0) {
     warning("Pattern was not found. No directories renamed.", call.=FALSE, immediate.=TRUE)
   } else {
-    
+
     # Look for files where it didn't work.
     worked.fil <- unique(worked.fil[!worked.log])
     # See if in any of them there was the pattern to search an replace
@@ -2950,28 +2959,28 @@ gsub.only.dirs <- function(path=".", pattern, replace, recursive=FALSE) {
 gsub.only.files <- function(path=".", pattern, replace, recursive=FALSE) {
   # This function renames all files within a directory (and all files in subdirectories if recursive=TRUE).
   # pattern & replace shall be used as is used in the gsub() function.
-  
+
   allfiles <- list.files(path, full.names=TRUE, recursive=recursive)
   name1 <- allfiles[ !file.info(allfiles)$isdir ]
   # Shorten file vector such that only dirs are renamed that containt pattern.
   name1 <- name1[grepl(pattern, name1)]
-  
+
   # Display warning if pattern wasnt found and end function without doing anything.
   if(length(name1)==0) {
     warning("Pattern was not found. No files renamed.", call.=FALSE, immediate.=TRUE)
   } else {
-    
+
     # Replace pattern.
     name2 <- gsub(pattern, replace, name1)
-    
+
     # Prepare vector to indicate if the renaming worked & rename files.
     # Rename directories and store information about wheter file.rename() was successful.
     worked.fil <- name1
     worked.log <- file.rename(name1, name2)
-    
+
     # Look for files where it didn't work.
     worked.fil <- unique(worked.fil[!worked.log])
-    
+
     # If there is one, display a warning.
     if(length(worked.fil)>0) {
       warning("Not all files could be renamed. See function output.", call.=FALSE)
@@ -2979,7 +2988,7 @@ gsub.only.files <- function(path=".", pattern, replace, recursive=FALSE) {
     } else {
       cat("All files with occurencies successfully renamed.\n")
     }
-    
+
   }
 }
 ####
@@ -3001,9 +3010,9 @@ rename.files <- function(path="."){
   name1 <- list.files("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/", pattern="BH20", full.names=TRUE, recursive=TRUE)
   name2 <- gsub("BH20", "B20", name1)
   file.rename(from=name1, to=name2)
-  
+
   file.rename(from="//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841//SekDaten/Betr_B/AWP/BH2014/", to="//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841//SekDaten/Betr_B/AWP/B2014/")
-  
+
   file.rename(from="./Betr_B/AWP/BH2014/001_AuswahlplanRef_Formel_Seite2.pdf", to="./Betr_B/AWP/B2014/001_AuswahlplanRef_Formel_Seite2.pdf")
 }
 ####
@@ -3021,7 +3030,7 @@ setwd.to.file <- function(file){
 
 # Beispiel und Parametereinstellung unter der Funktion!
 stratif.sqrt.f.rule <- function(x, ngrp, interval){
-  # Diese Funktion stratifiziert eine Population (teilt eine Population in Gruppen auf), 
+  # Diese Funktion stratifiziert eine Population (teilt eine Population in Gruppen auf),
   # sodass moeglichst wenige Beobachtungen fuer eine Genaue Schaetzung gebraucht werden(?).
   # Siehe Cochran (1977): Sampling Techniques. 3rd edition. Wiley. p127-130
   #
@@ -3034,21 +3043,21 @@ stratif.sqrt.f.rule <- function(x, ngrp, interval){
   #
   # Value (Ergebnis) = Vector of values of x that should be used for stratifying.
   # Replace first/last value of vecor with -Inf/Inf and stratify by using the function g1roup.by.fix.scale()
-  
+
   # Fehlende Werte enfternen
   x <- x[!is.na(x)]
-  
+
   # Anzahl Betriebe in den einzelnen Intervallen berechnen
-  tab <- table(ceiling(x/interval)*interval) 
+  tab <- table(ceiling(x/interval)*interval)
   names_tab <- as.numeric(names(tab))
-  # Cumulative Summe der Wurzel berechnen 
+  # Cumulative Summe der Wurzel berechnen
   cusu <- cumsum(sqrt(tab))
   # Division points berechnen
   maxcusu <- max(cusu)
   divpoint <-  maxcusu/ngrp
   divpoint <- seq(divpoint, maxcusu, length.out=ngrp)
   divpoint <- divpoint[-length(divpoint)]  # letzten Punkt weglassen, da dieser keine Grenze sein kann
-  
+
   # Naechste Intervall-Punkte zu den Division points finden
   res <- apply(as.matrix(divpoint),1,function(x) names_tab[which.min(abs(x-cusu))] )
   res <- c(min(x), res, max(x))
@@ -3066,7 +3075,7 @@ if(FALSE){
   borders[1] <- -Inf; borders[length(borders)] <- Inf
   grouping <- g1roup.by.fix.scale(x=x, selection.levels=borders)
   table(grouping)
-  
+
   ## Daten erzeugen
   x0 <- 1:1300
   x <- x0 + rnorm(length(x0),0,seq(1,20,length.out=length(x0)))
@@ -3088,19 +3097,19 @@ mclapply.own <- function(X, FUN, mc.cores=parallel::detectCores(), type=c("PSOCK
                 "    ",paste0(deparse(FUN),collapse=""), "\n",
                 "  But it should look like this:\n",
                 "    function(x)return(x*2)"))
-  
+
   type <- match.arg(type)
-  
+
   require.package(parallel)
   cl <- makeCluster(min(length(X), mc.cores), type=type)
-  
+
   #res <- tryCatch({
   #  parLapply(cl, X=X, fun=FUN)
   #}, finally = {
   #  stopCluster(cl)
   #  if(type=="MPI") mpi.exit()
   #})
-  
+
   res <- parLapply(cl, X=X, fun=FUN)
   stopCluster(cl)
   if(type=="MPI") mpi.exit()
@@ -3109,30 +3118,30 @@ mclapply.own <- function(X, FUN, mc.cores=parallel::detectCores(), type=c("PSOCK
 
 ## Define the hack
 mclapply.hack <- function(...) {
-  ## A script to implement a hackish version of 
+  ## A script to implement a hackish version of
   ## parallel:mclapply() on Windows machines.
   ## On Linux or Mac, the script has no effect
-  ## beyond loading the parallel library. 
-  
+  ## beyond loading the parallel library.
+
   # http://www.stat.cmu.edu/~nmv/2014/07/14/implementing-mclapply-on-windows
   # http://www.stat.cmu.edu/~nmv/setup/mclapply.hack.R
   require(parallel)
-  
+
   ## Create a cluster
   size.of.list <- length(list(...)[[1]])
   cl <- makeCluster( min(size.of.list, detectCores()) )
-  
-  ## Find out the names of the loaded packages 
+
+  ## Find out the names of the loaded packages
   loaded.package.names <- c(
     ## Base packages
     sessionInfo()$basePkgs,
     ## Additional packages
     names( sessionInfo()$otherPkgs ))
-  
+
   tryCatch( {
-    
+
     ## Copy over all of the objects within scope to
-    ## all clusters. 
+    ## all clusters.
     this.env <- environment()
     while( identical( this.env, globalenv() ) == FALSE ) {
       clusterExport(cl,
@@ -3143,17 +3152,17 @@ mclapply.hack <- function(...) {
     clusterExport(cl,
                   ls(all.names=TRUE, env=globalenv()),
                   envir=globalenv())
-    
+
     ## Load the libraries on all the clusters
     ## N.B. length(cl) returns the number of clusters
     parLapply( cl, 1:length(cl), function(xx){
       lapply(loaded.package.names, function(yy) {
         require(yy , character.only=TRUE)})
     })
-    
-    ## Run the lapply in parallel 
+
+    ## Run the lapply in parallel
     return( parLapply( cl, ...) )
-  }, finally = {        
+  }, finally = {
     ## Stop the cluster
     stopCluster(cl)
   })
@@ -3161,9 +3170,9 @@ mclapply.hack <- function(...) {
 
 ## If the OS is Windows, set mclapply to the
 ## the hackish version. Otherwise, leave the
-## definition alone. 
+## definition alone.
 if(FALSE) mclapply <- switch( Sys.info()[['sysname']],
-                    Windows = {mclapply.hack}, 
+                    Windows = {mclapply.hack},
                     Linux   = {mclapply},
                     Darwin  = {mclapply})
 
@@ -3228,7 +3237,7 @@ mahalanobis.outliers <- function(data, p.val=0.025, method=c("absMahaDistIncreas
     if(!is.null(plotText)) legMat["5","legend"] <- plotText else legMat <- legMat[-nrow(legMat),]
     drawLegend <- function() legend("topleft", legend=legMat[,"legend"], lty=legMat[,"lty"], pch=legMat[,"pch"], col=legMat[,"col"], bty="n");
   }
-  
+
   maha <- mahalanobis(data,colMeans(data),cov(data))
   if(method=="quantile") {
     q1 <- quantile(maha,1-p.val)
@@ -3259,7 +3268,7 @@ mahalanobis.outliers <- function(data, p.val=0.025, method=c("absMahaDistIncreas
       regr.diff.fact <- 2.3
       regrFilt <- (oMaha / (rMaha * coef)) > regr.diff.fact & rMaha>floor(length(rMaha)/2)
     }
-    
+
     # Combine the criteria from 'estimated mahalanobis from regression' and 'increasing differences of mahalanobis distance'.
     outliers <- (diffFilt & regrFilt)[order(om)]
     names(outliers) <- names(maha)
@@ -3326,7 +3335,7 @@ highly.correlated1 <- function(data,level=0.8,digits=2,result=c("colnames","coln
   }
   if(result!="kick.out.logical") {
     results <- cbind(Variable1,Variable2,Correlation);  colnames(results) <- c("Variable 1","Variable 2","Correlation")
-    if(nrow(results)<1) results[1,] <- NA 
+    if(nrow(results)<1) results[1,] <- NA
   } else {results <- rbind(kick.out.variable1,kick.out.variable2); rownames(results) <- c("few","many")}
   return(results)
 }
@@ -3370,12 +3379,12 @@ check.variable.constance <- function(data,grouping=NULL,test=c("any","all"),leve
       sum(tablex[1:min(nvalues,lengthtablex)] [ tablex[1:min(nvalues,lengthtablex)]>1 ]) > length(x)*level
     }
   kick.outs <- apply(data,2,function(y)tapply(y,grouping,function(y)constance(y,level)))
-  
+
   if(matrix.output==FALSE) {
     if(all(grouping==1)) kick.out <- rbind(kick.outs,kick.outs)
     if(test=="any") kick.out <- apply(kick.outs,2,function(x) any(x))
     if(test=="all") kick.out <- apply(kick.outs,2,function(x) all(x))
-    if(result=="logical") {     results <- kick.out 
+    if(result=="logical") {     results <- kick.out
     } else if(any(kick.out)) {
       if(result=="colnumbers")  results <- which(kick.out)
       if(result=="colnames")    results <- names(kick.out[kick.out])
@@ -3409,9 +3418,9 @@ check.group.sd <- function(data,grouping=NULL,test=c("all","any",factor=10)[1],r
       if(result=="colnumbers") results <- which(kick.out)
       if(result=="colnames") results <- names(kick.out[kick.out])
     } else results <- NA
-    
+
   } else if(matrix.output=="full")     { results <- sds==0
-  } else if(matrix.output=="relevant") { 
+  } else if(matrix.output=="relevant") {
     semi.result <- sds==0[]
     results <- semi.result [, apply(sds,2,function(x) any(x==0) )]
     if(ncol(results)<1) results <- NA
@@ -3444,7 +3453,7 @@ clean.number.format <- function(dat, to.numeric=TRUE) {
   # This funciton cleans wrongly formatted data. E.g. from 1.000,00 to 1000.00
   # dat = the data.frame/matrix to be formatted
   # to.numeric = should numeric columns that where originally interpreted as characters be coerced to numeric()?
-  
+
   # Schauen, in welchen Spalten keine Buchstaben drinstehen, aber ' oder,
   # Debugging
   #x <- c("bxfbs","1e+01","10'00","10,0",1)
@@ -3459,13 +3468,13 @@ clean.number.format <- function(dat, to.numeric=TRUE) {
     x <- gsub(" |'","", # Schritt 2: Format 1 000.00 oder 1'000.00 -> 1000.00
               gsub(",",".",x) ) # Schritt 3: Format 1000,00 -> 1000.00
   })
-  
+
   return(dat)
 }
 
 clean.data.columns <- function(dat){
   # This function deletes duplicated columns and removes some part of the colnames that result from SQL execution with Java (instead of BO).
-  
+
   # Leere Spalten entfernen
   dat <- dat[,!substr(colnames(dat),1,3)%in%paste0("X.",0:9)]
   # Doppelte Spalten entfernen
@@ -3489,7 +3498,7 @@ if(FALSE){
 char.cols.to.num <- function(x, checkrowsForInteger=NULL, stringsAsFactors=FALSE){
   # This function checks in all cols of a data.frame if they can be coerced to numeric without producing NA values.
   # If it's possible the col is coerced to numeric with as.numeric()
-  
+
   if(is.matrix(x)) {
     rownames(x) <- NULL
     x <- as.data.frame(x, stringsAsFactors=stringsAsFactors)
@@ -3500,11 +3509,11 @@ char.cols.to.num <- function(x, checkrowsForInteger=NULL, stringsAsFactors=FALSE
   }
   rn <- rownames(x)
   cn <- colnames(x)
-  
+
   naT <- function(x){x[is.na(x)] <- TRUE; return(x)}
   if(!is.null(checkrowsForInteger) && checkrowsForInteger>nrow(x)) checkrowsForInteger <- nrow(x)
   res <- as.data.frame(lapply(x, function(x) if(is.character(x) || (!is.null(checkrowsForInteger) && all(naT(round(x[1:checkrowsForInteger])==x[1:checkrowsForInteger]))) ) type.convert(as.character(x),as.is=!stringsAsFactors) else x), stringsAsFactors=stringsAsFactors)
-  #res <- as.data.frame(lapply(x,function(x)if(is.character(x)) type.convert(x,as.is=!stringsAsFactors) else x), stringsAsFactors=stringsAsFactors)  
+  #res <- as.data.frame(lapply(x,function(x)if(is.character(x)) type.convert(x,as.is=!stringsAsFactors) else x), stringsAsFactors=stringsAsFactors)
   #res <- as.data.frame(lapply(x, function(x) if( is( tryCatch(as.numeric(x[1:checkrowsForInteger]),error=function(e)e,warning=function(w)w), "warning") ) return(x) else return(as.numeric(x))    ), stringsAsFactors=stringsAsFactors)
   rownames(res) <- rn
   colnames(res) <- cn
@@ -3552,7 +3561,7 @@ categ.to.bin <- function(x, varname="var", sep.sign="_", allnames=NULL){
     if(length(allnames)!=lux) stop("length(allnames) != length(unique(x))")
     colnames(ord) <- allnames
   }
-  
+
   for(i in 1:lux){
     ord[x==sux[i],i] <- 1
   }
@@ -3575,7 +3584,7 @@ categ.to.ordinal <- function(x, varname="var", sep.sign="_", allnames=NULL){
   } else {
     if(length(allnames)!=lux) stop("length(allnames) != length(unique(x))")
   }
-  
+
   for(i in 1:lux){
     ord[x>=sux[i],i] <- 1
   }
@@ -3611,7 +3620,7 @@ perc.selective <- function(x, digits=1, limits=c(0,1), add.name="(%)", margin=2)
     limits <- numeric()
     limits[1] <- -limits.orig;  limits[2] <- limits.orig
   }
-  
+
   # Rekursive Funktionsdefinition im Fall, dass !is.null(dim(x))
   if(!is.null(dim(x))) {
     if(is.matrix(x)) {
@@ -3633,11 +3642,11 @@ perc.selective <- function(x, digits=1, limits=c(0,1), add.name="(%)", margin=2)
     names(res)[ add.perc.colname ] <- paste0(names(res)[ add.perc.colname ], add.name)
     return(res)
   }
-  
+
   if(!is.numeric(x)) return(x)
   if(all(is.na(x))) return(x)
-  
-  
+
+
   if(all( x[!is.na(x)]<=limits[2] & x[!is.na(x)]>=limits[1] )) {
     return( round(100*x,digits=digits) )
   } else  {
@@ -3661,12 +3670,12 @@ signif.equally <- function(x,digits=3,max=1,margin=2) {
     }
   }
   if(is.list(x)) return(lapply(x,function(x)signif.equally(x=x,digits=digits,max=max,margin=margin)))
-  
+
   if(!is.numeric(x)) return(x)
-  
+
   x.orig <- x
   x <- x[!is.na(x)]
-  if(length(x)==0) return(x.orig) # Wenn alles NA Werte waren, sollen NA Werte zurückgegeben werden.
+  if(length(x)==0) return(x.orig) # Wenn alles NA Werte waren, sollen NA Werte zur?ckgegeben werden.
   digits.min <- floor(log10(abs(min(x))))+1
   if( digits.min <= 1 ) {
     digits2 <- max
@@ -3680,7 +3689,7 @@ signif.equally <- function(x,digits=3,max=1,margin=2) {
 n.decimals <- function(x){
   stopifnot(class(x)%in%c("numeric","integer"))
   if(length(x)>1) return(  unlist( lapply(as.list(x),function(x)n.decimals(x)) )  )
-  
+
   x <- abs(x)
   if(x%%1==0) {
     return(0)
@@ -3724,7 +3733,7 @@ equal.length <- function(x, add=0, where=c("beginning","end"), minlength=0, marg
     if(is.data.frame(x)) return( as.data.frame( lapply(x,function(x)equal.length(x=x, add=add, where=where, minlength=minlength, margin=margin)) ,stringsAsFactors=FALSE) )
   }
   if(is.list(x)) return(lapply(x,function(x)equal.length(x=x, add=add, where=where, margin=margin)))
-  
+
   where <- match.arg(where)
   nchar.x <- nchar(x)
   nchar.x[is.na(nchar.x)] <- 0
@@ -3744,51 +3753,51 @@ if(FALSE) {
 }
 trennzeichen1000 <- function(x, sign="'", digits=2, signifequally=FALSE, power=9){
   # Diese Funktion fuegt Tausender-Trennzeichen in Zahlen ein.
-  
+
   # Rekursive Funktionsdefinitionen, falls es sich um eine Matrix, Data.Frame oder Liste handelt.
   if(!is.null(dim(x))) {
     if(is.matrix(x))     return( apply(x,2,function(x)  trennzeichen1000(x=x, sign=sign, digits=digits, signifequally=signifequally, power=power) )  )
     if(is.data.frame(x)) return( as.data.frame( lapply(x,function(x)  trennzeichen1000(x=x, sign=sign, digits=digits, signifequally=signifequally, power=power) ) ,stringsAsFactors=FALSE) )
   }
   if(is.list(x)) return(lapply(x,function(x)  trennzeichen1000(x=x, sign=sign, digits=digits, signifequally=signifequally, power=power) ))
-  
-  
+
+
   if(is.character(x)) x <- as.numeric(x)
-    
+
   if(signifequally) {
     x <- signif.equally(x)
   } else {
     x <- round(x, 2)
   }
-  
+
   chars <- as.character(x)
   if(length(chars)%%2==0) add_1 <- 0 else add_1 <- 1
   find_comma <- (1:length(chars)) %in% grep("\\.", chars)
   if(sum(find_comma)==0) comma_sign <- "" else comma_sign <- "."
   sep_comma <- unlist(strsplit(chars[find_comma], split="\\."))
-  
+
   after_comma <- rep("", length(chars))
   after_comma[find_comma] <- sep_comma[(1:(length(find_comma)+add_1))%%2==0]
-  
+
   before_comma <- rep("", length(chars))
   before_comma[find_comma] <- sep_comma[(1:(length(find_comma)+add_1))%%2!=0]
   before_comma[!find_comma] <- chars[!find_comma]
-  
+
   power_added <- 0
   i <- 1
   for(i in 1:power){
     select <- nchar(before_comma)>i*3+power_added
     if(sum(select)==0) break
-    
+
     tmp <- before_comma[select]
     tmp <- paste0(substr.rev(tmp,i*3+power_added+1, nchar(tmp)+power_added+1),
                   sign,
                   substr.rev(tmp,1,i*3+power_added) )
-    
+
     before_comma[select] <- tmp
     power_added <- power_added + 1
   }
-  return(paste0(before_comma, comma_sign, after_comma))  
+  return(paste0(before_comma, comma_sign, after_comma))
 }
 ####
 
@@ -3828,7 +3837,7 @@ scale.sd <- function(x,na.rm=TRUE){
 scale.reverse <- function(x,mean,sd){
   # "unscale" data.
   # Also possible for matrix and data.frame
-  
+
   attributes(x)$`scaled:center` <- attributes(x)$`scaled:scale` <- NULL
   is.null.dim.x <- is.null(dim(x))
   is.data.frame.x <- is.data.frame(x)
@@ -3865,7 +3874,7 @@ if(FALSE){
   match.df.by.id(df1=df1, df2=df2, id1=id1, id2=id2, keep.no.matches=TRUE)
   match.df.by.id(df1=df1, df2=df2, id1=id1, id2=id2, keep.no.matches=FALSE)
   merge(df1, df2, by.x="ID1", by.y="ID2")
-  
+
 }
 
 ####
@@ -3883,22 +3892,22 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE, check.duplicate
   # This function matches two data frames by id.
   # If wished (by default) also no matches are kept.
   # Alternative: merge(df1, df2, by.x="ID1", by.y="ID2"), see also package data.table.
-  
+
   if(any( colnames(df1)%in%c("id1","id2") )) stop("There must be no colnames(df1) equal 'id1' or 'id2'")
   if(any( colnames(df2)%in%c("id1","id2") )) stop("There must be no colnames(df2) equal 'id1' or 'id2'")
-  
+
   if(is.null(dim(df1))|is.null(dim(df2))) stop("df1 and df2 must be data.frame or matrix")
   if(nrow(df1)!=length(id1)) stop("length(id1) must be equal nrow(df1)")
   if(nrow(df2)!=length(id2)) stop("length(id2) must be equal nrow(df2)")
-  
+
   # Check for NA values in the IDs
   is.na.id1 <- is.na(id1)
   is.na.id2 <- is.na(id2)
-  
+
   # Save original Colnames and restore them in the end of the function
   cn_orig <- c(colnames(df1),colnames(df2))
   cn_new <- colnames(data.frame(df1[1,,drop=FALSE], df2[1,,drop=FALSE]))
-  
+
   # If there are NA values, store them seperately in order to add them to the result at the end of the function.
   # But only if keep.no.matches=TRUE. Anyway they are dropped for the matching process.
   if(any(is.na.id1)){
@@ -3920,11 +3929,11 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE, check.duplicate
     id2 <- id2[!is.na.id2]
     df2 <- df2[!is.na.id2,,drop=FALSE]
   }
-  
+
   id1.double <- duplicated(id1)
   id2.double <- duplicated(id2)
   if(any(id1.double)|any(id2.double)){
-    
+
     prov.return <- list()
     if(check.duplicated & any(id1.double)){
       stop("There are duplicated IDs in id1")
@@ -3945,7 +3954,7 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE, check.duplicate
     class(prov.return) <- "match.df.by.id.prov"
     rm.gc.keep("prov.return"); return(prov.return)
   }
-  
+
   # Wenn no-matches nicht behalten werden sollen, ist die einfach.
   if(!keep.no.matches){
     df1 <- df1[id1%in%id2,,drop=FALSE]
@@ -3955,21 +3964,21 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE, check.duplicate
     df1 <- data.frame(id1=id1, id2=id2[match(id1,id2)], df1, df2[match(id1,id2),,drop=FALSE], stringsAsFactors=stringsAsFactors)
     rm.gc.keep("df1"); return(df1) # Do not create not object "res" to save memory.
     #return(data.frame(id1=id1, id2=id2[match(id1,id2)], df1, df2[match(id1,id2),,drop=FALSE], stringsAsFactors=stringsAsFactors))
-    
-    
+
+
     # Kompliziert, wenn no-matches behalten werden sollen.
   } else {
     ncol_df1 <- ncol(df1)
     ncol_df2 <- ncol(df2)
     colnames_df2 <- colnames(df2)
     colnames_df1 <- colnames(df1)
-    
+
     df1.gt.df2 <- nrow(df1)>nrow(df2)
     if(!df1.gt.df2){
-      
+
       newo <- match(id1,id2)
       result <- data.frame(id1, df1, id2=id2[newo], df2[newo,,drop=FALSE], stringsAsFactors=stringsAsFactors)
-      
+
       #if(keep.no.matches){
       id2.in.id2.new <- id2%in%result[,"id2"]
       if(any(!id2.in.id2.new)){
@@ -3982,14 +3991,14 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE, check.duplicate
         result <- rbind(result,add.df)
       }
       suppressWarnings(rm(add.df, id1, id2, df1, df2)); invisible(gc())
-      
+
       #} else {
       #  result <- result[!is.na(result[,"id2"]),,drop=FALSE]
       #}
-      
-      
+
+
     } else { #if(df1.gt.df2)
-      
+
       # Hinweis: Den Code von oben kopieren. Dann folgende Ersetzungen vornehmen:
       # df1 -> df3
       # df2 -> df4
@@ -4000,11 +4009,11 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE, check.duplicate
       # df3 -> df2
       # id4 -> id1
       # id3 -> id2
-      
+
       ### Block reinkopieren - Anfang ###
       newo <- match(id2,id1)
       result <- data.frame(id2, df2, id1=id1[newo], df1[newo,,drop=FALSE])
-      
+
       #if(keep.no.matches){
       id1.in.id1.new <- id1%in%result[,"id1"]
       if(any(!id1.in.id1.new)){
@@ -4021,23 +4030,23 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE, check.duplicate
       #  result <- result[!is.na(result[,"id1"]),,drop=FALSE]
       #}
       ### Block reinkopieren - Ende ###
-      
+
       # Schliesslich Reihenfolge zuruecktauschen:
       result <- result[,c( (1+ncol_df2+1)  #id1
                            ,(1+ncol_df2+1+1):ncol(result) #df1
-                           ,1 #id2                  
+                           ,1 #id2
                            ,2:(1+ncol_df2)) #df2
                        ]
     }
-    
-    
-    
+
+
+
     # Jetzt id1 und id2 an den Anfang stellen, Rest lassen:
     result <- result[,c( which(colnames(result)=="id1"),
                          which(colnames(result)=="id2"),
                          which(!colnames(result)%in%c("id1","id2")) )
                      ]
-    
+
     # Am Schluss wieder diejenigen Betriebe einfuegen, die bei ihrer eigenen ID NA Values drinstehen hatten:
     if(any(is.na.id1) & keep.no.matches){
       pseudo.df2 <- as.data.frame(matrix(NA, nrow=nrow(df1.na), ncol=ncol(result)-2-ncol(df1.na)))
@@ -4049,12 +4058,12 @@ match.df.by.id <- function(df1,df2,id1,id2,keep.no.matches=TRUE, check.duplicate
       colnames(pseudo.df1) <- colnames_df1
       result <- rbind(result,  data.frame(id1=NA, id2=NA, pseudo.df1, df2.na, stringsAsFactors=stringsAsFactors) )
     }
-    
+
     colnames(result) <- replace.values(cn_new, cn_orig, colnames(result))
   }
-  
+
   rm.gc.keep("result"); return(result)
-}    
+}
 ####
 print.match.df.by.id.prov <- function(object){
   object$df1 <- NULL
@@ -4067,7 +4076,7 @@ print.match.df.by.id.prov <- function(object){
 match.multiple.id.left <- function(id_left, id_right) {
   # This function matches unique IDs in the right vector (the vector that provides values) to non-unique IDs in the left vector (the vector that receives values)
   # Ouput is a matrix. First column serves as index for left vector. Second Column serves as index for right vector.
-  
+
   if(any(duplicated(id_right))) stop("Duplicated IDs in id_right are *not* allowed.")
   m_right <- match(id_left,id_right); m_right <- m_right[!is.na(m_right)]; m_right
   m_left <- which(id_left%in%id_right)
@@ -4083,11 +4092,11 @@ balanced.panel <- function(id, year, YEAR=sort(unique(year)), index=NULL, nYEARm
   # nYearmin: Minimum number of years to be selected for the pseudo balanced panel
   # index:    Index for which the balancing should be done.
   # output:   Logical vector or IDs?
-  
+
   output <- match.arg(output)
   YEAR <- unique(YEAR)
   if(length(id)!=length(year)) stop("Length id must be equal length year")
-  
+
   if(!is.null(index)) {
     if(output!="logical") stop("If !is.null(index) only output=logical is possible!")
     # Converting Index to string vector
@@ -4101,7 +4110,7 @@ balanced.panel <- function(id, year, YEAR=sort(unique(year)), index=NULL, nYEARm
       paste_own <- function(...) paste(..., sep="_")
       index <- do.call("paste_own", index)
     }
-    
+
     # Recursive function definition if !is.null(index)
     # balanced.panel() for each entry in index separately.
     #x <- cbind(counter=1:length(id),id=id,year=year)[index==index[1],]
@@ -4110,7 +4119,7 @@ balanced.panel <- function(id, year, YEAR=sort(unique(year)), index=NULL, nYEARm
     }))
     return( res[order(res[,"counter"]),"filter"] )
   }
-  
+
   mode.id <- mode(id) # Save mode of id for later output
   IDs <- list()
   for(i in 1:length(YEAR)){
@@ -4126,7 +4135,7 @@ balanced.panel <- function(id, year, YEAR=sort(unique(year)), index=NULL, nYEARm
   IDs.final <- names(table.IDs)[table.IDs>=nYEARmin]
   mode(IDs.final) <- mode.id  # Set back the mode to original value (instead of character from names(table())... )
   if(output=="logical") {
-    return( id%in%IDs.final & year%in%YEAR ) 
+    return( id%in%IDs.final & year%in%YEAR )
   } else {
     warning("This output only serves to show which IDs are in all years. However, it is possible that they are in other years too. E.g. you choose YEAR=c(0,1,2), some IDs could be in all years c(0,1,2) but also in year 3. If you want to filter only the relevant IDs AND years choose output='logical'")
     return(IDs.final)
@@ -4145,7 +4154,7 @@ balanced.panel.filtering <- function(criterium, data, id.vec, year.vec, output=c
   # id.vec:    vector of IDs (preferrably something like data[,"ID"] )
   # year.vec:  vector of years (preferrably something like data[,"year"] )
   # output:    Should the output be in form of a logical vector or IDs? --> Better choose "logical" in order not to have problems!
-  
+
   output <- match.arg(output)
   if(!is.data.frame(data)) data <- as.data.frame(data)
   mf <- match.call() # http://stackoverflow.com/questions/4682709/how-to-write-an-r-function-that-evaluates-an-expression-within-a-data-frame
@@ -4153,11 +4162,11 @@ balanced.panel.filtering <- function(criterium, data, id.vec, year.vec, output=c
   # or http://adv-r.had.co.nz/
   criterium <- eval(mf$criterium, envir=data) # It would also work with eval(substitute(criterium), data) without match.call()
   criterium[!is.finite(criterium)] <- !NAasFALSE
-    
+
   table.id.vec.criterium <- table(id.vec[criterium])
   ID <- as.numeric( names( table.id.vec.criterium )[ table.id.vec.criterium==length(unique(year.vec)) ] )
   if(output=="logical") {
-    return( id.vec %in% ID  ) 
+    return( id.vec %in% ID  )
   } else {
     return(ID)
   }
@@ -4175,8 +4184,8 @@ if(FALSE){
   year <- gb[,"Jahr"]
   weights <- gb[,"Gewicht"]
   YEAR=sort(unique(year));
-  baseyear=min(YEAR); geometric=FALSE; absolute.diff=TRUE; filter=FALSE; filter.level=c(1/3,3); return.N=FALSE; 
-  
+  baseyear=min(YEAR); geometric=FALSE; absolute.diff=TRUE; filter=FALSE; filter.level=c(1/3,3); return.N=FALSE;
+
   # Debugging
   mean(x[year==1]) - mean(x[year==0])
   mean(x[year==1]) / mean(x[year==0])
@@ -4184,7 +4193,7 @@ if(FALSE){
   mean.geom(x[year==1]) - mean.geom(x[year==0])
   mean.geom(x[year==1]) / mean.geom(x[year==0])
   balanced.panel.development(x,id,year,YEAR=sort(unique(year)),baseyear=min(YEAR),geometric=TRUE,absolute.diff=TRUE,filter=FALSE,filter.level=c(1/3,3),return.N=FALSE)
-  
+
   # Weighted
   w <- c(1:10)
   x <- sample(1:100,10,replace=TRUE)
@@ -4198,7 +4207,7 @@ if(FALSE){
 balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyear=min(YEAR),weights=NULL,geometric=TRUE,absolute.diff=FALSE,absolute.number=c("no","comparable_baseyear","all_baseyear"),filter=TRUE,filter.level=c(1/3,3),return.N=FALSE){
   # Note that there is a safety copy of this function just below.
   # weights are not implemented for geometric means!!!
-  
+
   # This function calculates an index of an unbalanced time series.
   # This can be useful if you want to follow the delevoptment of yields but the time horizon
   # is so long that a balanced panel over the whole period has 0 observations.
@@ -4217,10 +4226,10 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
   # filter:          Should extreme changes (that are probalby not realistic) be filtered out?
   # filter.level:    If yes, which change-factor is the threshold to filter out c(upper,lower)
   # return.N:        Should the number of observations in each year be calculated instead of the index?
-  
+
   if(is.data.frame(x) | is.list(x)) return( sapply(x,function(x)balanced.panel.development(x=x,id=id,year=year,YEAR=YEAR,baseyear=baseyear,weights=weights, geometric=geometric, absolute.diff=absolute.diff, absolute.number=absolute.number, filter=filter,filter.level=c(1/3,3),return.N=return.N)) )
   if(is.matrix(x)) return( apply(x,2,                function(x)balanced.panel.development(x=x,id=id,year=year,YEAR=YEAR,baseyear=baseyear,weights=weights, geometric=geometric, absolute.diff=absolute.diff, absolute.number=absolute.number, filter=filter,filter.level=c(1/3,3),return.N=return.N)) )
-  
+
   # weights wird w genannt, damit es im Code einfacher einzubauen ist
   weighted <- !is.null(weights)
   if(weighted){
@@ -4228,9 +4237,9 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
     if(length(x)!=length(w)) stop("length(x)!=length(weights)")
   }
   rm(weights)
-  
+
   absolute.number <- match.arg(absolute.number)
-  
+
   if(filter) warning("You have chosen filter=TRUE which excludes extreme values from analysis.")
   if(geometric & absolute.diff) warning("The combination of mean.geom and absoulte difference is rather unusual!")
   if(geometric & weighted) warning("Weighting is not implemented for geometric means.")
@@ -4239,11 +4248,11 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
   if(length(x)!=length(year)) stop("length(x)!=length(year)")
   if(!baseyear%in%YEAR) stop("baseyear must be in the range of YEAR")
   if(any(!YEAR%in%year)) warning("the years ", YEAR[!YEAR%in%year]," are used in YEAR but do not exist in year")
-  
+
   YEAR <- sort(YEAR)
   d.means <- numeric()
   N <- numeric(length(YEAR)); names(N) <- YEAR; N[N==0] <- NA;
-  
+
   i <- 1
   # Start loop over all YEAR
   for(i in 1:(length(YEAR)-1)) {
@@ -4262,10 +4271,10 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
     year1 <- year12 & year%in%YEAR[i]
     year2 <- year12 & year%in%YEAR[i+1]
     if(FALSE){ # Test, if it worked
-      print(table( year[year12] )) 
+      print(table( year[year12] ))
       print(all(table(id[year12])==2))
     }
-    
+
     # Calculate the number of observations for the first year.
     if(return.N){
       if(i==1){
@@ -4275,7 +4284,7 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
         N[1] <- sum(year1.temp)
       }
     }
-    
+
     # Filtering of extreme Values is always done with relative changes.
     if(filter) {
       d <- x[year2][order(id[year2])]   /   x[year1][order(id[year1])]
@@ -4284,12 +4293,12 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
     } else {
       keep <- rep(TRUE, length(x))
     }
-    
+
     if(geometric){
       # Calculate the relative differences between the years.
       # Important: The values have to be ordered such that always the same observations are compared
       d.means[i] <- mean.geom(x[year2][order(id[year2])][keep]) / mean.geom(x[year1][order(id[year1])][keep])
-      
+
     } else {
       # Calculate the absolute differences between the years.
       if(weighted) {
@@ -4298,7 +4307,7 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
       } else {
         d.means[i] <- mean(x[year2][order(id[year2])][keep],na.rm=TRUE) - mean(x[year1][order(id[year1])][keep],na.rm=TRUE)
       }
-      
+
       # If the absolute number is whised (absolute.number==TRUE), the mean of the according year has to be calculated with the comparable observations
       # Falls so gewaehlt, den Mittelwert der Vergleichbaren im Baseyear berechnen.
       if(absolute.number=="comparable_baseyear"){
@@ -4311,12 +4320,12 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
         }
       }
     }
-    
+
     # Calculate the number of observations that were used to build the difference
     if(return.N) N[i+1] <- sum(!is.na(d[[i]]))
   }
   # END OF THE LOOP
-  
+
   # Bei geometric ist der Wert im 1. Jahr ist der Ausgangswert. Also 1.
   # Bei arithmecid 0
   if(geometric){
@@ -4324,22 +4333,22 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
   } else {
     d.means <- c(0,d.means)
   }
-  
+
   if(return.N) return(N)
-  
+
   if(geometric){
-    # Bisher wird jeweils die Veränderung zum Vorjahr wiedergegeben.
-    # Nun müssen die Werte noch miteinander multipliziert werden, damit sich der Verlauf von Anfang an ergibt.
+    # Bisher wird jeweils die Ver?nderung zum Vorjahr wiedergegeben.
+    # Nun m?ssen die Werte noch miteinander multipliziert werden, damit sich der Verlauf von Anfang an ergibt.
     index <- numeric(length(d.means)); names(index) <- YEAR
     for(i in 1:length(d.means)) index[i] <- prod(d.means[1:i])
-    
+
     # Alt
     # Alle Zahlen durch den Index im Index-Jahr dividieren, sodass dort der 1-Punkt ensteht.
     #index <- index/index[names(index)==baseyear]
     # Debugging
     # mean.geom(x[year==2012])
     # mean.geom(x[year==2013])
-    
+
     # Der Inex wird im Jahr 1 = 0 gesetzt. Dann Der Mittelwert im Index-Jahr subtrahiert, sodass dort der 0-Punkt ensteht.
     if(absolute.diff){
       mean.year1 <- mean.geom(x[year1],na.rm=TRUE)
@@ -4349,15 +4358,15 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
     } else {
       index <- index/index[names(index)==baseyear]
     }
-  
+
 
   } else { # if(!geometric)
-    
-    # Bisher wird jeweils die Veränderung zum Vorjahr wiedergegeben.
-    # Nun müssen die Werte noch addiert werden, damit sich der Verlauf von Anfang an ergibt.
+
+    # Bisher wird jeweils die Ver?nderung zum Vorjahr wiedergegeben.
+    # Nun m?ssen die Werte noch addiert werden, damit sich der Verlauf von Anfang an ergibt.
     index <- numeric(length(d.means)); names(index) <- YEAR
     for(i in 1:length(d.means)) index[i] <- sum(d.means[1:i])
-    
+
     # Choose again the balanced Panel of the first year. Then put all numbers in to relation to that mean.
     ids <- id[year%in%c(YEAR[1],YEAR[1+1])]
     table.ids <- table(ids)
@@ -4380,14 +4389,14 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
     } else {
       mean.year1 <- mean(x[year1],na.rm=TRUE)
     }
-      
+
     # Der Index wird relativiert durch den Mean des ersten Jahres.
     index <- (index+mean.year1)
-    
+
     # Debugging
     # mean(x[year==2012])
     # mean(x[year==2013])
-    
+
     # Der Inex wird im Jahr 1 = 0 gesetzt. Dann Der Mittelwert im Index-Jahr subtrahiert, sodass dort der 0-Punkt ensteht.
     if(absolute.diff){
       index <- index-mean.year1
@@ -4411,7 +4420,7 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
       index <- index/index[names(index)==baseyear]
     }
   } # End if
-  
+
   if(any(is.na(index)) & geometric) cat("Note that the geometric mean can only be calculated if all numbers are positive.\n")
   return(index)
 }
@@ -4432,7 +4441,7 @@ group.by.fix.scale <- function(x, selection.levels, method=c("< x <=", "<= x <")
     selection.levels <- c(min(x[!is.na.x]), selection.levels, max(x[!is.na.x]))
   }
   length.selection.levels <- length(selection.levels)
-  
+
   grouping <- rep(NA,length(x))
   if(method=="<= x <")  {
     for(i in 1:(length.selection.levels-2)) {
@@ -4459,7 +4468,7 @@ group.by.fix.scale <- function(x, selection.levels, method=c("< x <=", "<= x <")
       if(give.names) names(grouping)[  x > selection.levels[i] & x <= selection.levels[i+1] ] <- paste(zapsmall(round(c(selection.levels[i],selection.levels[i+1]),names.digits) ),collapse=names.sep)
     }
   }
-  
+
   if(any(is.na(grouping))) {
     #print(grouping)
     warning("NAs produced")
@@ -4472,7 +4481,7 @@ group.by.fix.scale <- function(x, selection.levels, method=c("< x <=", "<= x <")
 group.by.quantiles <- function(x, selection.levels=seq(0,1,0.1), method=c("< x <=", "<= x <"), include.min.max=TRUE, give.names=FALSE, names.digits=2, names.sep="-", weights=NULL, na.rm=FALSE){
   # Groupy data by quantiles.
   # This is a wrapper for group.by.fix.scale with slightly altered interface.
-  
+
   #x <- rnorm(1000);  selection.levels <- c(0, 0.25, 0.5, 0.75, 1); method=c("<= x <"); include.min.max=TRUE; weights=rnorm(1000)
   #group.by.quartiles(x=x, weights=weights);
   method <- match.arg(method)
@@ -4483,7 +4492,7 @@ group.by.quantiles <- function(x, selection.levels=seq(0,1,0.1), method=c("< x <
     include.min.max <- TRUE
     selection.levels.rel <- c(0, selection.levels.rel, 1)
   }
-  
+
   if(is.null(weights))  {
     selection.levels.abs <- quantile(x,selection.levels.rel)
   } else {
@@ -4495,7 +4504,7 @@ group.by.quantiles <- function(x, selection.levels=seq(0,1,0.1), method=c("< x <
     if(min(selection.levels.rel)==0) selection.levels.abs[which.min(selection.levels.rel)] <- min(x)-1
     if(max(selection.levels.rel)==1) selection.levels.abs[which.max(selection.levels.rel)] <- max(x)+1
   }
-  
+
   grouping <- group.by.fix.scale(x=x, selection.levels=selection.levels.abs, method=method, include.min.max=include.min.max, give.names=give.names, names.digits=names.digits, names.sep=names.sep)
   return(grouping)
 }
@@ -4509,10 +4518,10 @@ group.by.quartiles <- function(...){
 group.by.wtd.quantiles <- function(x, weights=NULL, index=NULL, probs=c(0, 0.25, 0.5, 0.75, 1), method=c("< x <=", "<= x <"), na.rm=TRUE) {
   # This function groups the elements of a vector by weighted quantiles.
   # Weights and index can be given.
-  
+
   method <- match.arg(method)
   if(!is.null(dim(x))) stop("x must be a vector")
-  
+
   # If an index is given, the quantiles are grouped for each index
   if(!is.null(index)) {
     if(is.list(index)){
@@ -4528,7 +4537,7 @@ group.by.wtd.quantiles <- function(x, weights=NULL, index=NULL, probs=c(0, 0.25,
     })))
     return(res[order(res[,"id"]),"q"])
   }
-  
+
   # This is the actual grouping function
   selection.levels <- quantile.weight(x=x, weights=weights, index=NULL, probs=probs, na.rm=na.rm)
   return( group.by.fix.scale(x=x, selection.levels=selection.levels, method=method, include.min.max=TRUE) )
@@ -4550,7 +4559,7 @@ group.to.ngroups <- function(data,variable,ngroups){
 randomize.data <- function(x,index=NULL,times.sd=1,greater.zero=FALSE){
   # Randomize data (e.g. Grundlagenbericht) such that the mean of the numbers stays more or less the same
   # But the data is not "real" anymore
-  
+
   #x <- 1:100; index=NULL; times.sd=1; greater.zero=FALSE
   #randomize.data(1:10,greater.zero=TRUE)
   if(is.matrix(x)) {
@@ -4579,7 +4588,7 @@ na.replace <- function(x,grouping=NULL,sd=1,warnings=0.5) {
   # If grouping is given, the means&st'devs of the groups are used for group-wise NA replacement
   # Note: NAs of variables and groups which only have NAs are kept! If there is one value this one replaces all the NAs with a warning.
   # warnings=... specifies when a warning should be printed. The default warning is printed when 50% of the values in a group are replaced.
-  
+
   # Definition of na.replace function
   if(any(is.na(x))) {
     replace.na.inner <- function(x,sd) {
@@ -4595,17 +4604,17 @@ na.replace <- function(x,grouping=NULL,sd=1,warnings=0.5) {
         return(x)
       } else return(x)
     }
-    
+
     # Report if there are to many NA values or var(x) could not be calculated..
     if(!is.null(dim(x))) {
-      if (is.null(grouping)) grouping.1 <- rep(1,nrow(x)) else grouping.1 <- grouping      
+      if (is.null(grouping)) grouping.1 <- rep(1,nrow(x)) else grouping.1 <- grouping
       n.na <-                  apply(x,2,function(x)tapply(x,grouping.1,function(y)length(which(is.na(y)))>(1-warnings)*length(y)))
       all.na <-                apply(x,2,function(x)tapply(x,grouping.1,function(y)length(which(is.na(y)))==length(y)))
       if(is.null(dim(n.na)))   n.na <- rbind(n.na,n.na)
       if(is.null(dim(all.na))) all.na <- rbind(all.na,all.na)
       n.na.much <-             apply(n.na,2,function(x)any(x))
       all.n.na.much <-         apply(all.na,2,function(x)any(x))
-      
+
       sds <- apply(x,2,function(x)tapply(x,grouping.1,function(y)sd(y,na.rm=TRUE)))
       sds[is.na(sds)] <- 0
       if(is.null(dim(sds))) sds <- rbind(sds,sds)
@@ -4615,9 +4624,9 @@ na.replace <- function(x,grouping=NULL,sd=1,warnings=0.5) {
       if(any(var0&!all.n.na.much)) warning("in the following variables one value replaced all the others (at least in some groups)\n",paste(names(var0[var0&!all.n.na.much]),collapse=" , "))
       if(any(all.n.na.much)) warning("in the following variables NAs where kept because there wasn't even 1 value to replace the other NA values (at least in some groups)\n",paste(names(all.n.na.much[all.n.na.much]),collapse=" , "))
     }
-    
+
     # Replace NA.values
-    if(is.null(grouping)) { 
+    if(is.null(grouping)) {
       if(is.null(dim(x))) return(replace.na.inner(x,sd))
       if(!is.null(dim(x))) return(apply(x,2,function(y)replace.na.inner(y,sd)))
     } else if(!is.null(grouping)) {
@@ -4637,16 +4646,16 @@ replace.values <- function(search, replace, x, no.matching.NA=FALSE, gsub=FALSE)
   # This function replaces all elements in argument search with the corresponding elements in argument replace.
   # Replacement is done in x.
   # if no.matching.NA=TRUE, values that could not be replaced will be NA instead of the old value.
-  
+
   if(length(search)!=length(replace)) stop("length(search) must be equal length(replace)")
   if(any(duplicated(search))) stop("There must be no duplicated entries in search.")
-  
+
   if(is.matrix(x)){
     return(apply(x,2,function(x)replace.values(search=search,replace=replace,x=x)))
   } else if(is.data.frame(x)){
     return(as.data.frame(lapply(x,function(x)replace.values(search=search,replace=replace,x=x)),stringsAsFactors=FALSE))
   }
-  
+
   xnew <- x
   if(!gsub) {
     xnew <- replace[ match(x, search) ]
@@ -4698,7 +4707,7 @@ write.table <- function(x, file, ...) {
 
 # Performance-Vergleich zwischen eigener zip-Loesung und csv.gz Loesung. Ist gleich schnell.
 # Es scheint ausserdem, dass das Einlesen von csv File von Laufwerk gleich schnell ist wie das Einlesen & Entpacken von zip file von Laufwerk.
-# Beide Male 10 Sekunden für AGIS-Daten 2015.
+# Beide Male 10 Sekunden f?r AGIS-Daten 2015.
 if(FALSE){
   dir.create("C:\\Users\\U80823~2\\AppData\\Local\\Temp\\R\\", showWarnings=FALSE, recursive=TRUE)
   df <- as.data.frame( matrix(1:1000000, ncol=100) )
@@ -4715,14 +4724,14 @@ if(FALSE){
 # wr1ite.table.zipped(x, file)
 write.table.zipped <- function(x, file, ...){
   # This file creates a zip file that contains a csv file.
-  # zip files created like this can 
+  # zip files created like this can
   # Arguments
   # x    = data.frame to be saved
   # file = file path and name
   # For futher arguments see write.table
   # Alternative:   write.table(x, file=gzfile("filename.csv.gz")))
   # combined with  read.table(gzfile("filename.csv.gz"))
-    
+
   # Get filename and folder
   fil <- strsplit(file, "/|\\\\")[[1]]
   filename <- fil[length(fil)]
@@ -4737,13 +4746,13 @@ write.table.zipped <- function(x, file, ...){
     ending <- ""
   }
   if(ending=="zip") stop("Please use the ending of the data file (e.g. csv), not zip!")
-  
+
   # Create temporary file
   folder <- paste0(Sys.getenv("TMP"), "/R/Rzipped")
   dir.create(folder, recursive=TRUE, showWarnings=FALSE)
   tmpCSVfile <- paste0(folder, "/", filename )
   write.table(x, tmpCSVfile, ...)
-  
+
   # Create zip file containing csv. Remove temporary folder.
   zip.nodirs(zipfile=paste0(parentdir,filenameWithoutEnding, ".zip"), files=tmpCSVfile, remove.original=TRUE, showWarnings=FALSE, invoked.internally=TRUE)
   unlink(folder)
@@ -4761,7 +4770,7 @@ read.table <- function(file, header=FALSE, sep="", ..., choose.columns=NULL, Rto
   # choose.columns: character(), numeric() or logical() indicating which columns of the file should be read in. This saves RAM compared to dropping them afterwards. No NA values allowed.
   # Rtools:         if !is.null(choose.columns), then Rtools must be installed because the Rtools/bin/cut.exe and some dll libraries are needed.
   #                 The argument <Rtools> has to indicate the folder in which Rtools was installed.
-  
+
   # If it is not a compressed file, then use the normal read.table() function.
   # If the file does not exist, try to read with read.table() so you will get exact the same error message.
   if(class(file)!="character" || !grepl("^.*(.gz|.bz2|.tar|.zip|.tgz|.gzip|.7z)[[:space:]]*$", file) || !file.exists(file) || !is.null(choose.columns) ) {
@@ -4780,7 +4789,7 @@ read.table <- function(file, header=FALSE, sep="", ..., choose.columns=NULL, Rto
       if(any(is.na(choose.columns))) stop("No NA-values allowed in choose.columns.")
       return( utils::read.table(pipe(paste0(Rtools, " -f",paste0(choose.columns,collapse=","), " -d", sep," ", file) ), header=header, sep=sep, ...))
     }
-    
+
     # In case of archive ...
   } else {
     tryCatch({
@@ -4799,7 +4808,7 @@ if(FALSE) read.table_OLD_DELETE <- function(file, ..., choose.columns=NULL){
   # This edited versin of read.table detects compressed files from their file endings and directly reads them without unpacking.
   # It is assumed that only one file is within the zip archive. Otherwise the function will give an error message.
   # All arguments are used like in read.table.
-  
+
   # If it is not a compressed file, then use the normal read.table() function.
   # If the file does not exist, try to read with read.table() so you will get exact the same error message.
   if(class(file)!="character" || !grepl("^.*(.gz|.bz2|.tar|.zip|.tgz|.gzip|.7z)[[:space:]]*$", file) || !file.exists(file) ) {
@@ -4818,7 +4827,7 @@ if(FALSE) read.table_OLD_DELETE <- function(file, ..., choose.columns=NULL){
 
 read.table2 <- function(file, header=TRUE, sep=";", fileEncoding=""){
   # This read.table() function works in some special cases of wrongly encoded data.
-  
+
   dat <- readLines(file, encoding=fileEncoding)
   dat <- do.call("rbind", strsplit(dat,sep))
   if(header) {
@@ -4839,7 +4848,7 @@ count.lines <- function(file) {
     file <- gsub("(\\\\){2,10}","\\\\",file) # Replace all multiple slashes with unique slashes.
     str <- paste0(system(paste0("find /c /v \"\" \"",file,"\" "), intern=TRUE), collapse="") # Looks for "nonblank" lines but actually also "blank" lines contain "\n" and are therefore counted.
     str <- unlist(strsplit(str, ":"))
-    return(as.numeric(str[length(str)])) 
+    return(as.numeric(str[length(str)]))
   } else if(tolower(Sys.info()["sysname"])=="linux"){
     file <- gsub("\\\\","/",file) # Replace all backward-slashes with forward-slashes
     file <- gsub("(/){2,10}","/",file) # Replace all multiple slashes with unique slashes.
@@ -4863,13 +4872,13 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=-1, ncols=-1, fast
   # quote  = should quotes be written into the csv File? -> see also the help for write.table()
   # na     = how should NA values be displayed in the csv File? -> see also the help for write.table()
   # openFolder = Should the folder with all temporary files be opened after having created the file?
-  
+
   names <- match.arg(names)
   if(is.null(dim(x))) {
     x <- as.matrix(x)
   }
   if(is.null(colnames(x))) colnames(x) <- paste0("V",1:ncol(x))
-  
+
   # Check if data.frame should be shrinked for faster view
   if(nrows<0 && ncols<0){
     maxSize <- 40000000 # On Intel i7-4770 CPU with 3.40 GHz, approx 12 seconds are necessary to save file as csv and open in Excel.
@@ -4880,28 +4889,28 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=-1, ncols=-1, fast
   }
   if(nrows<0) nrows <- nrow(x)
   if(ncols<0) ncols <- ncol(x)
-  
+
   # Shrink data.frame such that it can be saved & viewed faster.
   nrows <- min(nrow(x), nrows); if(nrows<nrow(x)) warning(paste0("data.frame displays only ",nrows," of ",nrow(x)," rows. Either change nrows or set fastViewOfSubset=FALSE."))
   if(nrows!=nrow(x)) x <- x[1:nrows,,drop=FALSE]
   ncols <- min(ncol(x), ncols); if(ncols<ncol(x)) warning(paste0("data.frame displays only ",ncols," of ",ncol(x)," cols. Change ncols to view the full data.frame."))
   if(ncols!=ncol(x)) x <- x[,1:ncols,drop=FALSE]
-  
-  
+
+
   # Define paths
   # If is.null(folder), wird ein temporaerer Ordner im Windows-Dateisystem angelegt.
   if(is.null(folder)) {
     folder <- paste0(Sys.getenv("TMP"), "\\R\\Rview")
     dir.create(folder, recursive=TRUE, showWarnings=FALSE)
-  }  
-  
+  }
+
   # Wenn am Schluss des Pfades kein "/" angefuegt wurde, wird dies gemacht:
   if( !substr(folder,nchar(folder),nchar(folder))%in%c("/","\\") ) folder <- paste0(folder, "\\")
   pfad0 <- folder
   name <- "Rview_tmp"
   nr <- "01"
   csv <- ".csv"
-  
+
   # Check if there are existing files in the folder
   fil <- list.files(pfad0)
   fil <- fil[ substr(fil,nchar(fil)-3,nchar(fil))==".csv" ]
@@ -4927,7 +4936,7 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=-1, ncols=-1, fast
       pfad1 <- paste0(pfad0, name, mxpl1, csv)
     }
   }
-  
+
   # Rownames und colnames, die mit +, - oder = anfangen, mit ' am Anfang versehen, dass es von Excel richtig dargestellt wird
   rn1 <- rownames(x)
   cn1 <- colnames(x)
@@ -4935,7 +4944,7 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=-1, ncols=-1, fast
   if(any(ind)) rownames(x)[ind] <- paste0(" ",rn1[ind])
   ind <- substr(cn1,1,1)%in%c("+","-","=")
   if(any(ind)) colnames(x)[ind] <- paste0(" ",cn1[ind])
-  
+
   # Write CSV file & open.
   if(names=="row") {
     # If the first cell of the file is named "ID" Microsoft Excel warns that a SYLK file is opened. Therefore it is renamed.
@@ -4950,7 +4959,7 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=-1, ncols=-1, fast
   } else {
     write.table(x, file=pfad1, sep=sep, col.names=FALSE, row.names=FALSE, quote=quote, na=na, ...)
   }
-  
+
   browseURL(pfad1)
   if(openFolder) {
     Sys.sleep(1)
@@ -4965,7 +4974,7 @@ view.folder <- function() {
 load2 <- function(file){
   # This function loads an object and returns it, so you can assign it to an variable of choice.
   # The name of the originally stored variable is not relevant anymore.
-  
+
   load(file)
   ret <- ls()[ls()!="file"]
   if(length(ret)>1) stop(paste0("More than one object was loaded. The function only works with one object.\n",paste0(ret, collapse=", ")) )
@@ -4976,7 +4985,7 @@ format.colnames <- function(x) {
   # This function converts all characters to lower case if they don't look like P100..., T100... or K100...
   # Argument x can be a vector of characters or a matrix/data.frame.
   # The converted character vector is returned.
-  
+
   if(!is.null(dim(x))) x <- colnames(x)
   filtMM <- which( grepl("^([PTK][0-9]{3})",x) )
   x[-filtMM] <- tolower(x[-filtMM]) # To lower for all which are NOT like P100
@@ -4986,24 +4995,24 @@ format.colnames <- function(x) {
 
 load.spa <- function() {
   pfad1 <- "C:/Users/U80823148/_/Data/SpE.RData"
-  pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/BO/alldata/SpE.RData"
+  pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4276/alldata/SpE.RData"
   if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
   cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
   cat(pfad, "\n", sep="")
-  load(pfad)
-  
+  spa <- load2(pfad)
+
   # Testen ob alle plausibeln Betriebe aus 2015 im Datensatz sind
   if(FALSE){
     BHJ <- 2015
-    pfad_CRM_plaus_t0 <- paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/Liste_Plausible/B",BHJ,"/")
+    pfad_CRM_plaus_t0 <- paste0("//art-settan-1000.evdad.admin.ch/ZAMAIN/ZADaten/SpE/Liste_Plausible/B",BHJ,"/")
     fold <- list.files(pfad_CRM_plaus_t0)
     fold <- fold[grepl("Termin",fold)]
     fold <- sort(fold[file.info(paste0(pfad_CRM_plaus_t0, fold))$isdir], decreasing=TRUE)[1]
-    plauslist <- read.table(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/Liste_Plausible/B",BHJ,"/",fold,"/Plausible_B",BHJ,".csv"),  sep=";", skip=1, header=TRUE, stringsAsFactors=FALSE, quote = "\"")
+    plauslist <- read.table(paste0("//art-settan-1000.evdad.admin.ch/ZAMAIN/ZADaten/SpE/Liste_Plausible/B",BHJ,"/",fold,"/Plausible_B",BHJ,".csv"),  sep=";", skip=1, header=TRUE, stringsAsFactors=FALSE, quote = "\"")
     id_ok <- as.numeric( plauslist[plauslist[,"DB_einlesen"]=="Ja","Betriebsnummer"] )
     id_not_in_DB <- sort(id_ok[ !id_ok%in%spa[spa[,"JAHR"]==BHJ,"REK_ID"] ])
     if(length(id_not_in_DB)>0) {
-      dat <- read.table(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/ErhbogTxtExport/nichtVerkn/B",BHJ,"/ID_nVerkn_B",BHJ,".csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
+      dat <- read.table(paste0("//art-settan-1000.evdad.admin.ch/ZAMAIN/ZADaten/SpE/ErhbogTxtExport/nichtVerkn/B",BHJ,"/ID_nVerkn_B",BHJ,".csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
       id_not_verkn <- sort(dat[dat[,1]%in%id_not_in_DB,1])
       if(length(id_not_in_DB)!=length(id_not_verkn) || any(id_not_in_DB!=id_not_verkn)){
         warning(paste0("Es gibt Betriebe, die laut OTRS-Liste eigentlich in die Datenbank gehoeren. Sie sind aber nicht im Datensatz drin! Anbei die REK_IDs:\n",
@@ -5011,19 +5020,19 @@ load.spa <- function() {
                        "\nVon den oben genannten REK_ID, konnten die folgenden nicht mit AGIS verknuepft werden:\n",
                        paste0(id_not_verkn,collapse=", ")))
       }
-      
+
       if(FALSE){
-        files <- list.files(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Eink_A/ErhbogTxtExport/Rohdat/B",BHJ), recursive=TRUE)
+        files <- list.files(paste0("//art-settan-1000.evdad.admin.ch/ZAMAIN/ZADaten/SpE/ErhbogTxtExport/Rohdat/B",BHJ), recursive=TRUE)
         files <- unique(files[substr.rev(files,1,4)==".txt"])
         files <- lapply(strsplit(files,"/"),function(x)x[length(x)])
         files <- substr(files,13,19)
         cat("Diese IDs kommen nicht in den Rohdaten-Files vor:\n")
         print(id_not_in_DB[!id_not_in_DB%in%files])
       }
-      
+
     }
   }
-  
+
   # Datensatz ausgeben.
   return(spa)
 }
@@ -5033,7 +5042,7 @@ load.spe <- function(...) load.spa(...)
 # Fuer SpB
 load.spb <- function() {
   pfad1 <- "C:/Users/U80823148/_/Data/SpB.RData1"
-  pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/Betr_B/BO/alldata/SpB.RData"
+  pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4275/alldata/SpB.RData"
   if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
   cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
   cat(pfad, "\n", sep="")
@@ -5043,7 +5052,7 @@ load.spb <- function() {
 
 load.gb <- function() {
   pfad1 <- "C:/Users/U80823148/_/Data/GB.RData"
-  pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/GB/GB.RData"
+  pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4273/GB/GB.RData"
   if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
   cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
   cat(pfad, "\n", sep="")
@@ -5054,7 +5063,7 @@ load.gb <- function() {
 
 load.agis <- function(year=2015){
     pfad1 <- paste0("C:/Users/U80823148/_/Data/AGIS/AGIS_BFS_",year,".RData")
-    pfad2 <- paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/PrimDaten/AGIS/",year,"/AGIS_BFS_",year,".RData")
+    pfad2 <- paste0("//art-settan-1000.evdad.admin.ch/ZAMAIN/ZADaten/AGIS/",year,"/AGIS_BFS_",year,".RData")
     if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
     cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
     cat(pfad, "\n", sep="")
@@ -5071,7 +5080,7 @@ load.cost <- function(years=2014, ignore_P_cols=TRUE, non_aggr=FALSE, filter_exp
   # filter_expression = An expressoin() containing a filter expression that is applied to each year while reading in the data.
   #                     this could look like expression(cost[ cost[,"BZ"]=="Milch" ,c("ID","Jahr","BZ","ArbeitNAT","Maschinen")])
   # parentDir     = The parent directory in which the folders of all years are located.
-  
+
   # Automatically choose the newest folder for the directories of Daniel.
   if(is.null(parentDir)){
     parentDir <- "C:/Tools/ME/ME_data_out/data_final"
@@ -5079,7 +5088,7 @@ load.cost <- function(years=2014, ignore_P_cols=TRUE, non_aggr=FALSE, filter_exp
     parentDir <- allFolders[length(allFolders)]
   }
   if(non_aggr) fileName <- "/allcosts_nonaggr.RData" else fileName <- "/allcosts_info.RData"
-  
+
   # Loop over all years. Read in the data.
   cost1 <- NULL
   for(i in 1:length(years)) {
@@ -5104,7 +5113,7 @@ load.cost <- function(years=2014, ignore_P_cols=TRUE, non_aggr=FALSE, filter_exp
 
 rekid.zaid <- function(id, reverse=FALSE, BHJ=NULL, no.match.NA=TRUE){
   if(!exists("spa")) spa <- load.spa()
-  
+
   res <- spa[,c("JAHR","REK_ID", colnames(spa)[colnames(spa)%in%c("BETRIEB","ZA_ID")][1] )]
   colnames(res)[colnames(res)=="BETRIEB"] <- "ZA_ID"
   if(!is.null(BHJ)) {
@@ -5112,7 +5121,7 @@ rekid.zaid <- function(id, reverse=FALSE, BHJ=NULL, no.match.NA=TRUE){
   } else {
     res <- res[order(res[,"JAHR"],decreasing=TRUE),]
   }
-  
+
   if(!no.match.NA) {
     if(!reverse) return(res[res[,"REK_ID"]%in%id,])
     if( reverse) return(res[res[,"ZA_ID" ]%in%id,])
@@ -5128,25 +5137,25 @@ rekid.zaid <- function(id, reverse=FALSE, BHJ=NULL, no.match.NA=TRUE){
 id.entschluesseln <- function(...){
   pfad1 <- "C:/Users/U80823148/_/Data/"
   pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/2841/hpda/_ZA/Ref/Data/Grundlagenbericht/"
-  
+
   pfad3 <- "GB__allg_Einzel"
   if(any(file.exists(c(paste0(pfad1,pfad3,".csv"), paste0(pfad1,pfad3,".RData"))))) pfad <- pfad1 else pfad <- pfad2
-  
+
   # csv.to.rdata(paste0(pfad1,pfad2))
   if(!file.exists(paste0(pfad,pfad3,".RData"))) {
     dat <- read.csv(paste0(pfad,pfad3,".csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("NA","","#DIV/0","#DIV/0!", "#WERT", "#WERT!"))
     save(dat, file=paste0(pfad,pfad3,".RData") )
   }
   load( paste0(pfad,pfad3,".RData") )
-  
+
   id <- c(...)
   res <- dat[match(id, dat[,"ID"]),"ID_unverschluesselt"]
   return(res)
-  
+
   #id <- id[!duplicated(id)]
   #if(length(id)==1){
   #  cbind(id,gb[,"ID_unverschluesselt"])
-  
+
   #res <- dat[dat[,"ID"]%in%id,"ID_unverschluesselt"]
   #return(res[!duplicated(res)])
   #} else {
@@ -5158,7 +5167,7 @@ id.entschluesseln <- function(...){
 #folder <- "P:/_ZA/Ref/Data/Grundlagenbericht/"; filenames=NULL;extra_filename=NULL; update.files=FALSE; save.file=TRUE; save.name="GB"; filetype=c("csv"); NAto0=TRUE; header=TRUE; colnamesrow=1; skiprows=colnamesrow+1
 merge.gb <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FALSE, save.file=TRUE, save.name="GB", filetype=c("csv"), NAto0=TRUE, header=TRUE, colnamesrow=1, skiprows=colnamesrow+1, ...){
   # Grundlagenbericht importieren, indem die 6 csv Files nach der Vorlage der BO-Extraktionen "GB_A_Einzel, ..." eingelesen und aneinander gebunden werden.
-  # Für aus BO exportierte csv die Einstellung colnamesrow=5 und skiprows=6 beibehalten.
+  # F?r aus BO exportierte csv die Einstellung colnamesrow=5 und skiprows=6 beibehalten.
   # Wenn die csv-Datei schon mit colname ist, colnamesrow=1 und skiprows=1 einstellen.
   filetype <- match.arg(filetype)
   if(is.null(filenames))  filenames <- c("GB__allg_Einzel","GB_A_Einzel","GB_B_Einzel","GB_C_Einzel","GB_D_Einzel","GB_E_Einzel","GB_F_Einzel")
@@ -5191,7 +5200,7 @@ merge.gb <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FA
       # Falls manche Spalten Strings enthalten, werden diese in numeric umgewandelt.
       char.cols <- !sapply(gb,function(x)is.numeric(x))
       gb[,char.cols] <-   suppressWarnings( sapply(gb[,char.cols],function(x)as.numeric(x)) )
-      # Falls gewünscht, werden die NA in 0 umgewandelt (nur bestimmte, bei denen 0 besser passt als NA)
+      # Falls gew?nscht, werden die NA in 0 umgewandelt (nur bestimmte, bei denen 0 besser passt als NA)
       if(NAto0) {
         if(i%in%c(1,2,4,5,6,7)){
           gb[is.na(gb)] <- 0
@@ -5210,26 +5219,26 @@ merge.gb <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FA
             cat("These colnames are not available anymore in the data:\n")
             print(convert.cols.names[!convert.cols.names%in%colnames(gb)])
           }
-          
+
           gb[, convert.cols ] <- lapply(gb[, convert.cols ],function(x)fillNA(x))
-          # Bei den letzten 4 ist es jedoch umgekehrt. Hier gehören NAs rein!
+          # Bei den letzten 4 ist es jedoch umgekehrt. Hier geh?ren NAs rein!
           # gb[, !convert.cols ] <- lapply(gb[, !convert.cols ],function(x)fillNA(x,invert=TRUE))
         }
       }
-      
+
       gb.list[[i]] <- gb
       cat(filenames[i], "complete\n")
     }
   }
-  # Prüfen, ob in allen Tabellen gleich viele Beobachtungen sind
+  # Pr?fen, ob in allen Tabellen gleich viele Beobachtungen sind
   nrows <- do.call("c",lapply(gb.list,function(x)nrow(x)))
   if(any(nrows!=nrows[1]))  stop(paste0("Not the same year-filters were selected in the different csv files. You created an unbalanced panel.\n ",
                                         paste(paste(filenames, nrows, sep=": "),collapse="\n ")))
-  # Prüfen, ob ID und Jahr immer in der ersten Spalte stehen
+  # Pr?fen, ob ID und Jahr immer in der ersten Spalte stehen
   gb.names <- do.call("rbind",lapply(gb.list,function(x)colnames(x)[1:2]))
   if(any(c(gb.names[,1]!="ID", gb.names[,2]!="Jahr"))) stop("The first two columns of each Excel file must contain the ID and the accounting year. Names must be 'ID' and 'Jahr'")
-  
-  # Prüfen, ob die Reihenfolge der Beobachtungen in allen Tabellen dieselbe ist
+
+  # Pr?fen, ob die Reihenfolge der Beobachtungen in allen Tabellen dieselbe ist
   orders <- list()
   for(i in 1:length(gb.list)){
     orders[[i]] <- match(gb.list[[i]][,"ID"],gb.list[[1]][,"ID"])
@@ -5242,7 +5251,7 @@ merge.gb <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FA
     }
   }
   cat("IDs checked...\n")
-  
+
   # "ID" Spalte wird von allen, ausser der ersten Tabelle entfernt.
   for(i in 2:length(gb.list)) {
     gb.list[[i]] <- gb.list[[i]][,!colnames(gb.list[[i]])%in%c("ID","Jahr")]
@@ -5260,18 +5269,18 @@ merge.gb <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FA
   }
   # Alle Listenelemente werden zu einer Matrix zusammengefasst
   gb.list <- do.call("cbind",gb.list)
-  
+
   # Nun werden die SAK berechnet
   SAK_variables <- c("GVE_Milchkuehe","GVE_Schafe","GVE_Ziegen"
                      ,"Stk_Mutterkuehe","GVE_Aufzucht_Miku","GVE_Mastvieh_gross","GVE_MuKuhKalb_1Jminus","GVE_AndereKaelber","GVE_Pferde","GVE_UebrigeRaufuTiere","GVE_Gefluegel_tot","GVE_UebrigeTiere"
                      ,"GVE_Zuchtschweine","GVE_Mastsschweine","GVE_Ferkel"
                      ,"LN","SpezialkulturFlaeche", "rohHangbeitr")
   if(all(SAK_variables%in%colnames(gb.list))) {
-    gb.list[,"SAK"] <- with(gb.list, 
+    gb.list[,"SAK"] <- with(gb.list,
                             0.043*(GVE_Milchkuehe+GVE_Schafe+GVE_Ziegen) +
                               0.03*(Stk_Mutterkuehe + GVE_Aufzucht_Miku + GVE_Mastvieh_gross + GVE_MuKuhKalb_1Jminus + GVE_AndereKaelber + GVE_Pferde + GVE_UebrigeRaufuTiere + GVE_Gefluegel_tot + GVE_UebrigeTiere) +
                               0.04*GVE_Zuchtschweine + 0.007*(GVE_Mastsschweine + GVE_Ferkel) +
-                              0.028*(LN-SpezialkulturFlaeche) + 0.3*SpezialkulturFlaeche + 0.015*rohHangbeitr/370 
+                              0.028*(LN-SpezialkulturFlaeche) + 0.3*SpezialkulturFlaeche + 0.015*rohHangbeitr/370
     )
     bio <- as.numeric(gb.list[,"Landbauform"]%in%c(3,4))
     gb.list[,"SAK"] <- with(gb.list, SAK + bio*0.2* ( 0.028*(LN-SpezialkulturFlaeche) + 0.3*SpezialkulturFlaeche )  )
@@ -5281,8 +5290,8 @@ merge.gb <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FA
     print(SAK_variables[!SAK_variables%in%colnames(gb.list)])
   }
   rm(SAK_variables)
-  
-  # Nun noch fuer jeden Kanton das Kürzen anfuegen
+
+  # Nun noch fuer jeden Kanton das K?rzen anfuegen
   Kanton_col <- colnames(gb.list)%in%"Kanton"
   if(!any(Kanton_col)) {
     warning("Kanton Nr. cannot be converted to name because there is no column name 'Kanton' in the data.", immediate.=TRUE)
@@ -5297,14 +5306,14 @@ merge.gb <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FA
                      "Kanton2"=kanton_names,
                      gb.list[, (which(colnames(gb.list)%in%"Kanton")+1):ncol(gb.list) ], stringsAsFactors=FALSE)
   }
-  
+
   # Ersetzen von Umlauten
-  uml0 <- c("Ä", "Ö", "Ü", "ä", "ö", "ü")
+  uml0 <- c("?", "?", "?", "?", "?", "?")
   uml1 <- c("Ae","Oe","Ue","ae","oe","ue")
   for(i in 1:length(uml0)){
     colnames(gb.list) <- gsub(uml0[i],uml1[i],colnames(gb.list))
   }
-  
+
   # Speichern
   if(save.file) {
     cat("Saving CSV-file...\n")
@@ -5320,14 +5329,6 @@ merge.gb <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FA
 }
 
 ####
-mml.location <- function(FAT99ZA2015=c("new","old")){
-  FAT99ZA2015 <- match.arg(FAT99ZA2015)
-  
-  # Merkmalsliste SpE & SpB oeffnen.
-  if(FAT99ZA2015=="new") cat("\\\\evdad.admin.ch\\AGROSCOPE_OS\\2\\5\\2\\1\\2\\1863\\1_Entwicklungsphase_2013\\1_AG Merkmalsliste\n")
-  if(FAT99ZA2015=="old") cat("\\\\evdad.admin.ch\\AGROSCOPE_OS\\2\\5\\2\\1\\1\\1859\\E_MKAT\\REX\\rex127\n")
-}
-####
 
 #filepath <- paste0(pfad,"Auswertung_Abschr_lang.csv")
 #                                 header=TRUE; remove.middle.rows.cols=TRUE;  save.file=TRUE; print.info=TRUE
@@ -5338,11 +5339,11 @@ repair.csv <- function(filepath, header=TRUE, remove.middle.rows.cols=FALSE, sav
   # For that purpose use:
   #    repair.csv("filepath", header=TRUE, remove.middle.rows.cols=TRUE, save.file=FALSE)
   data.in <- read.csv(filepath, sep=";", header=header, stringsAsFactors=FALSE, na.strings=c("NA","","#DIV/0","#DIV/0!", "#WERT", "#WERT!"), ...)
-  
+
   # Exclue NA cols
-  if(is.data.frame(data.in)) { colNAs <- sapply(data.in,function(x)all(is.na(x)))  
+  if(is.data.frame(data.in)) { colNAs <- sapply(data.in,function(x)all(is.na(x)))
   } else { colNAs <- apply(data.in,2,function(x)all(is.na(x))) }
-  
+
   colNAs3 <- integer(0)
   last.col.NA <- FALSE
   if (length(which(colNAs))>0) if(max(which(colNAs))==length(colNAs)) last.col.NA <- TRUE
@@ -5367,10 +5368,10 @@ repair.csv <- function(filepath, header=TRUE, remove.middle.rows.cols=FALSE, sav
     }
     data.in <- data.in[,-colNAs3]
   }
-  
+
   # Exclue NA rows
   rowNAs <- apply(data.in,1,function(x)all(is.na(x)))
-  
+
   rowNAs3 <- integer(0)
   last.row.NA <- FALSE
   if (length(which(rowNAs))>0) if(max(which(rowNAs))==length(rowNAs)) last.row.NA <- TRUE
@@ -5395,7 +5396,7 @@ repair.csv <- function(filepath, header=TRUE, remove.middle.rows.cols=FALSE, sav
     }
     data.in <- data.in[-rowNAs3,]
   }
-  
+
   if(save.file) write.table(data.in, file=filepath, sep = ";", col.names=header, row.names=FALSE)
   invisible(data.in)
 }
@@ -5420,11 +5421,11 @@ remove.na.rowcols.of.csv <- function(filepath, print.info=FALSE){
 
 csv.to.rdata <- function(path, dat=NULL, name="dat", clean.numb.format=FALSE, clean.dat.columns=FALSE, update.csv=FALSE, ...){
   # This function converts csv data to RData (which can be read in much faster)
-  
+
   # Remove .csv or .RData from string.
   if( tolower(substr.rev(path,1,4))==".csv" ) path <- substr(path,1,nchar(path)-4)
   if( tolower(substr.rev(path,1,6))==".rdata" ) path <- substr(path,1,nchar(path)-6)
-  
+
   # If a path is given, read in new data. Else the data.frame 'dat' is used for further processing.
   if(is.null(dat)) {
     dat <- read.csv(paste0(path, ".csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
@@ -5432,12 +5433,12 @@ csv.to.rdata <- function(path, dat=NULL, name="dat", clean.numb.format=FALSE, cl
     cat("Argument 'dat=' was given. Reading in no new data but directly using 'dat' from workspace!\n")
   }
   if(colnames(dat)[1]=="X.ID") colnames(dat)[1] <- "ID"
-  
+
   # Clean columns, if wished
   if(clean.dat.columns) dat <- clean.data.columns(dat, ...)
   # Clean number formats if there are 1'000 formats, if whished
   if(clean.numb.format) dat <- clean.number.format(dat, ...)
-  
+
   # Save RData
   assign(name, dat)
   eval(parse(text= paste0("save(",name,", file=",paste0("'", path, ".RData'") ,")")  ))
@@ -5473,7 +5474,7 @@ read.cb <- function(names=c("col","rowcol","row","no"), ...) {
 
 write.cb <- function(data, names=c("col","rowcol","row","no"), ...){
   # Save a matrix into the clipoard.
-  
+
   # If a vector is given as argument it is convertet to a matrix and rownames are given.
   if(is.null(dim(data))) {
     if(length(names)>1) names <- "row"
@@ -5481,9 +5482,9 @@ write.cb <- function(data, names=c("col","rowcol","row","no"), ...){
     data <- as.matrix(data)
     names(data) <- names_data
   }
-  
+
   names <- match.arg(names)
-  
+
   if(names=="row") {
     write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=FALSE, row.names=TRUE, ...)
   } else if (names=="col") {
@@ -5499,7 +5500,7 @@ read.xlsx <- function(filename, sheet=1, header=TRUE, create=FALSE){
   # Sheet can also be given as character. If all sheets of the workbook should be imported, rather use loadWorkbook{XLConnect}
   # http://www.r-bloggers.com/read-excel-files-from-r/
   require.package(XLConnect) # #options ( java.parameters = "-Xmx1024m ")
-  
+
   wb = loadWorkbook(filename)
   return( readWorksheet(wb, sheet=sheet, header=header) )
 }
@@ -5512,12 +5513,12 @@ write.xlsx <- function(file, data, sheetName=NULL, row.names=FALSE, col.names=TR
   # sheetName: Optional sheet names in the Excel file. If NULL, then names Sheet1, Sheet2, etc. are given.
   # row.names: logical indicating if rownames should be written or character giving the header for rowname colum. Single value or list.
   # col.names: logical indicating if a header should be written. Single value or list.
-  
+
   require.package(XLConnect) # options ( java.parameters = "-Xmx1024m ")
-  
+
   if(is.matrix(data) || is.data.frame(data)) data <- list(data)
   names(data) <- paste0("i",1:length(data))
-  
+
   if(!is.null(sheetName)){
     if(is.list(sheetName)) sheetName <- unlist(sheetName)
     if(length(data)!=length(sheetName)) stop("length(data) has to be equal length(sheetName)")
@@ -5525,7 +5526,7 @@ write.xlsx <- function(file, data, sheetName=NULL, row.names=FALSE, col.names=TR
   } else {
     sheetName <- paste0("Sheet",1:length(data))
   }
-  
+
   convertRowColNames <- function(nam, trueVal=TRUE, falseVal=FALSE, errorNam="names", allowCharacters=FALSE){
     if(!is.list(nam)) nam <- as.list(nam)
     if(!allowCharacters) if(any(sapply(nam,function(x)!is.logical(x)))) stop("row.names must be logical.")
@@ -5535,13 +5536,13 @@ write.xlsx <- function(file, data, sheetName=NULL, row.names=FALSE, col.names=TR
   }
   rownames=convertRowColNames(row.names, trueVal="", falseVal=NULL,  errorNam="row.names", allowCharacters=TRUE)
   header=convertRowColNames(col.names, trueVal=TRUE, falseVal=FALSE, errorNam="col.names", allowCharacters=FALSE)
-  
+
   if(substr.rev(file,1,4)==".xls") {
     warning("file must end with xlsx. The file was appended.")
     file <- paste0(file,"x")
   }
   if(file.exists(file) && !append) file.remove(file)
-  
+
   writeWorksheetToFile(file=file, data=data, sheet=sheetName, rownames=rownames, header=col.names)
 }
 
@@ -5564,7 +5565,7 @@ zip.nodirs <- function(zipfile, files, remove.original=FALSE, showWarnings=TRUE,
   # files           = All files to be packed into the zip file.
   # remove.original = Should original files be removed after they were packed into the zip file?
   # showWarnings    = Should warnings be showed if the zipfile already exists?
-  
+
   # Check if zipfile already exists.
   if(file.exists(zipfile)){
     if(file.info(zipfile)$isdir) stop("zipfile must not be a directory.")
@@ -5573,23 +5574,23 @@ zip.nodirs <- function(zipfile, files, remove.original=FALSE, showWarnings=TRUE,
       warning("zipfile already existed. Content was updated.")
     }
   }
-  
+
   # Assure fully qualified filenames.
   zipfile <- getFullyQualifiedFileName(zipfile)
   files <- getFullyQualifiedFileName(files)
-  
+
   # Save original working directory.
   wd <- getwd()
   # Split filenames by / or \
   fil <- strsplit(files, "/|\\\\")
-  
+
   # Safetycheck for duplicated filenames that would be overwritten within the zipfile.
   # x <- fil[[1]]
   filcheck <- unlist(lapply(fil,function(x)x[length(x)]))
   if(any(duplicated(filcheck))){
     stop(paste0("Some filenames are identical. Duplicated filenames would be overwritten within the zip. Please choose unique filenames of the following files:\n", paste0(unique(filcheck[duplicated(filcheck)]),collapse=", ")))
   }
-  
+
   # Prepare function to call in case of error or warning
   errorFunc <- function(filename){
     setwd(wd)
@@ -5597,8 +5598,8 @@ zip.nodirs <- function(zipfile, files, remove.original=FALSE, showWarnings=TRUE,
     if( isTRUE(!file.info(zipfile)$isdir) ) suppressWarnings(file.remove(zipfile)) # Remove zip anyway.
     stop(paste0(filename, " was not zipped!", if(!invoked.internally && remove.original) " Original files were *NOT* removed!"))
   }
-  
-  
+
+
   # Pack all files into zipfile.
   # x <- fil[[1]]
   lapply(fil, function(x){
@@ -5624,10 +5625,10 @@ getFullyQualifiedFileName <- function(filename){
   # If not, then the working directory is pasted to the filename.
   # Arguments
   # filename = Charactor vector containing the filename(s) to be checked.
-  
+
   # Recursive definition in case several filenames where given
   if(length(filename)>1) return( apply(matrix(filename),1,getFullyQualifiedFileName) )
-  
+
   # If the splitted filename with / only is of length one, then it can only be a single filename without preceding folder.
   if(length( strsplit(filename, "/|\\\\")[[1]]  )==1){
     return( paste(getwd(),filename,sep="/") )
@@ -5650,12 +5651,12 @@ getFullyQualifiedFileName <- function(filename){
     #appendWd <- tryCatch({ suppressWarnings(write(1,paste0(getwd(),"/",filename))); suppressWarnings(file.remove(filename)); return(FALSE) },  error=function(e) return(TRUE) )
     #if(appendWd) filename <- paste0(getwd(),"/",filename)
   }
-  
+
   return(filename)
 }
- 
- 
- 
+
+
+
 
 #### CORRELATIONS, REGRESSIONS ####
 ####
@@ -5665,7 +5666,7 @@ getFullyQualifiedFileName <- function(filename){
 cor.table <- function(data, sig.level=c(0.1,0.05,0.01,0.001)[2], method=c("pearson", "kendall", "spearman"), conf.level=NULL, conf.middle=TRUE, conf.middle.sign=TRUE, digits=2, triangle=FALSE, del.diag=TRUE, ignore.nonsig=FALSE, suppressWarnings=FALSE, count=FALSE, special.sign.before.nonsig.for.excel=FALSE, ...){
   method <- match.arg(method)
   if(!is.null(conf.level)) if(method!="pearson") stop("confidence intervals can only be calculated with the pearson method")
-  
+
   if(is.matrix(data)) if(!is.numeric(data))     stop("The matrix isn't numeric")
   if(is.data.frame(data)) {
     char.cols <- !sapply(data,function(x)is.numeric(x))
@@ -5684,20 +5685,20 @@ cor.table <- function(data, sig.level=c(0.1,0.05,0.01,0.001)[2], method=c("pears
       if(count) print(paste("i=",i,",   j=",j))
       if(!suppressWarnings) { ct <- cor.test(data[,i], data[,j], method=method)#, ...)
       } else { ct <- suppressWarnings(cor.test(data[,i], data[,j], method=method))}#, ...)) }
-      p[i,j] <- ct$p.value 
+      p[i,j] <- ct$p.value
       cors[i,j] <- ct$estimate
     }
   }
-  # Der Bereich über der Matrix-Diagonale wird mit dem selben unterhalb der Diagonale gefüllt, weil diese Teile der Matrix gleich sind
+  # Der Bereich ?ber der Matrix-Diagonale wird mit dem selben unterhalb der Diagonale gef?llt, weil diese Teile der Matrix gleich sind
   tp <- t(p);        p[which( row(p)-col(p) <0)] <- tp[which( row(tp)-col(tp) <0)]
   tcors <- t(cors);  cors[which( row(cors)-col(cors) <0)] <- tcors[which( row(tcors)-col(tcors) <0)]
-  
+
   # Alte langsame Version
   #for(i in 1:ncol(data)){
   #  for(j in 1:ncol(data)){
   #    if(!suppressWarnings) { ct <- cor.test(data[,i], data[,j], method=method)#, ...)
   #    } else { ct <- suppressWarnings(cor.test(data[,i], data[,j], method=method))}#, ...)) }
-  #    p[i,j] <- ct$p.value 
+  #    p[i,j] <- ct$p.value
   #    cors[i,j] <- ct$estimate
   #    if(count) print(paste("i=",i,"   ,j=",j))
   #
@@ -5725,16 +5726,16 @@ cor.table <- function(data, sig.level=c(0.1,0.05,0.01,0.001)[2], method=c("pears
     sign[is.na(sign) & cors>=0] <- "    "
     sign[is.na(sign)& cors<0]   <-  "   "
   } else {
-    sign[is.na(sign) & cors>=0] <- "§§§§"
-    sign[is.na(sign)& cors<0]   <-  "§§§"
-    cat("Export the table as .csv to Excel, then replace § by Alt+255\n")
+    sign[is.na(sign) & cors>=0] <- "????"
+    sign[is.na(sign)& cors<0]   <-  "???"
+    cat("Export the table as .csv to Excel, then replace ? by Alt+255\n")
   }
-  
+
   # combination of the signs with the correlation values
   comb <- paste(sign,cors)#, ...)
   print.table <- matrix(comb, nrow=ncol(data), ncol=ncol(data), dimnames=list(colnames(cors),rownames(cors)))
   # diag(print.table) <- "     1"
-  
+
   # Calculating the conficence intervals
   if(!is.null(conf.level)){
     if(method!="pearson") stop("confidence intervals can only be calculated with the pearson method")
@@ -5750,10 +5751,10 @@ cor.table <- function(data, sig.level=c(0.1,0.05,0.01,0.001)[2], method=c("pears
         uintv[i,j] <- ct$conf.int[2]
       }
     }
-    # Der Bereich über der Matrix-Diagonale wird mit dem selben unterhalb der Diagonale gefüllt, weil diese Teile der Matrix gleich sind
+    # Der Bereich ?ber der Matrix-Diagonale wird mit dem selben unterhalb der Diagonale gef?llt, weil diese Teile der Matrix gleich sind
     tlintv <- t(lintv);  lintv[which( row(lintv)-col(lintv) <0)] <- tlintv[which( row(tlintv)-col(tlintv) <0)]
     tuintv <- t(uintv);  uintv[which( row(uintv)-col(uintv) <0)] <- tuintv[which( row(tuintv)-col(tuintv) <0)]
-    
+
     # alte langsame Version
     #for(i in 1:ncol(data)){
     #  for(j in 1:ncol(data)){
@@ -5763,7 +5764,7 @@ cor.table <- function(data, sig.level=c(0.1,0.05,0.01,0.001)[2], method=c("pears
     #    uintv[i,j] <- ct$conf.int[2]
     #  }
     #}
-    
+
     uintv <- round(uintv,digits)
     lintv <- round(lintv,digits)
     conf.int <- NULL
@@ -5774,7 +5775,7 @@ cor.table <- function(data, sig.level=c(0.1,0.05,0.01,0.001)[2], method=c("pears
         uintv <- matrix(paste("     ",uintv,sep=""),ncol=ncol(data))
         lintv <- matrix(paste("     ",lintv,sep=""),ncol=ncol(data))
         for(i in 1:ncol(uintv)) conf.int <- rbind(conf.int,uintv[i,],print.table[i,],lintv[i,],rep(NA,ncol(data)))
-        # ... without *** signs  
+        # ... without *** signs
       } else if (!conf.middle.sign) {
         for(i in 1:ncol(uintv)) conf.int <- rbind(conf.int,uintv[i,],cors[i,],lintv[i,],rep(NA,ncol(data)))
       }
@@ -5803,7 +5804,7 @@ cor.table <- function(data, sig.level=c(0.1,0.05,0.01,0.001)[2], method=c("pears
       for(i in 1:ncol(uintv)) {conf.int <- rbind(conf.int,uintv[i,],lintv[i,],NA)
                                rnames <- c(rnames,rep(colnames(data)[i],2),NA) }
       rownames(conf.int) <- rnames
-      
+
       # Setting values NA which should not be printed (in the case without estimate in the middle)
       if(ignore.nonsig) {
         p.long <- NULL
@@ -5823,14 +5824,14 @@ cor.table <- function(data, sig.level=c(0.1,0.05,0.01,0.001)[2], method=c("pears
     }
     conf.int <- conf.int[1:(nrow(conf.int)-1),]
   }
-  
-  # Im Fall, dass keine P-Werte berechnet werden konnten, werden diese Plätze in der Matrix als NA ausgegeben
+
+  # Im Fall, dass keine P-Werte berechnet werden konnten, werden diese Pl?tze in der Matrix als NA ausgegeben
   print.table[is.na(p)|is.na(cors)] <- NA
   # Sonstige konditionale NA-Belegunten
   if(ignore.nonsig)  print.table[p>sig.level] <- NA
   if(triangle) print.table[which( row(print.table)-col(print.table) < 0)] <- NA
   if(del.diag) diag(print.table) <- NA
-  
+
   if(is.null(conf.level)) {
     result <- list(cor=cors,p.val=p,sign=sign,print.table=print.table,conf.int=NULL)
   } else  if(!is.null(conf.level)){
@@ -5844,10 +5845,10 @@ print.cor.table <- function(x,quote=FALSE,na.print="", ...){
 }
 ####
 predict.plm <- function(model, newdata=NULL){
-  
+
   if(is.matrix(newdata)) newdata <- as.data.frame(newdata) else if(!is.null(newdata) & !is.data.frame(newdata)) stop("newdata must be NULL, matrix or data.frame!")
   if(is.null(mod$fitted.values)) mod$fitted.values <- mod$model[,1]-mod$residuals
-  
+
   if(is.null(newdata)) {
     return(model$fitted.values)
   } else {
@@ -5879,12 +5880,12 @@ extract.regression.p <- function (modelobject) {
   attributes(p) <- NULL
   return(p)}
 ####
-polyregressionplot <- function(data,dependent,independent,degree=NULL,degrees=NULL,root=FALSE,roots=NULL,intercept=FALSE,sig.level=0.05,model=c("ols","robust"),datapoints=1000,na.replace=NULL,invert=FALSE,grid=FALSE,plotrows=1,maxit=1000,psi=c(psi.huber, psi.hampel, psi.bisquare)[1],indeplimit=NULL,deplimit=NULL,main=NULL,sub=NULL,indeplab=NULL,deplab=NULL,cex.main=NULL,cex.sub=NULL,cex.lab=NULL,cex.axis=NULL,linecol="black",linewidth=1.5,scatter=FALSE,dotcol="black",dotsize=0.5, ...){ 
+polyregressionplot <- function(data,dependent,independent,degree=NULL,degrees=NULL,root=FALSE,roots=NULL,intercept=FALSE,sig.level=0.05,model=c("ols","robust"),datapoints=1000,na.replace=NULL,invert=FALSE,grid=FALSE,plotrows=1,maxit=1000,psi=c(psi.huber, psi.hampel, psi.bisquare)[1],indeplimit=NULL,deplimit=NULL,main=NULL,sub=NULL,indeplab=NULL,deplab=NULL,cex.main=NULL,cex.sub=NULL,cex.lab=NULL,cex.axis=NULL,linecol="black",linewidth=1.5,scatter=FALSE,dotcol="black",dotsize=0.5, ...){
   # Explanation: This function makes a regression with the dependent and independent variables. If you use degree>1, then a non-linear regression is fitted.
   # witt degrees you can specify if some variables sould have a degree of 1-max(degree). Then a polynom is made from 1-degrees.
   # Use root=TRUE if some variables should be used not with ^degree but with ^(1/degree). With roots you can specify which variables should be calculated as roos (1) and which not (0).
   # Example for 3 variables: degree=2, degrees=c(1,2,2), root=TRUE, roots=c(1,0,0). Use the minimum significance level to kick out the calculated coefficients which are below this value.
-  
+
   #data=datas;dependent=c("DABS_fk_ArbeitDritte_index");independent=c("DABS_SAK_neu");degree=3;degrees=NULL;root=FALSE;roots=NULL;intercept=TRUE;model=c("ols","robust")[1];sig.level=1;na.replace=NULL;invert=FALSE;grid=FALSE;plotrows=2;maxit=1000;psi=c(psi.huber, psi.hampel, psi.bisquare)[1];indeplimit=NULL;deplimit=NULL;indeplab=NULL;deplab=NULL;linecol="black";linewidth=1;dotcol="black";dotsize=0.5
   #degree=3;degrees=c(0,0,1)
   model <- match.arg(model)
@@ -5899,14 +5900,14 @@ polyregressionplot <- function(data,dependent,independent,degree=NULL,degrees=NU
     if(max(degrees)>degree) stop("max(degrees) must be smaller than degree") }
   if(!is.null(roots)&length(roots)!=length(independent)) stop("length(roots) must be equal length(independent)")
   if(!is.null(roots)) if(max(roots)>1) stop("roots must only contain 0 or 1")
-  
+
   if(is.null(degrees)) degrees <- rep(degree,length(independent))
   if(length(degrees)!=length(independent)*degree) {
     degreesv <- vector("list",length(degrees))
     for (i in 1:length(degrees)) degreesv[[i]] <- c(rep(1,degrees[i]),rep(0,degree-degrees[i]))
     degrees <- do.call("c",degreesv)
   }
-  
+
   if(!root) {roots <- rep(0,length(independent)*degree)} # ; roots.short <- rep(0,length(independent))    ist unnoetig! es gibt nur das roots, ohne lange version.
   if(is.null(roots)&root) {roots <- rep(1,length(independent)*degree)} # ; roots.short <- rep(1,length(independent))
   if(!is.null(roots)&root){
@@ -5917,12 +5918,12 @@ polyregressionplot <- function(data,dependent,independent,degree=NULL,degrees=NU
     }
     roots <- do.call("c",rootsv)
   }
-  
+
   independent.multi <- vector("list", length(independent))
   for(i in 1:length(independent)) independent.multi[[i]] <- rep(independent[i],degree)
   independent.multi <- do.call("c",independent.multi)
   degreesform <- rep(1:degree,length(independent))
-  
+
   counter <- integer(0)
   for (i in length(degrees):1) if(degrees[i]!=0) counter[i] <- i
   counter <- max(counter[!is.na(counter)])
@@ -5938,7 +5939,7 @@ polyregressionplot <- function(data,dependent,independent,degree=NULL,degrees=NU
       }
     }
   }
-  
+
   if (model=="robust") {
     require(MASS)
     fit <- rlm(form,data=data,maxit=maxit,psi=psi)}
@@ -5949,7 +5950,7 @@ polyregressionplot <- function(data,dependent,independent,degree=NULL,degrees=NU
   if(intercept) interc <- co[1] else interc <- 0
   co <- co[2:length(co)]
   co[is.na(co)] <- 0
-  
+
   degrees2 <- degrees; co2 <- co; coefs1 <- integer(0)
   for(i in 1:length(degrees)) {
     if(degrees2[1]==0) coefs1 <- c(coefs1,0)
@@ -5960,57 +5961,57 @@ polyregressionplot <- function(data,dependent,independent,degree=NULL,degrees=NU
   }
   co.list <- vector("list",length(independent))
   for(i in 1:length(independent)) co.list[[i]] <- coefs1[((i-1)*degree+1):(i*degree)]
-  
+
   polys <- function(x,degree,root) {
     if(root==0) y <- x^(1:degree)
     if(root==1) y <- x^(1/(1:degree))
     return(y)
-  }  
+  }
   #datapoints <- 1000
   #xval <- matrix(rep(seq(mindata<-min(variable),maxdata<-max(variable),(maxdata-mindata)/datapoints),length(independent)),nrow=datapoints)
   xval <- matrix(NA,nrow=datapoints, ncol=length(independent)); colnames(xval) <- independent
   for(j in 1:length(independent)) {variable <- data[,independent[j],drop=FALSE]; maxdata <- max(variable); mindata <- min(variable); intervall <- (maxdata-mindata)/datapoints; i <- 0; while (i*intervall <= (maxdata-mindata)) {xval[i,j] <- mindata + intervall*i; i <- i + 1}}
-  
+
   yval <- matrix(NA,nrow=nrow(xval), ncol=ncol(xval)); colnames(yval) <- colnames(xval)
   for(i in 1:ncol(xval)){
     coefs <- unname(co.list[[i]])
-    yval[,i] <- 
-      mapply(function(x,degree,coefs,root) 
+    yval[,i] <-
+      mapply(function(x,degree,coefs,root)
         interc + sum( mapply(prod,  polys(x,degree=degree,root=roots[i]), coefs) ), # root=roots.short[i] geloescht
              xval[,i],
              MoreArgs=list(degree,coefs,root))
   }
   if(!is.null(na.replace)) yval[is.na(yval)] <- na.replace
-  
+
   if(!is.list(indeplimit))     indeplimit <- list(indeplimit)
   if(!is.list(indeplimit))     deplimit <- list(deplimit)
   if(is.null(deplab))  name.dependent <- dependent else name.dependent <- deplab
   if(is.null(indeplab))  name.independent <- independent else name.independent <- indeplab
   if(!is.null(main)) if(ncol(xval)!=length(main)) main <- rep(main[1],ncol(xval))
   if(!is.null(sub))  if(ncol(xval)!=length(sub))  sub <- rep(sub[1],ncol(xval))
-  
-  if(length(independent)>1) par(mfrow=c(plotrows,if(length(independent)%%plotrows==0) length(independent)/plotrows else floor(length(independent)/plotrows)+1 ))   
-  
+
+  if(length(independent)>1) par(mfrow=c(plotrows,if(length(independent)%%plotrows==0) length(independent)/plotrows else floor(length(independent)/plotrows)+1 ))
+
   if(!invert) for(i in 1:ncol(xval))
-  { 
+  {
     plot(xval[,i],yval[,i], type="n",ylab=name.dependent, xlab=name.independent[i],cex.lab=cex.lab,cex.axis=cex.axis,xlim=indeplimit[[i]],ylim=deplimit[[i]],col=linecol, ...)
     title(main=main[i],sub=sub[i],cex.main=cex.main,cex.sub=cex.sub)
     if(scatter) lines(data[,independent[i]],data[,dependent], type="p", pch=20,col=dotcol,cex=dotsize)
     lines( xval[,i], yval[,i], type="l",col=linecol,lwd=linewidth)
     if(grid) grid()
   }
-  if(invert)  for(i in 1:ncol(xval)) 
-  { 
+  if(invert)  for(i in 1:ncol(xval))
+  {
     plot(yval[,i],xval[,i],  type="n",xlab=name.dependent, ylab=name.independent[i],cex.lab=cex.lab,cex.axis=cex.axis,xlim=deplimit[[i]],ylim=indeplimit[[i]],col=linecol, ...)
     title(main=main[i],sub=sub[i],cex.main=cex.main,cex.sub=cex.sub)
     if(scatter) lines(data[,dependent],data[,independent[i]], type="p", pch=20,col=dotcol,cex=dotsize)
     lines( yval[,i],xval[,i], type="l",col=linecol,lwd=linewidth)
     if(grid) grid()
   }
-  
+
   co[co[]==0] <- NA
   if(intercept)  co <- c(interc,co) else co <- c(NA,co)
-  
+
   p.total <- extract.regression.p(fit)
   r.squared <- summary(fit)$r.squared
   r.adj <- summary(fit)$adj.r.squared
@@ -6018,7 +6019,7 @@ polyregressionplot <- function(data,dependent,independent,degree=NULL,degrees=NU
   #if(intercept) select.pvalue <- c(TRUE,!is.na(co)) else select.pvalue <- c(FALSE,!is.na(co))
   p.values <- summary(fit)$coefficients[!is.na(co),4]
   if(length(co)>0) usedcoef <- rbind(coef=co[!is.na(co)],p.values=p.values) else usedcoef <- NA
-  
+
   if(invert) {
     invertcoef <- usedcoef; invertcoef[1,] <-  1/usedcoef[1,]
     result <- list(xval=xval, yval=yval, lm=fit, significance=significance, usedcoef=usedcoef, invertcoef=invertcoef)
@@ -6086,7 +6087,7 @@ nnls.mod <- function(y,x,...){
 }
 print.nnls.mod <- function(object, digits=2, ...){
   class(object) <- "list"
-  print.1 <- data.frame("Est"=object$coefficients, StdErr=object$StdErr, P.Value=object$p.value) # "Coeff"=as.factor(colnames(object$A)), 
+  print.1 <- data.frame("Est"=object$coefficients, StdErr=object$StdErr, P.Value=object$p.value) # "Coeff"=as.factor(colnames(object$A)),
   rownames(print.1) <- colnames(object$x)
   print.1 <- round(print.1,digits)
   print(print.1)
@@ -6126,15 +6127,15 @@ find.collinear.variables.eigenv.cov <- function(indep, data, catinfo=TRUE){
   # Using the fact that the determinant of a diagonal matrix is the product of the eigenvalues => The presence of one or more small eigenvalues indicates collinearity
   mm <- model.matrix(formula(paste0("~ ",string.to.formula(y=NULL, x=indep))), data=data)
   mm <- mm[,-1]
-  
+
   txt <- "The presence of one or more small eigenvalues indicates collinearity"
   if(catinfo) { cat(txt, "\n", sep=""); cat(paste0(rep("-",nchar(txt)), collapse=""), "\n", sep="") }
-  
+
   #eigenvalues <- eigen( t(mm) %*% mm )$values; names(eigenvalues)  <- indep;  eigenvalues <- cbind(round( eigenvalues, digits=3)) # -1 da ohne Intercept
   #txt <- "Variant 1: eigen( t(mm) %*% mm )"
   #if(catinfo) { cat(txt, "\n", sep=""); cat(paste0(rep("-",nchar(txt)), collapse=""), "\n", sep="") }
   #print(eigenvalues)
-  
+
   eigenvalues <- eigen(cov(mm))$values; names(eigenvalues)  <- indep;
   eigenvalues <- as.matrix(round(eigenvalues, 4))
   #txt <- "\nVariant 2: eigen(cov(mm))"
@@ -6156,7 +6157,7 @@ find.collinear.variables.rsq <- function(indep, data, catinfo=TRUE){
   # data = data.frame that contains the variables (i.e. environment in which the created formula should be evaluated)
   # http://stackoverflow.com/questions/3042117/screening-multicollinearity-in-a-regression-model
   # A regression of x_i on all other predictors gives R^2_i. Repeat for all predictors.
-  # R^2_i close to one indicates a problem - the offending linear combination may be found. 
+  # R^2_i close to one indicates a problem - the offending linear combination may be found.
   mm <- model.matrix(formula(paste0("~ ",string.to.formula(y=NULL, x=indep))), data=data)
   mm <- mm[,-1]
   rsq <- numeric(length(indep)); names(rsq) <- indep
@@ -6170,6 +6171,7 @@ find.collinear.variables.rsq <- function(indep, data, catinfo=TRUE){
   return(rsq)
 }
 find.collinear.variables.vif <- function(form, data, catinfo=TRUE){
+  # Variance Inflation Factor (VIF)
   # http://stackoverflow.com/questions/3042117/screening-multicollinearity-in-a-regression-model
   txt <- "VIF > 10 is of concern"
   if(catinfo) { cat(txt, "\n", sep=""); cat(paste0(rep("-",nchar(txt)), collapse=""), "\n", sep="") }
@@ -6207,7 +6209,7 @@ production.formula <- function(xnames,ynames,funcform=c("log","translog","log.rt
   # The function form can be log (Cobb-Douglas) or translog (Transcendental Logarithmic).
   # If dist=TRUE the distance based formula is formulated. This is needed if more than 2 inputs are used.
   # or=orientation (only used if dist=TRUE)
-  
+
   if(FALSE){
     ynames <- paste("y",1:1,sep="")
     xnames <- paste("x",1:4,sep="")
@@ -6216,13 +6218,13 @@ production.formula <- function(xnames,ynames,funcform=c("log","translog","log.rt
     or <- "in"
     output <- "formula"
   }
-  
+
   output <- match.arg(output)
   funcform <- match.arg(funcform)
   or <- match.arg(or)
   nx <- length(xnames)
   ny <- length(ynames)
-  
+
   if(funcform=="translog") {
     if(!dist){
       # See Bogetoft & Otto (2011) ch8 p241
@@ -6250,7 +6252,7 @@ production.formula <- function(xnames,ynames,funcform=c("log","translog","log.rt
         formy <- paste0("I(log(1/",xnames[1],"))")
         formx1 <- paste0("I(log(",xnames[2:nx],"/",xnames[1],"))",collapse=" + ")
         formx2 <- paste0("I(log(",ynames,"))", collapse=" + ")
-        
+
         comb1 <- combn(c(paste0(xnames[2:nx],"/",xnames[1]),ynames),2) # Cross-Interaction
         comb2 <- matrix(rep(paste0(xnames[2:nx],"/",xnames[1]),2),nrow=2,byrow=TRUE) # Self-Interaction x
         comb3 <- matrix(rep(ynames,2),nrow=2,byrow=TRUE) # Self-Interaction y
@@ -6264,12 +6266,12 @@ production.formula <- function(xnames,ynames,funcform=c("log","translog","log.rt
           formx3[i] <- paste0("I(1/2*", paste0("log(",comb[,i],")",collapse="*"),")" )
         }
         formx3 <- paste( formx3[c(first,second,third)], collapse=" + ")
-        
+
         formx1 <- paste0(formx1," + ")
         formx2 <- paste0(formx2," + ")
         formx <- paste0(formx1,formx2,formx3,collapse="")
         form <- paste0(formy,"  ~  ",formx,collapse="")
-        
+
       } else { # if(or=="out")
         # See Bogetoft & Otto (2011) ch8 p244
         formy <- paste0("I(log(1/",ynames[1],"))")
@@ -6298,20 +6300,20 @@ production.formula <- function(xnames,ynames,funcform=c("log","translog","log.rt
           formx3[i] <- paste0("I(1/2*", paste0("log(",comb[,i],")",collapse="*"),")" )
         }
         formx3 <- paste( formx3[c(first,second,third)], collapse=" + ")
-        
+
         formx1 <- paste0(formx1," + ")
         if(formx2!="") formx2 <- paste0(formx2," + ")
         formx <- paste0(formx1,formx2,formx3,collapse="")
         form <- paste0(formy,"  ~  ",formx,collapse="")
       }
-    } 
+    }
   } else if(funcform=="log")  {
     if(!dist) {
       if(ny>1) stop("Without distance function only 1 output is allowed!")
       formy <- paste0("I(log(",ynames,"))")
       formx <- paste0("I(log(",xnames,"))",collapse=" + ")
       form <- paste0(formy, "  ~  ", formx)
-      
+
     } else { # if(dist)
       # see Bogetoft & Otto (2011) ch 8 p 237
       if(or=="in"){
@@ -6394,9 +6396,9 @@ sep.string <- function(x,sign,keep.sign=TRUE){
 #char <- c("0123456789", "9876543210")
 substr.rev <- function(char, start, end, reverse=FALSE) {
   # Reverse substring
-  
+
   if(any(start>end)) stop("All start must be smaller equal end.")
-  
+
   nchar_char <- nchar(char)
   res <- substr(char, nchar_char-end+1, nchar_char-start+1)
   if(reverse) { # Hinweis: Diese Version mit sapply(lapply()) ist rund 25% schneller als wenn man es mit apply() loest.
@@ -6439,7 +6441,7 @@ harmonize.agis.colnames <- function(col.names){
   # This function harmonizes the colnames of AGIS data from different years.
   # At the end of the function all colnames are shifted to upper case letters
   # dat = the name of the agis data.frame
-  
+
   varmat <- matrix(c(
     "ART_ID","art_id"
     ,"METER_X","BUR_EXT_GKODX"
@@ -6470,11 +6472,11 @@ harmonize.agis.colnames <- function(col.names){
     ,"LN","ln"
   ),byrow=TRUE,ncol=2)
   new_vars <- varmat[,1];   old_vars <- varmat[,2];
-  
+
   for(i in 1:length(new_vars)){
     col.names[col.names%in%old_vars[i]] <- new_vars[i]
   }
-  
+
   col.names <- toupper( col.names )
   return(col.names)
 }
@@ -6489,7 +6491,7 @@ kruskal.multiple <- function(data, grouping, sig.level=0.05, p.adj="holm", group
   if(!group){
     for (i in 1:ncol(data)) {
       cat(paste("\n\n################"))
-      #result[[i]] <- 
+      #result[[i]] <-
       kruskal(data[,i], grouping, main=colnames(data)[i], p.adj=p.adj, group=group)
     }
   } else {
@@ -6520,7 +6522,7 @@ kruskal.test.multiple <- function(data,grouping,extract.p=TRUE,round.p=3){
   if(extract.p) {
     p.value <- numeric()
     for(i in 1:length(result)){
-      p.value[i] <- result[[i]]$p.value 
+      p.value[i] <- result[[i]]$p.value
     }
     p.value <- round(p.value,round.p)
     names(p.value) <- names(result)
@@ -6542,10 +6544,10 @@ kruskal.test.multiple <- function(data,grouping,extract.p=TRUE,round.p=3){
 kruskal.groups <- function(y,trt,sig.level=0.05,p.adj="holm",median.mean=c("mean","median","both"),digits=2,ranked=c("no","character.left","character.right","rankmean","intern"),print.result=FALSE) {
   if(length(unique(trt))>9) stop("Due to the output structure of the underlying function kruskal{agricolae} this function only works up to 9 groups!")
   if(any(is.na(trt))) stop("NA values in trt are now allowed")
-  
+
   if(is.matrix(y)) { y <- as.data.frame(y) #return( apply(y,2,function(x)kruskal.groups(y=x, trt=trt, sig.level=sig.level, p.adj=p.adj, median.mean=median.mean, digits=digits, ranked=ranked, print.result=print.result)) )
   } else if (is.data.frame(y)) return (return( lapply(y,function(x)kruskal.groups(y=x, trt=trt, sig.level=sig.level, p.adj=p.adj, median.mean=median.mean, digits=digits, ranked=ranked, print.result=print.result)) ))
-  
+
   char <- c("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p")
   ranked <- match.arg(ranked)
   median.mean <- match.arg(median.mean)
@@ -6553,7 +6555,7 @@ kruskal.groups <- function(y,trt,sig.level=0.05,p.adj="holm",median.mean=c("mean
   sizes <- table(grouping); sizename <- names(sizes); sizes <- unname(sizes); names(sizes) <- sizename # for removing "grouping" from the name
   grp <- sort(unique(grouping))
   comb <- combn(grp,2);        comb.names <- apply(comb,2,function(x)paste(x,collapse="-"))
-  
+
   if(median.mean%in%c("mean","both")) {
     mean <- round(tapply(y,grouping,mean,na.rm=TRUE),digits=digits)
     sd <-   round(tapply(y,grouping,sd,na.rm=TRUE),digits=digits)
@@ -6562,12 +6564,12 @@ kruskal.groups <- function(y,trt,sig.level=0.05,p.adj="holm",median.mean=c("mean
     median <- round(tapply(y,grouping,median,na.rm=TRUE),digits=digits)
     quantiles <- round(do.call("rbind",tapply(y,grouping,function(x)quantile(x,c(0.25,0.5,0.75),na.rm=TRUE))),digits=digits); colnames(quantiles) <- c("25%","50%","75%")
   }
-  
+
   krsk <- kruskal2.for.kruskal.groups(y,grouping,group=FALSE,p.adj=p.adj)
   diffs <- krsk[[1]][,1] # Extracting the needed information out of the kruskal()-Output
   sig <- krsk[[1]][,2]   # Extracting the needed information out of the kruskal()-Output
   sig.true <- sig < sig.level
-  
+
   if( kruskal.test(y,trt)$p.value>=sig.level   |   all(!sig.true) ){
     # Wenn keine signifikanten Unterschiede bestehen, nur "a" ausgeben.
     # Conover 1999: If, and only if, the null hypothesis [of the normal Kruskal-Wallis-Test] is rejected, we may use the following procedure to determine which pairs of populations tend to differ. (Null hypothesis of the normal Kruskal-Wallis Test: All of the length(grp) population distribution functions are identical)
@@ -6587,7 +6589,7 @@ kruskal.groups <- function(y,trt,sig.level=0.05,p.adj="holm",median.mean=c("mean
     if(print.result) print(result)
     return(result)
   }
-  
+
   sig.value <- numeric()  # Converting the significance information (TRUE / FALSE) into (-1 & 1 / 0) for (TRUE greater & TRUE saller / FALSE)
   for(i in 1:length(sig)){
     if(!sig.true[i]) sig.value[i] <- 0 else if(sig.true[i] & diffs[i]<0) sig.value[i] <- -1 else if(sig.true[i] & diffs[i]>0) sig.value[i] <- 1
@@ -6597,12 +6599,12 @@ kruskal.groups <- function(y,trt,sig.level=0.05,p.adj="holm",median.mean=c("mean
   for(i in 1:length(sig.true))    sig.value.mat[comb[1,i],comb[2,i]] <- sig.value[i]
   for(i in 1:ncol(sig.value.mat)) sig.value.mat[,i] <- -sig.value.mat[i,]
   diag(sig.value.mat) <- 0
-  
+
   rank.numbers.pos <- apply(sig.value.mat,1,function(x)sum(x[x>0]))
   rank.numbers.neg <- apply(sig.value.mat,1,function(x)sum(x[x<0]))
   ranking <- order(-rank.numbers.pos, rank.numbers.neg, -krsk[[2]][,2])
-  
-  # Schauen, wie viel mal man die nächste Schleife (unter mat <-...) laufen lassen muss
+
+  # Schauen, wie viel mal man die n?chste Schleife (unter mat <-...) laufen lassen muss
   comb2 <- comb[,sig.true,drop=FALSE]
   s <- 1
   comb2.new <- comb2
@@ -6611,20 +6613,20 @@ kruskal.groups <- function(y,trt,sig.level=0.05,p.adj="holm",median.mean=c("mean
     comb2.new <- comb2.new[,!i.is.in,drop=FALSE]
     s <- s+1
   }
-  
+
   # THIS IS THE HEART OF THE FUNCTION (makes the grouping a, ab, a, ...)
-  # ---------------------------------
+  # *********************************
   mat <- matrix(NA,nrow=length(grp),ncol=s)
   count.auslassen <- 0
   for (i in 1:s){
-    # Falls die positiven signifikanten Unterschiede für eine Gruppe genau dieselbe sind, wie für die letzte, dann wird der j-Loop übersprungen
-    # Falls in der folge nur noch negative signifikante Unterschiede kommen, werden diese übersprüngen, da diese ja schon bei den positiven Signifikanzen berücksichtigt wurden. Dann läuft der Loop leer durch, bis er fertig ist.
+    # Falls die positiven signifikanten Unterschiede f?r eine Gruppe genau dieselbe sind, wie f?r die letzte, dann wird der j-Loop ?bersprungen
+    # Falls in der folge nur noch negative signifikante Unterschiede kommen, werden diese ?berspr?ngen, da diese ja schon bei den positiven Signifikanzen ber?cksichtigt wurden. Dann l?uft der Loop leer durch, bis er fertig ist.
     # Zur Kontrolle:
     # test <- sig.value.mat[ranking,]
     # rownames(test) <- ranking;test
     if
     ( i==1 |
-        ( !all( (sig.value.mat[ranking[i],] == sig.value.mat[ranking[i-1],])[ sig.value.mat[ranking[i],]>=0 & sig.value.mat[ranking[i-1],]>=0 ] )   
+        ( !all( (sig.value.mat[ranking[i],] == sig.value.mat[ranking[i-1],])[ sig.value.mat[ranking[i],]>=0 & sig.value.mat[ranking[i-1],]>=0 ] )
           &  !all(  sig.value.mat[ranking[(i-1):nrow(sig.value.mat)],] <= 0 )
         )
     )
@@ -6632,28 +6634,28 @@ kruskal.groups <- function(y,trt,sig.level=0.05,p.adj="holm",median.mean=c("mean
       looki <- apply(comb==ranking[i],2,function(x)any(x))
       for(j in 1:length(grp)){
         lookj <- apply(comb==grp[j],2,function(x)any(x))
-        # Es wird dasjenige Element ausgewählt, welches der Kombination von i mit j entspricht.
+        # Es wird dasjenige Element ausgew?hlt, welches der Kombination von i mit j entspricht.
         look <- looki & lookj
         ok <- look & sig.true
-        # Wenn die gewählte Kombination signifikant ist, wird ein " " gesetzt, sonst der Buchstabe
-        if(any(ok)) mat[j,i-count.auslassen] <- " " else mat[j,i-count.auslassen] <- char[i-count.auslassen] 
+        # Wenn die gew?hlte Kombination signifikant ist, wird ein " " gesetzt, sonst der Buchstabe
+        if(any(ok)) mat[j,i-count.auslassen] <- " " else mat[j,i-count.auslassen] <- char[i-count.auslassen]
         # Zur Kontrolle:
         # cat("###\ni= ",i,"\ngrouping= ",ranking[i],"\n")
         # cat("j= ",j,"\n")
         # print(mat)
       }
-      # In der Spalte, in der man gerade ist, muss die Reihe der Geprüften Gruppe immer ein Buchstabe enthalten!
+      # In der Spalte, in der man gerade ist, muss die Reihe der Gepr?ften Gruppe immer ein Buchstabe enthalten!
       mat[ranking[i],i-count.auslassen] <- char[i-count.auslassen]
       # Die Buchstaben werden nur nach rechts gesetzt, nicht aber nach links zu den Gruppen, die schon kontrolliert wurden. Die kontrollierten Gruppen werden mit einem Leerfeld belegt.
       if(i>1) mat[ranking[1:(i-1)],i-count.auslassen] <- " "
-    } else { # Falls die Signifikanten unterschiede für eine Gruppe genau dieselben sind, wie für die letzte, dann wird der j-Loop übersprungen. Siehe if() oben.
+    } else { # Falls die Signifikanten unterschiede f?r eine Gruppe genau dieselben sind, wie f?r die letzte, dann wird der j-Loop ?bersprungen. Siehe if() oben.
       count.auslassen <- count.auslassen + 1
     }
     # Zur Kontrolle
     # print(mat)
     # names(sig.value) <- comb.names; print(sig.value)
   }
-  
+
   mat <- mat[,apply(mat,2,function(x)!all(is.na(x)))] # Remove empty columns from table
   mat.short <- matrix(NA,ncol=1,nrow=nrow(mat))
   rownames(mat.short) <- rownames(mat) <- names(mean)
@@ -6798,7 +6800,7 @@ kruskal2.for.kruskal.groups <- function(y, trt,alpha=0.05,p.adj = c("none","holm
     rownames(output)<-paste(tr.i,tr.j,sep=" - ")
     #cat("\nComparison between treatments mean of the ranks\n\n")
     #print(output)
-    
+
     output2<-data.frame(trt= means[,1],means= means[,2],M="",N=means[,3])
     #output  <-data.frame(trt= means[,1],means= means[,2],M="",N=means[,3])
   }
@@ -6814,14 +6816,14 @@ sig.groups <- function(y, trt, sig, sig.level=0.05, digits=2, median.mean=c("mea
   if(length(y)!=length(trt)) stop("length(y)!=length(trt)")
   ranked <- match.arg(ranked)
   median.mean <- match.arg(median.mean)
-  
+
   char <- c("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p")
   grouping <- trt
   sizes <- table(grouping); sizename <- names(sizes); sizes <- unname(sizes); names(sizes) <- sizename # for removing "grouping" from the name
   grp <- sort(unique(grouping))
   comb <- combn(grp,2);        comb.names <- apply(comb,2,function(x)paste(x,collapse="-"))
   #mean <- round(tapply(y,grouping,mean,na.rm=TRUE),digits=digits)
-  
+
   if(median.mean%in%c("mean","both")) {
     mean <- round(tapply(y,grouping,mean,na.rm=TRUE),digits=digits)
     sd <-   round(tapply(y,grouping,sd,na.rm=TRUE),digits=digits)
@@ -6830,13 +6832,13 @@ sig.groups <- function(y, trt, sig, sig.level=0.05, digits=2, median.mean=c("mea
     median <- round(tapply(y,grouping,median,na.rm=TRUE),digits=digits)
     quantiles <- round(do.call("rbind",tapply(y,grouping,function(x)quantile(x,c(0.25,0.5,0.75),na.rm=TRUE))),digits=digits); colnames(quantiles) <- c("25%","50%","75%")
   }
-  
+
   diffs <- rep(NA,ncol(comb)); names(diffs) <- comb.names
   for(i in 1:ncol(comb)) diffs[i] <- mean[comb[1,i]] - mean[comb[2,i]]
-  sig.true <- rep(FALSE,length(sig)); 
+  sig.true <- rep(FALSE,length(sig));
   sig.true <- sig < sig.level; names(sig.true) <- comb.names
-  
-  
+
+
   if(all(!sig.true)){
     # Wenn keine signifikanten Unterschiede bestehen, nur "a" ausgeben.
     mat.short <- mat <- matrix("a",nrow=length(grp),ncol=1); rownames(mat.short) <- rownames(mat) <- names(mean)
@@ -6854,7 +6856,7 @@ sig.groups <- function(y, trt, sig, sig.level=0.05, digits=2, median.mean=c("mea
     if(print.result) print(result)
     return(invisible(result))
   }
-  
+
   sig.value <- numeric()  # Converting the significance information (TRUE / FALSE) into (-1 & 1 / 0) for (TRUE greater & TRUE saller / FALSE)
   for(i in 1:length(sig)){
     if(!sig.true[i]) sig.value[i] <- 0 else if(sig.true[i] & diffs[i]<0) sig.value[i] <- -1 else if(sig.true[i] & diffs[i]>0) sig.value[i] <- 1
@@ -6864,12 +6866,12 @@ sig.groups <- function(y, trt, sig, sig.level=0.05, digits=2, median.mean=c("mea
   for(i in 1:length(sig.true))    sig.value.mat[comb[1,i],comb[2,i]] <- sig.value[i]
   for(i in 1:ncol(sig.value.mat)) sig.value.mat[,i] <- -sig.value.mat[i,]
   diag(sig.value.mat) <- 0
-  
+
   rank.numbers.pos <- apply(sig.value.mat,1,function(x)sum(x[x>0]))
   rank.numbers.neg <- apply(sig.value.mat,1,function(x)sum(x[x<0]))
   ranking <- order(-rank.numbers.pos, rank.numbers.neg, -mean)
-  
-  # Schauen, wie viel mal man die nächste Schleife (unter mat <-...) laufen lassen muss
+
+  # Schauen, wie viel mal man die n?chste Schleife (unter mat <-...) laufen lassen muss
   comb2 <- comb[,sig.true,drop=FALSE]
   s <- 1
   comb2.new <- comb2
@@ -6878,20 +6880,20 @@ sig.groups <- function(y, trt, sig, sig.level=0.05, digits=2, median.mean=c("mea
     comb2.new <- comb2.new[,!i.is.in,drop=FALSE]
     s <- s+1
   }
-  
+
   # THIS IS THE HEART OF THE FUNCTION (makes the grouping a, ab, a, ...)
-  # ---------------------------------
+  # *********************************
   mat <- matrix(NA,nrow=length(grp),ncol=s)
   count.auslassen <- 0
   for (i in 1:s){
-    # Falls die positiven signifikanten Unterschiede für eine Gruppe genau dieselbe sind, wie für die letzte, dann wird der j-Loop übersprungen
-    # Falls in der folge nur noch negative signifikante Unterschiede kommen, werden diese übersprüngen, da diese ja schon bei den positiven Signifikanzen berücksichtigt wurden. Dann läuft der Loop leer durch, bis er fertig ist.
+    # Falls die positiven signifikanten Unterschiede f?r eine Gruppe genau dieselbe sind, wie f?r die letzte, dann wird der j-Loop ?bersprungen
+    # Falls in der folge nur noch negative signifikante Unterschiede kommen, werden diese ?berspr?ngen, da diese ja schon bei den positiven Signifikanzen ber?cksichtigt wurden. Dann l?uft der Loop leer durch, bis er fertig ist.
     # Zur Kontrolle:
     # test <- sig.value.mat[ranking,]
     # rownames(test) <- ranking;test
     if
     ( i==1 |
-        ( !all( (sig.value.mat[ranking[i],] == sig.value.mat[ranking[i-1],])[ sig.value.mat[ranking[i],]>=0 & sig.value.mat[ranking[i-1],]>=0 ] )   
+        ( !all( (sig.value.mat[ranking[i],] == sig.value.mat[ranking[i-1],])[ sig.value.mat[ranking[i],]>=0 & sig.value.mat[ranking[i-1],]>=0 ] )
           &  !all(  sig.value.mat[ranking[(i-1):nrow(sig.value.mat)],] <= 0 )
         )
     )
@@ -6899,28 +6901,28 @@ sig.groups <- function(y, trt, sig, sig.level=0.05, digits=2, median.mean=c("mea
       looki <- apply(comb==ranking[i],2,function(x)any(x))
       for(j in 1:length(grp)){
         lookj <- apply(comb==grp[j],2,function(x)any(x))
-        # Es wird dasjenige Element ausgewählt, welches der Kombination von i mit j entspricht.
+        # Es wird dasjenige Element ausgew?hlt, welches der Kombination von i mit j entspricht.
         look <- looki & lookj
         ok <- look & sig.true
-        # Wenn die gewählte Kombination signifikant ist, wird ein " " gesetzt, sonst der Buchstabe
-        if(any(ok)) mat[j,i-count.auslassen] <- " " else mat[j,i-count.auslassen] <- char[i-count.auslassen] 
+        # Wenn die gew?hlte Kombination signifikant ist, wird ein " " gesetzt, sonst der Buchstabe
+        if(any(ok)) mat[j,i-count.auslassen] <- " " else mat[j,i-count.auslassen] <- char[i-count.auslassen]
         # Zur Kontrolle:
         # cat("###\ni= ",i,"\ngrouping= ",ranking[i],"\n")
         # cat("j= ",j,"\n")
         # print(mat)
       }
-      # In der Spalte, in der man gerade ist, muss die Reihe der Geprüften Gruppe immer ein Buchstabe enthalten!
+      # In der Spalte, in der man gerade ist, muss die Reihe der Gepr?ften Gruppe immer ein Buchstabe enthalten!
       mat[ranking[i],i-count.auslassen] <- char[i-count.auslassen]
       # Die Buchstaben werden nur nach rechts gesetzt, nicht aber nach links zu den Gruppen, die schon kontrolliert wurden. Die kontrollierten Gruppen werden mit einem Leerfeld belegt.
       if(i>1) mat[ranking[1:(i-1)],i-count.auslassen] <- " "
-    } else { # Falls die Signifikanten unterschiede für eine Gruppe genau dieselben sind, wie für die letzte, dann wird der j-Loop übersprungen. Siehe if() oben.
+    } else { # Falls die Signifikanten unterschiede f?r eine Gruppe genau dieselben sind, wie f?r die letzte, dann wird der j-Loop ?bersprungen. Siehe if() oben.
       count.auslassen <- count.auslassen + 1
     }
     # Zur Kontrolle
     # print(mat)
     # names(sig.value) <- comb.names; print(sig.value)
   }
-  
+
   mat <- mat[,apply(mat,2,function(x)!all(is.na(x)))] # Remove empty columns from table
   mat.short <- matrix(NA,ncol=1,nrow=nrow(mat))
   rownames(mat.short) <- rownames(mat) <- names(mean)
@@ -6928,7 +6930,7 @@ sig.groups <- function(y, trt, sig, sig.level=0.05, digits=2, median.mean=c("mea
     mat.short[i,] <- paste(mat[i,],sep="",collapse="")
   }
   if(median.mean=="both") out <- data.frame(median=median,mean=mean,sd=sd,group=mat.short) else if (median.mean=="mean") out <- data.frame(mean=mean,sd=sd,group=mat.short) else if (median.mean=="median") { out <- data.frame(quantiles,group=mat.short); colnames(out) <- c(colnames(quantiles),"group") }
-  ranking.rankmean <- as.numeric(as.character(names(mean)[order(-mean)]))  
+  ranking.rankmean <- as.numeric(as.character(names(mean)[order(-mean)]))
   ranking.character.left  <- order(apply(mat,1,function(x)min(which(x!=" "))) , apply(mat,1,function(x)max(which(x!=" "))) , -rank.numbers.pos, rank.numbers.neg, -mean)
   ranking.character.right <- order(apply(mat,1,function(x)max(which(x!=" "))) , apply(mat,1,function(x)min(which(x!=" "))) , -rank.numbers.pos, rank.numbers.neg, -mean)
   ranking.intern <- ranking
@@ -6955,7 +6957,7 @@ sig.groups.by.interval <- function(diffs=NULL,sig.true=NULL,comb=NULL,special.in
   # For intervals like the malmquist output give the following arguments:
   #malmi <- matrix(c(1,1,1.5,3,2,2,1,4),nrow=2,byrow=TRUE)
   #comb <- combn(1:ncol(malmi),2);  comb.names <- apply(comb,2,function(x)paste(x,collapse="-"))
-  #diffs <- numeric(); 
+  #diffs <- numeric();
   #for(i in 1:ncol(comb)) diffs[i] <- max(malmi[,comb[1,i]]) - min(malmi[,comb[2,i]])
   #names(diffs) <- comb.names
   #sig.true <- diffs<0
@@ -6968,11 +6970,11 @@ sig.groups.by.interval <- function(diffs=NULL,sig.true=NULL,comb=NULL,special.in
     for(i in 1:ncol(comb)) diffs[i] <- max(special.input[,comb[1,i]]) - min(special.input[,comb[2,i]])
     sig.true <- diffs<0
   } else if (any(c( is.null(diffs),is.null(sig.true),is.null(comb) ))) stop("specify arguments diffs, sig.true and comb")
-  
+
   char <- c("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p")
   grp <- unique(sort(comb))
   if( !all(combn(grp,2)==comb) ) stop("Combine the differences with combn(  unique(grouplabels)  ,2)")
-  
+
   if(all(!sig.true)){
     # Wenn keine signifikanten Unterschiede bestehen, nur "a" ausgeben.
     mat.short <- mat <- matrix("a",nrow=length(grp),ncol=1); rownames(mat.short) <- rownames(mat) <- names(mean)
@@ -6988,7 +6990,7 @@ sig.groups.by.interval <- function(diffs=NULL,sig.true=NULL,comb=NULL,special.in
     if(print.result) print(result)
     return(invisible(result))
   }
-  
+
   sig.value <- numeric()
   for(i in 1:length(sig.true)){
     if(!sig.true[i]) sig.value[i] <- 0 else if(sig.true[i] & diffs[i]<0) sig.value[i] <- -1 else if(sig.true[i] & diffs[i]>0) sig.value[i] <- 1
@@ -6998,12 +7000,12 @@ sig.groups.by.interval <- function(diffs=NULL,sig.true=NULL,comb=NULL,special.in
   for(i in 1:length(sig.true))    sig.value.mat[comb[1,i],comb[2,i]] <- sig.value[i]
   for(i in 1:ncol(sig.value.mat)) sig.value.mat[,i] <- -sig.value.mat[i,]
   diag(sig.value.mat) <- 0
-  
+
   rank.numbers.pos <- apply(sig.value.mat,1,function(x)sum(x[x>0]))
   rank.numbers.neg <- apply(sig.value.mat,1,function(x)sum(x[x<0]))
   ranking <- order(-rank.numbers.pos, rank.numbers.neg)
-  
-  # Schauen, wie viel mal man die nächste Schleife (unter mat <-...) laufen lassen muss
+
+  # Schauen, wie viel mal man die n?chste Schleife (unter mat <-...) laufen lassen muss
   comb2 <- comb[,sig.true,drop=FALSE]
   s <- 1
   comb2.new <- comb2
@@ -7012,18 +7014,18 @@ sig.groups.by.interval <- function(diffs=NULL,sig.true=NULL,comb=NULL,special.in
     comb2.new <- comb2.new[,!i.is.in,drop=FALSE]
     s <- s+1
   }
-  
+
   mat <- matrix(NA,nrow=length(grp),ncol=s)
   count.auslassen <- 0
   for (i in 1:s){
-    # Falls die positiven signifikanten Unterschiede für eine Gruppe genau dieselbe sind, wie für die letzte, dann wird der j-Loop übersprungen
-    # Falls in der folge nur noch negative signifikante Unterschiede kommen, werden diese übersprüngen, da diese ja schon bei den positiven Signifikanzen berücksichtigt wurden. Dann läuft der Loop leer durch, bis er fertig ist.
+    # Falls die positiven signifikanten Unterschiede f?r eine Gruppe genau dieselbe sind, wie f?r die letzte, dann wird der j-Loop ?bersprungen
+    # Falls in der folge nur noch negative signifikante Unterschiede kommen, werden diese ?berspr?ngen, da diese ja schon bei den positiven Signifikanzen ber?cksichtigt wurden. Dann l?uft der Loop leer durch, bis er fertig ist.
     # Zur Kontrolle:
     # test <- sig.value.mat[ranking,]
     # rownames(test) <- ranking;test
     if
     ( i==1 |
-        ( !all( (sig.value.mat[ranking[i],] == sig.value.mat[ranking[i-1],])[ sig.value.mat[ranking[i],]>=0 & sig.value.mat[ranking[i-1],]>=0 ] )   
+        ( !all( (sig.value.mat[ranking[i],] == sig.value.mat[ranking[i-1],])[ sig.value.mat[ranking[i],]>=0 & sig.value.mat[ranking[i-1],]>=0 ] )
           &  !all(  sig.value.mat[ranking[(i-1):nrow(sig.value.mat)],] <= 0 )
         )
     )
@@ -7031,27 +7033,27 @@ sig.groups.by.interval <- function(diffs=NULL,sig.true=NULL,comb=NULL,special.in
       looki <- apply(comb==ranking[i],2,function(x)any(x))
       for(j in 1:length(grp)){
         lookj <- apply(comb==grp[j],2,function(x)any(x))
-        # Es wird dasjenige Element ausgewählt, welches der Kombination von i mit j entspricht.
+        # Es wird dasjenige Element ausgew?hlt, welches der Kombination von i mit j entspricht.
         look <- looki & lookj
         ok <- look & sig.true
-        # Wenn die gewählte Kombination signifikant ist, wird ein " " gesetzt, sonst der Buchstabe
-        if(any(ok)) mat[j,i-count.auslassen] <- " " else mat[j,i-count.auslassen] <- char[i-count.auslassen] 
+        # Wenn die gew?hlte Kombination signifikant ist, wird ein " " gesetzt, sonst der Buchstabe
+        if(any(ok)) mat[j,i-count.auslassen] <- " " else mat[j,i-count.auslassen] <- char[i-count.auslassen]
         # Zur Kontrolle:
         # cat("###\ni= ",i,"\ngrouping= ",ranking[i],"\n")
         # cat("j= ",j,"\n")
         # print(mat)
       }
-      # In der Spalte, in der man gerade ist, muss die Reihe der Geprüften Gruppe immer ein Buchstabe enthalten!
+      # In der Spalte, in der man gerade ist, muss die Reihe der Gepr?ften Gruppe immer ein Buchstabe enthalten!
       mat[ranking[i],i-count.auslassen] <- char[i-count.auslassen]
       # Die Buchstaben werden nur nach rechts gesetzt, nicht aber nach links zu den Gruppen, die schon kontrolliert wurden. Die kontrollierten Gruppen werden mit einem Leerfeld belegt.
       if(i>1) mat[ranking[1:(i-1)],i-count.auslassen] <- " "
-    } else { # Falls die Signifikanten unterschiede für eine Gruppe genau dieselben sind, wie für die letzte, dann wird der j-Loop übersprungen. Siehe if() oben.
+    } else { # Falls die Signifikanten unterschiede f?r eine Gruppe genau dieselben sind, wie f?r die letzte, dann wird der j-Loop ?bersprungen. Siehe if() oben.
       count.auslassen <- count.auslassen + 1
     }
     # Zur Kontrolle
     # print(mat)
   }
-  
+
   mat <- mat[,apply(mat,2,function(x)!all(is.na(x)))]
   mat.short <- matrix(NA,ncol=1,nrow=nrow(mat))
   rownames(mat.short) <- rownames(mat) <- names(mean)
@@ -7089,17 +7091,17 @@ chisq.test.2groups <- function(y, trt) {
   # This function checks if a categorial varialbes y (0,1 odr TRUE,FALSE) is significantly different for
   # two different groups (treatments) trt
   # The p-value is returned
-  
+
   if(length(unique(trt))>2) stop("For more than 2 groups choose the function chisq.groups()")
   if(length(unique(y))>2) stop("There are more than 2 values in y (the variable is not binary!). -> length(unique(y)) must be 2!")
-  
+
   tables <- table(list(trt=trt, y=y))
-  
+
   result <- list()
   result[["table"]]   <- tables
   result[["proportions"]] <- tables/apply(tables,1,function(x)sum(x))
   result[["p.value"]] <- chisq.test(tables)$p.value
-  
+
   return(result)
 }
 #y <- sample(c(0,1),30, replace=TRUE); trt <- sample(c(1,2,3),30, replace=TRUE); p.adj="holm"; perc=TRUE; digits=1; sig.level=0.05; median.mean=c("mean"); ranked=c("no"); print.result=TRUE# k1 <- kruskal.groups(y,trt); print.default(k1); k1
@@ -7111,13 +7113,13 @@ chisq.groups <- function(y, trt, sig.level=0.05, p.adj="holm", perc=TRUE, digits
   # y: the data vector, trt (treatment): the grouping vecotr, perc=TRUE: The proportions are given as percentages, digits: digits, ranked: should the output table be sorted according to the proportions..?, print.result: should the result be printed?
   grouping <- trt
   ranked <- match.arg(ranked)
-  
+
   grp <- sort(unique(grouping))
   comb <- combn(grp,2); comb.names <- apply(comb,2,function(x)paste(x,collapse="-"))
   comb <- apply(comb,2,function(x)as.character(x))
   mean <- tapply(y,grouping,function(x)mean(x,na.rm=TRUE))
   tables <- table(list(grouping=grouping, proportion=y))
-  
+
   diffs <- sig <- rep(NA,ncol(comb)); names(diffs) <- names(sig) <- comb.names
   for(i in 1:ncol(comb)) {
     diffs[i] <- mean[comb[1,i]] - mean[comb[2,i]]
@@ -7126,18 +7128,18 @@ chisq.groups <- function(y, trt, sig.level=0.05, p.adj="holm", perc=TRUE, digits
   sig <- p.adjust(sig, method=p.adj)
   # Same procedure as in the Kruskal-Wallis-Test: Multiple comparisons between pairs of groups are only done if there is any difference between all of the groups. IF all sig[] are set to 1, then the grouping c(a,a,a,a,...) is produced in the sig.group() function.
   all.nonsig <- chisq.test(tables)$p.value>=sig.level
-  # Wenn nur 1 y-Wert gegeben wurde, sind die Werte zwangsläufig auch nicht unterschiedlich.
+  # Wenn nur 1 y-Wert gegeben wurde, sind die Werte zwangsl?ufig auch nicht unterschiedlich.
   all.nonsig <- all.nonsig | length(sort(unique(y)))==1
-  
+
   if(all.nonsig) {
     sig.orig <- sig
     sig[] <- 1
   }
-  
+
   if(perc==TRUE) digits <- digits+2
   # set.args("y=y, trt=grouping, sig=sig, sig.level=sig.level ,digits=digits, median.mean='mean', ranked=ranked, print.result=FALSE")
   char.grouping <- sig.groups(y=y, trt=grouping, sig=sig, sig.level=sig.level ,digits=digits, median.mean="mean", ranked=ranked, print.result=FALSE)
-  
+
   if(perc) char.grouping$summary[,c(1,2)] <- char.grouping$summary[,c(1,2)]*100
   char.grouping$summary <- char.grouping$summary[,c(1,3)]
   colnames(char.grouping$summary)[1] <- "prop."
@@ -7159,14 +7161,14 @@ sigdivar <- function (aov.data, aov.factor, conf.level=0.05, round=TRUE, digits=
   aov.data <- as.matrix( aov.data )
   nclust <- max(as.numeric(aov.factor))
   aov.factor <- as.factor(as.numeric(as.factor(aov.factor)))
-  
+
   if(!is.null(minsize)) {         # Cluster Minsizes
     aov.factor <- as.numeric(aov.factor)
     aov.data <- as.matrix(cbind(aov.data, aov.factor))
     colnames(aov.data)[ncol(aov.data)] <- "aov.factor"
-    
+
     clustersizes <- matrix(nrow=1, ncol=nclust)
-    for(i in 1:nclust) 
+    for(i in 1:nclust)
       clustersizes[,i] <- length(which(aov.data[,"aov.factor"]==i))
     if(max(clustersizes)<minsize) stop("No group has enough members to fullfil the minsize restriction")
     clustersizes.column <- matrix(nrow=nrow(aov.data), ncol=1)
@@ -7176,17 +7178,17 @@ sigdivar <- function (aov.data, aov.factor, conf.level=0.05, round=TRUE, digits=
     colnames(aov.data)[ncol(aov.data)] <- "clustersizes.column"
     aov.data <- aov.data[which(aov.data[,"clustersizes.column"]>=minsize),]
     aov.factor <- as.factor(as.numeric(as.factor(aov.data[,"aov.factor"])))
-    
+
     nclust.diff <- nclust - max(as.numeric(aov.factor))
     nclust <- max(as.numeric(aov.factor))
     aov.data <- as.matrix(aov.data[,1:(ncol(aov.data)-2)])
-  }  
-  
+  }
+
   clustersizes <- matrix(nrow=1, ncol=nclust)
   colnames(clustersizes) <- paste("Cluster", 1:nclust, sep=" "); rownames(clustersizes) <- "Clustersizes"
-  for(i in 1:nclust) 
+  for(i in 1:nclust)
     clustersizes[,i] <- length(which(aov.factor[]==i))
-  
+
   aov.result <- aov(aov.data ~ aov.factor)
   sigdivar <- matrix(nrow=length(summary(aov.result)), ncol=(2+nclust)); rownames(sigdivar) <- colnames(aov.data); colnames(sigdivar) <- c("F value","Pr(>F)", paste("Cluster", 1:nclust, sep=" "))
   sigmat <- do.call("rbind",summary(aov.result))
@@ -7199,7 +7201,7 @@ sigdivar <- function (aov.data, aov.factor, conf.level=0.05, round=TRUE, digits=
   message <- if(min(clustersizes)<10) {"Warning: there are small groups constisting of less than 10 members. This could distort the analysis. Use the argument minsize=... to kick groups smaller than minsize before doing the ANOVA."
   } else if (!is.null(minsize)) {paste(nclust.diff,"groups were excluded from ANOVA due to small sizes.")
   } else if (is.null(minsize)) {"All groups have more than 10 members. Don't forget to fullfil the assumptions for an ANOVA (normality and equal variances)."}
-  
+
   sigdivar.output <- list(full=sigdivar, sign=sigdivar.true, sizes=clustersizes, message=message)
   return(sigdivar.output)
 }
@@ -7209,20 +7211,20 @@ tukeyhsd.multiple <- function(aov.data, aov.factor, conf.level=0.05, round=TRUE,
   # Explanation: Extract all significant differences in variables, like with sigdivar()-function but in this case
   # post-hoc like which means: differences between the individual treatments are also given.
   # Don't forget to fullfill the assumptions of normal distribution and homogeneity of variances for the ANOVA.
-  
+
   aov.data <- aov.data; aov.factor <- aov.factor
   aov.data <- as.matrix(aov.data)
   nclust <- max(as.numeric(aov.factor))
   if(!is.factor(aov.factor)) aov.factor <- factor(aov.factor)
   result <- vector("list", ncol(aov.data))
-  
+
   if(!is.null(minsize)) {         # Cluster Minsizes
     aov.factor <- as.numeric(aov.factor)
     aov.data <- as.matrix(cbind(aov.data, aov.factor))
     colnames(aov.data)[ncol(aov.data)] <- "aov.factor"
-    
+
     clustersizes <- matrix(nrow=1, ncol=nclust)
-    for(i in 1:nclust) 
+    for(i in 1:nclust)
       clustersizes[,i] <- length(which(aov.data[,"aov.factor"]==i))
     if(max(clustersizes)<minsize) stop("No group has enough members to fullfil the minsize restriction")
     clustersizes.column <- matrix(nrow=nrow(aov.data), ncol=1)
@@ -7232,26 +7234,26 @@ tukeyhsd.multiple <- function(aov.data, aov.factor, conf.level=0.05, round=TRUE,
     colnames(aov.data)[ncol(aov.data)] <- "clustersizes.column"
     aov.data <- aov.data[which(aov.data[,"clustersizes.column"]>=minsize),]
     aov.factor <- as.factor(as.numeric(as.factor(aov.data[,"aov.factor"])))
-    
+
     nclust.diff <- nclust - max(as.numeric(aov.factor))
     nclust <- max(as.numeric(aov.factor))
     aov.data <- as.matrix(aov.data[,1:(ncol(aov.data)-2)])
-  }  
-  
+  }
+
   clustersizes <- matrix(nrow=1, ncol=nclust)
   colnames(clustersizes) <- paste("Cluster", 1:nclust, sep=" "); rownames(clustersizes) <- "Clustersizes"
-  for(i in 1:nclust) 
+  for(i in 1:nclust)
     clustersizes[,i] <- length(which(aov.factor[]==i))
   message <- if(min(clustersizes)<10) {"Warning: there are small groups constisting of less than 10 members. This could distort the analysis. Use the argument minsize=... to kick groups smaller than minsize before doing the ANOVA."
   } else if (!is.null(minsize)) {paste(nclust.diff,"groups were excluded from ANOVA due to small sizes.")
   } else if (is.null(minsize)) {"All groups have more than 10 members. Don't forget to fullfil all assumptions for the ANOVA (e.g.) equal variances."}
-  
-  
+
+
   for (a in 1:ncol(aov.data)) {
     aov.r <- aov(aov.data[,a] ~ aov.factor)
     tuk <- TukeyHSD(aov.r)$aov.factor  # , conf.level=conf.level
     result[[a]] <- tuk[which(tuk[,"p adj"]<=conf.level), ,drop=FALSE]
-    
+
     if(nrow(result[[a]])==0) result[[a]] <- NA
     names(result)[[a]] <- paste(colnames(aov.data)[a],sep="")
   }
@@ -7277,30 +7279,30 @@ tukeyhsd.multiple <- function(aov.data, aov.factor, conf.level=0.05, round=TRUE,
 #if(!is.null(minsize)) {         # Cluster Minsizes
 #  aov.factor.m <- as.numeric(aov.factor)
 #  clustersizes <- rep(0,nclust)
-#  for(i in 1:nclust) 
+#  for(i in 1:nclust)
 #    clustersizes[i] <- length(which(aov.factor.m[]==i))
 #  clustersizes.column <- rep(0,nrow(aov.data))
 #  for (i in 1:length(clustersizes.column))
 #    clustersizes.column[i] <- clustersizes[aov.factor.m[i]]
 #  aov.data <- aov.data[which(clustersizes.column[]>=minsize),]
 #  aov.factor.m <- as.factor(as.numeric(aov.factor.m))
-#  
+#
 #  nclust.diff <- nclust - max(as.numeric(aov.factor.m))
 #  nclust <- max(as.numeric(aov.factor.m))
 #  aov.data <- as.matrix(aov.data)
 #}
 
 ####
-sigtest.1vsall <- function(x,trt,method=c("kruskal","wilcoxon","t.test")) {  
+sigtest.1vsall <- function(x,trt,method=c("kruskal","wilcoxon","t.test")) {
   if(!is.vector(x)) stop(paste("x must be a vector. Your argument is of class",class(x),sep=""))
   method <- match.arg(method)
   uniquetrt <- sort(unique(trt))
   trt.new <- list()
   for(i in 1:length(uniquetrt)) trt.new[[i]] <- as.numeric( trt==uniquetrt[i] )
-  
+
   sig <- rep(0,length(uniquetrt))
   sig.sign <- rep("",length(uniquetrt))
-  
+
   if(method=="kruskal") {
     for(i in 1:length(uniquetrt)) sig[i] <- kruskal.test(x,trt.new[[i]])$p.value
   } else if (method=="wilcoxon") {
@@ -7339,41 +7341,41 @@ if(FALSE){
 
 normalize.qqplot <- function(data,replace.Inf=TRUE,window=FALSE,mar=c(2.1,2.1,2.1,2.1),...){
   data <- as.data.frame(data)
-  
+
   data.new <- data
   colnames(data.new) <- paste0(colnames(data.new)," original")
   qqplot.multiple(data.new,colnames(data.new),window=window,mt="orig",...)
-  
+
   data.new <- data^(-2)
   if(replace.Inf) data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- -NA
   colnames(data.new) <- paste0(colnames(data.new),"^(-2)")
   qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(-2)",mar=mar,...)
-  
+
   data.new <- data^(-1)
   if(replace.Inf) data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- -NA
   colnames(data.new) <- paste0(colnames(data.new),"^(-1)")
   qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(-1)",mar=mar,...)
-  
+
   data.new <- data^(-0.5)
   if(replace.Inf) data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- -NA
   colnames(data.new) <- paste0(colnames(data.new),"^(-0.5)")
   qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(-0.5)",mar=mar,...)
-  
+
   data.new <- data^(0.5)
   if(replace.Inf) data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- -NA
   colnames(data.new) <- paste0(colnames(data.new),"^0.5")
   qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(0.5)",mar=mar,...)
-  
+
   data.new <- data^(2)
   if(replace.Inf) data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- -NA
   colnames(data.new) <- paste0(colnames(data.new),"^2")
-  qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(2)",mar=mar,...)  
-  
+  qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(2)",mar=mar,...)
+
   data.new <- log(data)
   if(replace.Inf) data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- -NA
   colnames(data.new) <- paste0("log(",colnames(data.new),")")
   qqplot.multiple(data.new,colnames(data.new),window=window,mt="log()",mar=mar,...)
-  
+
   data.new <- exp(data)
   if(replace.Inf) data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- -NA
   colnames(data.new) <- paste0("exp(",colnames(data.new),")")
@@ -7399,7 +7401,7 @@ normalize <- function(data, qq=TRUE, window=FALSE, ...) {
   # Detail:
   # Functions might be applied to different columns even though the lilliefors test did not yield a p.value > 0.05.
   # This will be the case if the p.value gets larger compared to the original distribution.
-  
+
   funcs <- list("x^(-2)"=function(x)x^(-2),
                 "x^(-1)"=function(x)x^(-1),
                 "x^(-0.5)"=function(x)x^(-0.5),
@@ -7409,14 +7411,14 @@ normalize <- function(data, qq=TRUE, window=FALSE, ...) {
                 "x^(2)"=function(x)x^(2),
                 "exp(x)"=function(x)exp(x)
   )
-  
+
   lillie.test <- function (x)         # lillie.test{nortest} modified. Now it also works with data containing always the same number.
   {
     DNAME <- deparse(substitute(x))
     x <- sort(x[complete.cases(x)])
     n <- length(x)
     if (n > 4) {                                                   # change from original here
-      
+
       p <- pnorm((x - mean(x))/sd(x))
       Dplus <- max(seq(1:n)/n - p)
       Dminus <- max(p - (seq(1:n) - 1)/n)
@@ -7428,8 +7430,8 @@ normalize <- function(data, qq=TRUE, window=FALSE, ...) {
         Kd <- K * ((n/100)^0.49)
         nd <- 100
       }
-      pvalue <- exp(-7.01256 * Kd^2 * (nd + 2.78019) + 2.99587 * 
-                      Kd * sqrt(nd + 2.78019) - 0.122119 + 0.974598/sqrt(nd) + 
+      pvalue <- exp(-7.01256 * Kd^2 * (nd + 2.78019) + 2.99587 *
+                      Kd * sqrt(nd + 2.78019) - 0.122119 + 0.974598/sqrt(nd) +
                       1.67997/nd)
       if (!is.na(pvalue)) {                                        # change from original here
         if (pvalue > 0.1) {
@@ -7437,13 +7439,13 @@ normalize <- function(data, qq=TRUE, window=FALSE, ...) {
           if (KK <= 0.302) {
             pvalue <- 1
           }    else if (KK <= 0.5) {
-            pvalue <- 2.76773 - 19.828315 * KK + 80.709644 * 
+            pvalue <- 2.76773 - 19.828315 * KK + 80.709644 *
               KK^2 - 138.55152 * KK^3 + 81.218052 * KK^4
           }    else if (KK <= 0.9) {
-            pvalue <- -4.901232 + 40.662806 * KK - 97.490286 * 
+            pvalue <- -4.901232 + 40.662806 * KK - 97.490286 *
               KK^2 + 94.029866 * KK^3 - 32.355711 * KK^4
           }    else if (KK <= 1.31) {
-            pvalue <- 6.198765 - 19.558097 * KK + 23.186922 * 
+            pvalue <- 6.198765 - 19.558097 * KK + 23.186922 *
               KK^2 - 12.234627 * KK^3 + 2.423045 * KK^4
           }    else {
             pvalue <- 0
@@ -7453,16 +7455,16 @@ normalize <- function(data, qq=TRUE, window=FALSE, ...) {
     } else {pvalue <- 0                                             # change from original here
     K <- 0                                                  # change from original here
     D <- 0}                                                 # change from original here
-    RVAL <- list(statistic = c(D = K), p.value = pvalue, method = "Lilliefors (Kolmogorov-Smirnov) normality test", 
+    RVAL <- list(statistic = c(D = K), p.value = pvalue, method = "Lilliefors (Kolmogorov-Smirnov) normality test",
                  data.name = DNAME)
     class(RVAL) <- "htest"
     return(RVAL)
   }
-  
+
   pValsPerCol <- sapply(funcs, function(func){
     apply( apply(data,2,function(x)func(x)) ,2,function(x)lillie.test(x)$p.value)
   })
-  
+
   useFuncsPerCol <- apply(pValsPerCol,1,function(x)names(funcs)[which.max(x)] )
   data.new <- data
   cn1 <- colnames(data)
@@ -7470,7 +7472,7 @@ normalize <- function(data, qq=TRUE, window=FALSE, ...) {
     transformCol <- names(useFuncsPerCol)[useFuncsPerCol==i]
     data.new[,transformCol] <- funcs[[i]]( data.new[,transformCol] )
   }
-  
+
   if(qq) qqplot.multiple(data.new, colnames(data.new), window=window, mt=useFuncsPerCol)
   return(list(data=data.new,
               pValsPerCol=pValsPerCol,
@@ -7481,7 +7483,7 @@ normalize <- function(data, qq=TRUE, window=FALSE, ...) {
 ####
 qqplot.multiple <- function(data,variables,plotrows=5,mar=c(2.1,2.1,2.1,2.1),window=FALSE,mt=NULL,...){
   par.orig <- par()$mar; mfrow.orig <- par()$mfrow; on.exit(par(mar=par.orig, mfrow=mfrow.orig))
-  
+
   if(length(mt)==1) mt <- rep(mt,ncol(data))
   if(window) windows()
   nvariables <- length(variables)
@@ -7501,7 +7503,7 @@ qqplot.multiple <- function(data,variables,plotrows=5,mar=c(2.1,2.1,2.1,2.1),win
 if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, window=FALSE, ...) {
   if(!any(c(is.matrix(data), is.data.frame(data)))) stop("Data must be a matrix or data.frame.")
   if(any(  c(data[!is.na(data[]==Inf)]==Inf, data[!is.na(data[]==-Inf)]==-Inf)  ))  stop("Infinite numbers are not allowed")
-  
+
   data <- as.data.frame(data)
   lillie.test <- function (x)         # lillie.test{nortest} modified. Now it also works with data containing always the same number.
   {
@@ -7509,7 +7511,7 @@ if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, windo
     x <- sort(x[complete.cases(x)])
     n <- length(x)
     if (n > 4) {                                                   # change from original here
-      
+
       p <- pnorm((x - mean(x))/sd(x))
       Dplus <- max(seq(1:n)/n - p)
       Dminus <- max(p - (seq(1:n) - 1)/n)
@@ -7521,8 +7523,8 @@ if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, windo
         Kd <- K * ((n/100)^0.49)
         nd <- 100
       }
-      pvalue <- exp(-7.01256 * Kd^2 * (nd + 2.78019) + 2.99587 * 
-                      Kd * sqrt(nd + 2.78019) - 0.122119 + 0.974598/sqrt(nd) + 
+      pvalue <- exp(-7.01256 * Kd^2 * (nd + 2.78019) + 2.99587 *
+                      Kd * sqrt(nd + 2.78019) - 0.122119 + 0.974598/sqrt(nd) +
                       1.67997/nd)
       if (!is.na(pvalue)) {                                        # change from original here
         if (pvalue > 0.1) {
@@ -7530,13 +7532,13 @@ if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, windo
           if (KK <= 0.302) {
             pvalue <- 1
           }    else if (KK <= 0.5) {
-            pvalue <- 2.76773 - 19.828315 * KK + 80.709644 * 
+            pvalue <- 2.76773 - 19.828315 * KK + 80.709644 *
               KK^2 - 138.55152 * KK^3 + 81.218052 * KK^4
           }    else if (KK <= 0.9) {
-            pvalue <- -4.901232 + 40.662806 * KK - 97.490286 * 
+            pvalue <- -4.901232 + 40.662806 * KK - 97.490286 *
               KK^2 + 94.029866 * KK^3 - 32.355711 * KK^4
           }    else if (KK <= 1.31) {
-            pvalue <- 6.198765 - 19.558097 * KK + 23.186922 * 
+            pvalue <- 6.198765 - 19.558097 * KK + 23.186922 *
               KK^2 - 12.234627 * KK^3 + 2.423045 * KK^4
           }    else {
             pvalue <- 0
@@ -7546,12 +7548,12 @@ if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, windo
     } else {pvalue <- 0                                             # change from original here
     K <- 0                                                  # change from original here
     D <- 0}                                                 # change from original here
-    RVAL <- list(statistic = c(D = K), p.value = pvalue, method = "Lilliefors (Kolmogorov-Smirnov) normality test", 
+    RVAL <- list(statistic = c(D = K), p.value = pvalue, method = "Lilliefors (Kolmogorov-Smirnov) normality test",
                  data.name = DNAME)
     class(RVAL) <- "htest"
     return(RVAL)
   }
-  
+
   minsize <- apply(data,2,function(x)length(x[!is.na(x)])>4) # lillie.test needs sample of size 4
   minsize <- names(minsize[minsize[]==TRUE])
   too.small <- apply(data,2,function(x)length(x[!is.na(x)])<=4)
@@ -7559,7 +7561,7 @@ if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, windo
   if (length(too.small)==0) too.small <- NULL
   data.orig <- data
   data <- data[,minsize,drop=FALSE]
-  
+
   # 0 ok without operation
   # 1 ok with ^(-2)
   # 2 ok with ^(-1)
@@ -7568,7 +7570,7 @@ if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, windo
   # 5 ok with ^(0.5)
   # 6 ok with ^(2)
   # 7 ok with exp()
-  
+
   if(qq) qqplot.multiple(data,colnames(data),window=window,mt="orig")#,...)
   a0.p <- apply(data,2,function(x)lillie.test(x)$p.value)
   a0 <- a0.p >= sig.level
@@ -7582,8 +7584,8 @@ if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, windo
   data.new <- data[,a0.next,drop=FALSE]^(-2)
   data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
   if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(-2)")#,...)
-  
-  
+
+
   if(ncol(data.new)>0){
     a1.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
     a1 <- a1.p >= sig.level
@@ -7593,7 +7595,7 @@ if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, windo
     data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
     if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(-1)")#,...)
   } else {a1.ok <- NULL}
-  
+
   if(ncol(data.new)>0){
     a2.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
     a2 <- a2.p >= sig.level
@@ -7603,7 +7605,7 @@ if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, windo
     data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
     if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(-0.5)")#,...)
   } else {a2.ok <- NULL}
-  
+
   if(ncol(data.new)>0){
     a3.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
     a3 <- a3.p >= sig.level
@@ -7613,7 +7615,7 @@ if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, windo
     data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
     if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="log()")#,...)
   } else {a3.ok <- NULL}
-  
+
   if(ncol(data.new)>0){
     a4.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
     a4 <- a4.p >= sig.level
@@ -7623,7 +7625,7 @@ if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, windo
     data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
     if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(0.5)")#,...)
   } else {a4.ok <- NULL}
-  
+
   if(ncol(data.new)>0){
     a5.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
     a5 <- a5.p >= sig.level
@@ -7633,7 +7635,7 @@ if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, windo
     data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
     if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(2)")#,...)
   } else {a5.ok <- NULL}
-  
+
   if(ncol(data.new)>0){
     a6.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
     a6 <- a6.p >= sig.level
@@ -7643,14 +7645,14 @@ if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, windo
     data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
     if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="exp()")#,...)
   } else {a6.ok <- NULL}
-  
+
   if(ncol(data.new)>0){
     a7.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
     a7 <- a7.p >= sig.level
     a7.ok <- names(a7)[a7]; if(length(a7.ok)==0) a7.ok <- NULL
     a7.next <- names(a7)[!a7]
   } else {a7.ok <- NULL; a7.next <- NULL}
-  
+
   ok.data <- c(a0.ok, a1.ok, a2.ok, a3.ok, a4.ok, a5.ok, a6.ok, a7.ok)
   data.new <- matrix(NA, ncol=length(ok.data), nrow=nrow(data))
   data.orig <- as.matrix(data.orig)
@@ -7664,7 +7666,7 @@ if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, windo
   if (length(a5.ok)>0) data.new[,a5.ok] <- data[,a5.ok]^(0.5)
   if (length(a6.ok)>0) data.new[,a6.ok] <- data[,a6.ok]^(2)
   if (length(a7.ok)>0) data.new[,a7.ok] <- exp(data[,a7.ok])
-  
+
   toImproveMessage <- ""
   toImproveP <- toImprove <- NULL
   if (length(a7.next)>0 | length(too.small)>0) {
