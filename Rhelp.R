@@ -1,13 +1,7 @@
 ### Shortcuts
 browseURL("http://www.rstudio.com/ide/docs/using/keyboard_shortcuts")
 
-#### Load functions and workspace ####
-rm(list=ls()); source("F:/Mobile Software/R/own functions/func.R")
-
-laufwerk <- "F"
-source(paste0(laufwerk,":/Mobile Software/R/own functions/func.R"))
-inputpfad <- paste0(laufwerk,":/ETH/Masterarbeit/Datensaetze/Clusteranalyse CSV-Dateien/")
-
+#### Vorbereitungen ####
 memory.limit(4095)
 rm(list=ls())
 rm(list=gdata::keep(list=c("a","b",as.character(lsf.str())))); # Alle Funktionen behalten!
@@ -28,14 +22,14 @@ browseURL("http://www.r-project.org/search.html")                        # All R
 browseURL("http://cran.r-project.org/doc/manuals/R-lang.html")           # R Manual
 
 # Suche auf R help site
-RSiteSearch("benchmarking") 
-RSiteSearch("jump regression", restric='functions') 
+RSiteSearch("benchmarking")
+RSiteSearch("jump regression", restric='functions')
 
 # Warum ist RStudio so langsam?!?!
 # Post this on http://support.rstudio.org/help/discussions/problems/5991-slow-execution-of-multiple-lines-of-r-code-or-sourced-r-code
 #I already read this thread
 #http://support.rstudio.org/help/discussions/problems/1232-extremely-slow-execution-of-simple-commands
-# Port anschauen, der gebraucht wird für die Übermittlung von RStudio du Rsession
+# Port anschauen, der gebraucht wird f?r die ?bermittlung von RStudio du Rsession
 #browseURL("https://support.rstudio.com/hc/communities/public/questions/200658363-Slow-response-of-R-from-RStudio-Windows7-Desktop-")
 tools:::httpdPort
 sessionInfo()
@@ -71,7 +65,7 @@ install.packages("mclust")    # Model-basiertes Clustering
 install.packages("vegan",repos="http://r-forge.r-project.org")     # Allgemeines Statistik-Package
 install.packages("clValid")   # Cluster statistisch ueberpruefen
 install.packages("plyr")      # apply Paket
-#install.packages(file.choose(), repos=NULL)# für local zip Files (e.g. Package FEAR)
+#install.packages(file.choose(), repos=NULL)# f?r local zip Files (e.g. Package FEAR)
 # 'FEAR is not available for R 3.0.1' stimmt nicht! mit library(FEAR) laden, License Key mit ---FEAR-license-key--- kopieren, an pww@clemson.edu mailen.
 install.packages('F:/Mobile Software/R/FEAR_2.0.zip', repos = NULL) # '', nicht ""!
 install.packages("Benchmarking") # DEA
@@ -79,11 +73,11 @@ install.packges("frontier")
 install.packages("agricolae"); install.packages("pgirmess") # Kruskal-Wallis-Test mit Unterschieden zwischen mehreren Gruppen.
 install.packages("sos") # findFN("")
 install.packages("ggplot2"); install.packages("gridExtra"); install.packages("reshape2") #
-install.packages("scales"); # Für Farbpaletten.
+install.packages("scales"); # F?r Farbpaletten.
 install.packages("gdata"); #install.packages("xlsReadWrite")
 require(gdata); #require("xlsReadWrite") # to directly read in xls files. Nicht auf Bundesnetz installierbar!
 install.packages("earth") # MARS - Regressionen. Sehr gut!
-install.packages("extrafont"); font_import() # Schriften für Grafiken importieren
+install.packages("extrafont"); font_import() # Schriften f?r Grafiken importieren
 install.packages("mvoutlier") # Multivariate Outlier Detection.
 install.packages("car") # Compagnion to applied Regresson
 install.packages("Ryacas") # Package, um Funktionen abzuleiten
@@ -92,7 +86,7 @@ install.packages("rpanel") # Package, um mit Buttons R-Funktionen auszufuehren. 
 
 # Working with C++ Code... (Quelle u.a. Youtbe Video https://www.youtube.com/watch?v=UZkaZhsOfT4)
 install.packages("Rcpp") # Easily interact between R and C++.
-install.packages("inline") # Write code in another programming language inside R. Compile, etc. Magnificent! 
+install.packages("inline") # Write code in another programming language inside R. Compile, etc. Magnificent!
 install.packages("pryr") # Easily find C-code behind primitive R functions.
 # Compiler for Windows: https://cran.r-project.org/bin/windows/Rtools/
 
@@ -100,7 +94,7 @@ install.packages("pryr") # Easily find C-code behind primitive R functions.
 # Fuer zip-files repos=NULL setzten. type nicht setzen!
 install.packages('P:/Software/R/packages/earth_3.2-7.zip', repos=NULL) # '', nicht ""!
 # Fuer tar.gz files repos=NULL, type='source' setzten!
-install.packages("P:/Software/R/packages/bzip2-1.0.6.tar.gz", repos=NULL, type='source') # '', nicht ""!
+install.packages("P:/Software/R/packages/bzip2-1.0.6.tar.gz", repos=NULL, type='source') # 'source', nicht "source"!
 # Alternative, direkt ab Internet
 install.packages("curl"); library(curl)
 curl_download('http://www.systematicportfolio.com/SIT.tar.gz', 'sit',mode = 'wb',quiet=T)
@@ -165,7 +159,7 @@ lsp(packagename) # oder diese Funktion nutzen
 # Ist ein Paket geladen resp. attached?
 package.attached <- function(name) length(grep(paste0("package:",name), search())) > 0
 package.attached("base")
-# Konditionales detaching eines Paketes   unload 
+# Konditionales detaching eines Paketes   unload
 if(package.attached("Benchmarking")) detach("package:Benchmarking")
 
 
@@ -178,7 +172,7 @@ aaa <- aaa[-c(453,723),]
 ausreisser <- c("218","528","1287","7","721","1945","1984","1429", "1700", "1964", "1028", "315")
 aaa <- aaa[!rownames(aaa)%in%ausreisser,]
 #Entfernen von NA Zeilen (aber nur mit Kondition in gewissen Spalten)
-DF <- DF[!(is.na(rowSums(DF[,(1:2)]))),] # Heisst: nimm nicht die Zeilen, in dessen Zeilen der ersten 2 Spalten NA-Werte sind. 
+DF <- DF[!(is.na(rowSums(DF[,(1:2)]))),] # Heisst: nimm nicht die Zeilen, in dessen Zeilen der ersten 2 Spalten NA-Werte sind.
 
 # Spalten-/Zeilenname fuer Spalte bekommen, in der das kleinste/groesste Element der Matrix ist
 inds = which(mat == max(mat), arr.ind=TRUE)
@@ -205,7 +199,7 @@ all(x %in% y) # Ueberpruefen, ob x ein Subset von y ist.
 spaltenauswahl <- c("DABS.LN","DABS.Aktiven")
   aaa <- aaa[,spaltenauswahl]
 entfernen <- c("kgMilch_jeKuh", "DABS_Gebiet", "DABS_HuM")
-  aaa <- aaa[,!colnames(aaa)%in%entfernen] 
+  aaa <- aaa[,!colnames(aaa)%in%entfernen]
 
 #Entfernen leerer Spalten; Entfernen leerer Zeilen
 aaa <- aaa[,!is.na(colSums(aaa))]
@@ -228,7 +222,7 @@ rep(0,50) # Vektor mit 50 Nullen erstellen
 numeric() # leeren numeric Vektor erstellen
 # Character Vektor (nicht CHARACTERS)
 letters[1]     # Buchstaben sind in alphabetischer Reihenfolge schon vorgegeben
-LETTERS[1]     
+LETTERS[1]
 
 # Farbvektor
 colors()[1]
@@ -238,11 +232,11 @@ vector("list", 20) # Leere Liste mit 20 Plaetzen machen.
 list() # leere Liste erstellen
 
 ### Matrix
-mat <- matrix(nrow=2, ncol= 5); # Leere Matrix     
-mat <- matrix(1:10, nrow=2, ncol= 5); # Geht auch nur mit einer Zahl als Fuellung. Bsp. 0.   
+mat <- matrix(nrow=2, ncol= 5); # Leere Matrix
+mat <- matrix(1:10, nrow=2, ncol= 5); # Geht auch nur mit einer Zahl als Fuellung. Bsp. 0.
 
 # Wichtige Bemerkung:
-# Man muss die länge eines Vectors oder einer Liste nicht vorgeben, wenn man z.B. einen Loop Output rein machen will einfach:
+# Man muss die l?nge eines Vectors oder einer Liste nicht vorgeben, wenn man z.B. einen Loop Output rein machen will einfach:
 loopoutput <- list(); for(i in 1:5) loopoutput[[i]] <- i
 loopoutput <- numeric(); for(i in 1:5) loopoutput[i] <- i
 
@@ -273,10 +267,10 @@ a[order(-a)] # wenn mans absteigend will
 dd <- data.frame(b = factor(c("Hi", "Med", "Hi", "Low"), levels = c("Low", "Med", "Hi"), ordered = TRUE), x = c("A", "D", "A", "C"), y = c(8, 3, 9, 9), z = c(1, 1, 1, 2))
 dd[with(dd, order(-z, b)), ]
 #Matrix ordnen
-M <- matrix(c(1,2,2,2,3,6,4,5), 4, 2, byrow=FALSE, dimnames=list(NULL, c("a","b"))) #to create a matrix M, then use 
+M <- matrix(c(1,2,2,2,3,6,4,5), 4, 2, byrow=FALSE, dimnames=list(NULL, c("a","b"))) #to create a matrix M, then use
 M <- M[order(M[,"a"],-M[,"b"]),] #to order aufsteigend nach a und absteigend nach b
 # Zahlenfolge neu benennen
-as.numeric(as.factor(x)) # x <- c(1,1,1,1,1,4,4,4,4,7,7,1,1,1,1) --> 1 1 1 1 1 2 2 2 2 3 3 1 1 1 
+as.numeric(as.factor(x)) # x <- c(1,1,1,1,1,4,4,4,4,7,7,1,1,1,1) --> 1 1 1 1 1 2 2 2 2 3 3 1 1 1
 # andere MÃ¶glichkeit
 clusternummer.neu <- matrix(c(1,3,4,6,7,1:5), nrow=5, ncol=2)
 for(i in 1:nrow(aaa.alle.neuklassiert))
@@ -306,7 +300,7 @@ c <- a %in% b
 # Partial character matching
 a <- c("Arb","Kap","Vorl","Fla"); b <- c("Arbeit","Kapital","Vorleistungen","Flaeche")
 pmatch(a,b)
-# --> Kann zum Beispiel in Funktionen verwendet werden, wenn für eine Methode nur der Anfangsbuchstabe verlangt wird
+# --> Kann zum Beispiel in Funktionen verwendet werden, wenn f?r eine Methode nur der Anfangsbuchstabe verlangt wird
 
 #### Rechenregeln Vektoren Matrizen ####
 
@@ -334,12 +328,12 @@ pracma::cross(a,b)
 
 #Encoding - Scripting:
 # Always use the same format: ISO-8859-1
-# Do not open with UTF-8 in the one programm and ISO in the other. This produces ? instead of äöü.
+# Do not open with UTF-8 in the one programm and ISO in the other. This produces ? instead of ???.
 
 # Alle Datasets aus dem Speicher entfernen
 rm(list=ls())
 # Bestimmte Daten behalten mit der keep function
-library(gdata); rm(list=keep(object1,object2,object3,..)) #  #help(keep) 
+library(gdata); rm(list=keep(object1,object2,object3,..)) #  #help(keep)
 # Testen, ob ein Objekt exisitert
 exists(as.character(substitute(objectname)))
 
@@ -379,20 +373,20 @@ own.datname <- dat; rm(dat)
 # gdata (kein Support fuer xlsx)
 source("https://gist.github.com/schaunwheeler/5825002/raw/3526a15b032c06392740e20b6c9a179add2cee49/xlsxToR.r")
 dat = xlsxToR("myfile.xlsx", header = TRUE)
-  
+
 
 
 # Image einlesen
 load("P:/_ZA/Statistik/Data/Grundlagenbericht/GB.RData")
 
-# XLS-sheets einlesen - KEIN XLSX, dafür wird Perl benötigt!
+# XLS-sheets einlesen - KEIN XLSX, daf?r wird Perl ben?tigt!
 name c("14_Mai", "14_Juni")
 dat <- list()
 # Geht mit Sheet-Nummer oder Sheet name:
 for(i in 1:length(name)) dat[[      i  ]] <- gdata::read.xls( xls=paste0(pfad,"ASDF.xls"), sheet=     i , stringsAsFactors=FALSE, header=TRUE, na.strings=c("NA","","#DIV/0","#DIV/0!","#WERT!"), quote='') # '' um Konversionsprobleme zu vermeiden.
 for(i in 1:length(name)) dat[[ name[i] ]] <- gdata::read.xls( xls=paste0(pfad,"ASDF.xls"), sheet=name[i], stringsAsFactors=FALSE, header=TRUE, na.strings=c("NA","","#DIV/0","#DIV/0!","#WERT!"), quote='') # '' um Konversionsprobleme zu vermeiden.
 
-#library(gdata); library(xlsReadWrite) # xls gibt es nicht mehr. Ist nun in gdata integriert. 
+#library(gdata); library(xlsReadWrite) # xls gibt es nicht mehr. Ist nun in gdata integriert.
 #dat <- list()
 #for(i in 1:...) dat[[i]] <- read.xls(sheet=i, paste0(laufwerk,"pfad.xls"), colNames=TRUE, naStrings=c("NA","","#DIV/0","#DIV/0!","#WERT!"))
 
@@ -411,7 +405,7 @@ fit <- lm(y ~ x -1 ,data=...) # Regression OHNE INTERCEPT
 # Polynomiale Regression
 fit <- lm(y~ x + I(x^2) + I(x^3),data=..)
   coef(fit) # statt fit$coefficients
-  residuals(fit)  
+  residuals(fit)
   fitted(fit)
 # Robuste Regression
 fit <- rlm(y~x,data=..)
@@ -430,7 +424,7 @@ plot(x,y1); abline(0,1); plot(x,y2); abline(0,1)
 mod1 <- lm(x~y1)
 mod2 <- lm(x~y2)
 var.test(mod1, mod2) # Varianz von Modell 1 ist kleiner, also besser!
-var.test(mod2, mod1) # Varianz von Modell 2 ist grösser, also schlechter!
+var.test(mod2, mod1) # Varianz von Modell 2 ist gr?sser, also schlechter!
 
 # nonparametric test of equal variance with the wilcoxon rank sum test
 https://stat.ethz.ch/pipermail/r-help/2007-March/126831.html
@@ -441,11 +435,11 @@ https://stat.ethz.ch/pipermail/r-help/2007-March/126831.html
 
 foo <- function(x, z=NULL, method=c("a","b","c"), ...) { # , ... to pass arguments to an embedded function
                                     # In der Klammer stehen beliebig viele weitere Argumente
-  method <- match.arg(method)       # Ist die eingegebene Methode eine von c("a","b","c")? Falls nicht angegeben, wird "a" gewählt
-  if(is.null(z)) stop("specify z")  # Eine Anfangskondition muss erfüllt sein
+  method <- match.arg(method)       # Ist die eingegebene Methode eine von c("a","b","c")? Falls nicht angegeben, wird "a" gew?hlt
+  if(is.null(z)) stop("specify z")  # Eine Anfangskondition muss erf?llt sein
   if(sum(x)<1  ) warning("be careful...", call. = FALSE, immediate.=TRUE) # Such that the warning appears immediately.
   #
-  s <- summary(x, ...)              # Ausführen der Berechnungen...
+  s <- summary(x, ...)              # Ausf?hren der Berechnungen...
   m <- mean(x, ...)                 # ...
   #
   if(m<1) {                         # IF ELSE
@@ -454,7 +448,7 @@ foo <- function(x, z=NULL, method=c("a","b","c"), ...) { # , ... to pass argumen
     print(2)
   } else { print("x must be smaller equal 3") }
   #
-  result <- list(summary=s,mean=m)  # Resultate als Liste zusammenführen
+  result <- list(summary=s,mean=m)  # Resultate als Liste zusammenf?hren
   class(result) <- "foo"            # class = ... setzen fuer spaeteren "print.class"
   return(result)
 }
@@ -473,12 +467,12 @@ print.foo <- function(object){      # Der default print des Funktionsoutputs bei
   class(object) <- "list"
   object$mean <- NULL
   print(object)
-  invisible(object)    
+  invisible(object)
 }
 
 foo(x=c(1,2,3,4,5,6,7,8,9,10,11,12,100),z="a", na.rm=TRUE, trim=0.4, digits=10) # Test
 
-# Sehen, wie lange (welche Zeit) eine Funktion gebraucht hat, um ausgeführt zu werden. Performance Test für Funktionen
+# Sehen, wie lange (welche Zeit) eine Funktion gebraucht hat, um ausgef?hrt zu werden. Performance Test f?r Funktionen
 system.time(for(i in 1:100) foo(x=c(1,2,3,4,5,6,7,8,9,10,11,12,100),z="a", na.rm=TRUE, trim=0.4, digits=10))
 # oder
 ptm <- proc.time()
@@ -495,13 +489,23 @@ x <- seq(1.0, 1.0e6); benchmark(sqrt(x), log(x))
 debug(mean.default)
 mean(1:10)
 Q # to exit debugging!
- undebug(fun)
+undebug(fun)
+
+fun <- function(){
+  a <- 1
+  browser() # Browser is like a break point
+  b <- 2
+  return(b)
+}
+fun()
+
 # fix(fun)
 # The   trace()     function modifies a function to allow debug code to be temporarily inserted. Use ?trace in R to see the man page for trace().
 # The findLineNum() and setBreakpoint() functions in the utils package work with line number references to compute locations for calls to trace().
 # Further details are given in the R Language manual in the Debugging chapter, and in Roger Peng's "An Introduction to the Interactive Debugging Tools in R".
 
-# Outputstruktur anschauen
+
+# Outputstruktur einer Funktion anschauen
 str(functionoutput)
 str(summary(functionoutput)) # ist auch moeglich.
 
@@ -531,7 +535,7 @@ eval(funcall)
 # Variierende Variablennamen in der Funktion kreieren und abrufen
 for (i in 1:5) assign( paste("Variablenname",i,sep=""), funktionswert)
 outputmatrix <- rbind( get(paste("Variablenname",i-1,sep="")), get(paste("Variablenname",i,sep="")))
-# für mehrere Matrizen in einem Loop dieselben Spalten neu definieren.
+# f?r mehrere Matrizen in einem Loop dieselben Spalten neu definieren.
 for(object in c("aaa","bbb","eee")){
   assign(object,  within( get(object), {
     DZoek_p_Umsatz   <- DZoek / (Landw+ DZoek+ DZrest+ Paralandw)
@@ -557,7 +561,7 @@ eval(parse(text=paste("a[", x,",",y,"]", sep = "")))
 
 ################## Write code in other programming languages ##################
 # Example to count number of lines in a file
-# http://stackoverflow.com/questions/23456170/get-the-number-of-lines-in-a-text-file-using-r 
+# http://stackoverflow.com/questions/23456170/get-the-number-of-lines-in-a-text-file-using-r
 
 install.packages("inline")
 library(inline)
@@ -570,7 +574,7 @@ new_path <- new_path[!duplicated(tolower(new_path))]
 Sys.setenv(PATH = paste(new_path, collapse = ";"))
 
 wc.code <- "
-uintmax_t linect = 0; 
+uintmax_t linect = 0;
 uintmax_t tlinect = 0;
 
 int fd, len;
@@ -627,9 +631,9 @@ return(result);
 ";
 
 setCMethod("wc",
-           signature(f="character"), 
+           signature(f="character"),
            wc.code,
-           includes=c("#include <stdlib.h>", 
+           includes=c("#include <stdlib.h>",
                       "#include <stdio.h>",
                       "#include <sys/param.h>",
                       "#include <sys/mount.h>",
@@ -652,10 +656,10 @@ wc("FULLPATHTOFILE")
 
 ################## Grafik ##################
 
-# Geschätze Kurve in Scatterplot einzeichnen
+# Gesch?tze Kurve in Scatterplot einzeichnen
 scatter.smooth(1:100,rnorm(100,0,30)+1:100)
 
-# Geschätzte Kurve in Pairsplot einzeichnen
+# Gesch?tzte Kurve in Pairsplot einzeichnen
 data(iris)
 pairs(~Sepal.Length+Sepal.Width+Petal.Length+Petal.Width, data=iris,
       lower.panel=panel.smooth, upper.panel=panel.smooth, pch=20, main="Iris Scatterplot Matrix")
@@ -675,7 +679,7 @@ pairs(~Sepal.Length+Sepal.Width+Petal.Length+Petal.Width, data=iris,
 
 # Kurvenverlauf zeichnen # http://stackoverflow.com/questions/26091323/how-to-plot-a-function-curve-in-r
 curve(expr=-2+x*2-x^2,from=-10,to=10)
-# Kurvernverlauf von Weizenduengung zeichnen. Ertrag (dt/ha) in Abhängigkeit von N pro ha. Bei 200mm Niederschlag und 400m Irrigation pro m^2.
+# Kurvernverlauf von Weizenduengung zeichnen. Ertrag (dt/ha) in Abh?ngigkeit von N pro ha. Bei 200mm Niederschlag und 400m Irrigation pro m^2.
 curveChar <- function(expr, ...) curve((function(x) eval(parse(text=expr)))(x), ...)
 expr <- "100*(1-exp(-0.025*(40+x)))*(1-exp(-0.0045*(200+400)))"
 curveChar(expr, from=1, to=160, main=expression(Yield[max] * (1-e^(-alpha*(N[0]+N))) * (1-e^(-beta*(W[0]+W))) ))
@@ -686,11 +690,11 @@ boxplot(write)
 dev.off()
 
 # Window in mehrere Plots unterteilen
-par(mfrow=c(5,4)) 
+par(mfrow=c(5,4))
 par( mar=c(c(4.5, 4, 3, 2) + 0.1) ) # mar=c(5, 4, 4, 2) + 0.1  default
 layout(layout(matrix(c(1,1,2,3), 2, 2, byrow = TRUE))) # so kann man einen grossen und zwei kleine Plots machen.
 
-# Mehrere Plots in den gleichen Plot 
+# Mehrere Plots in den gleichen Plot
 plot(..., add=TRUE)
 # & 2. Achsenbeschriftung (Y-Achse) rechts
 par(mar=c(5, 4, 4, 4) + 0.1);
@@ -722,12 +726,12 @@ fonts()
 fonttable()
 plot(..., family"")
 
-# Hoehe u Breite von window einstellen. 
+# Hoehe u Breite von window einstellen.
 dev.new(width=30, height=18)  # Alternativ in pdf(width=.., height=..) einfuegen.
 
 # Beschriftungen
   # Griechische Symbolde wie delta etc. in Graphenbeschriftung einfuegen (-> demo(plotmath) fuer Hilfesuche)
-  # Mathematische Ausdrücke Mathematical expressions in plots
+  # Mathematische Ausdr?cke Mathematical expressions in plots
   qqnorm(a<-rnorm(100),main=expression(paste(Delta, "FaAK[JAE]")), cex=1, pch=20);mtext("Normal Q-Q Plot", side=3, cex=0.5);qqline(a)
   mtext(expression(paste(Delta ~~  SAK[L], oder," ","SAK[L]")),side=4,line=1)
   # evt. muss man auch mit parse arbeiten:
@@ -753,16 +757,16 @@ dev.new(width=30, height=18)  # Alternativ in pdf(width=.., height=..) einfuegen
 # Scatterplot-Pairsplot
 pairs(data)
 scatterplotMatrix(data)
-# oder ähnlich: The diagonal shows the kernel density.
+# oder ?hnlich: The diagonal shows the kernel density.
 plotmatrix(with(iris, data.frame(Sepal.Length, Sepal.Width, Petal.Length, Petal.Width)))
 plot(density(iris[,"Sepal.Length"]))
 
 
 # Zusammengefasste Werte in ggplot2 plotten (z.B. resultat von mean.weights)
 # Daten koennten in etwa so aussehn:
-mw1 <- structure(c(70501.18728733, 79077.00623248, 55479.72870416, 59665.83888847, 
-            61760.4748543, 52834.84461067, 58902.64913118, 62835.58593476, 
-            51441.17820976, 68637.82798599, 78428.86472092, 57302.78946271, 
+mw1 <- structure(c(70501.18728733, 79077.00623248, 55479.72870416, 59665.83888847,
+            61760.4748543, 52834.84461067, 58902.64913118, 62835.58593476,
+            51441.17820976, 68637.82798599, 78428.86472092, 57302.78946271,
             70605.16571968, 81331.37941756, 60441.80134763), .Dim = c(3L, 5L),
           .Dimnames = list(c("11_Ackb", "12_Spez", "21_VM"), c("2004", "2005", "2006", "2007", "2008")))
 
@@ -781,8 +785,8 @@ ggplot(data=wide.to.long.df(rownames(mw1), mw1), aes(x=index2,y=value,color=inde
 plot(x<-c(1,2,3,4,5), y<-c(1,2,3,4,5))
 identify(x,y)
 # Pairs bei dem die Punkte nach Gruppenzugehoerigkeit gefaerbt (und beschriftet) werden. Siehe help(pch) oder ... help(par) -> help(points) unter Punkt "pch" (=Pointscharacter)
-# col=... wenn die Punkte gefärbt werden sollen
-# bg=... wenn der Inhalt der Punkte gefärbt werden soll (geht nur bei manchen pch)
+# col=... wenn die Punkte gef?rbt werden sollen
+# bg=... wenn der Inhalt der Punkte gef?rbt werden soll (geht nur bei manchen pch)
 pairs(data[,columns], main="Pairs", pch=21, bg=c("red", "yellow", "blue")[grouping])
 pairs(data[,columns], main="Pairs", pch=c(49:55)[grouping], col=c("red", "yellow", "blue", "green", "purple")[grouping]) # Ab 49 sind Zahlen.
 #graphbeschriftung <- rep(0, max(aaa.alle.zugeteilt[,"Clusternummer"]));for (i in 1: length(graphbeschriftung)) graphbeschriftung[i] <- paste("Cluster",i,sep=" ")
@@ -858,8 +862,8 @@ ycoords <- c(0.29, 1.01)
 breakstep=0.1
 crs1 <- ggplot(data=dea.efftable.sep, mapping=aes(x=interaction(grouping,year,sep=":"), y=TEcrs, col=grouping)) +
   geom_boxplot() +
-  # Für Boxplots müssen die AChsen mit coord_cartesian eingeschränkt werden, sonst verändern sich die Boxplots!
-  # Für andere Plots kann man mit scale_x_continous arbeiten!
+  # F?r Boxplots m?ssen die AChsen mit coord_cartesian eingeschr?nkt werden, sonst ver?ndern sich die Boxplots!
+  # F?r andere Plots kann man mit scale_x_continous arbeiten!
   coord_cartesian(ylim = ycoords) +
   scale_y_continuous(breaks=seq(min(ycoords)+0.01,max(ycoords)-0.01,breakstep)) +
   ylab("Technical Efficiency CRS") +
@@ -876,14 +880,14 @@ head(mtcars.long)
 ggplot(mtcars.long, aes(mpg, value, colour = variable)) + geom_line() # Schauen, welche Namen die Spalten des Long-Dataframes haben.
 # Selbst die Farben bestimmen:
 ggplot(mtcars.long, aes(mpg, value, colour = variable)) + geom_line() + scale_colour_manual(values = c("red","darkolivegreen4","Blue","gray","orange","DeepSkyBlue","darkviolet","violet","gray32", "black"))
-# Hintergrundfarbe ändern
+# Hintergrundfarbe ?ndern
 ggplot(mtcars.long, aes(mpg, value, colour = variable)) + geom_line() + theme_bw()
-# X-Achsenbereich wählen
+# X-Achsenbereich w?hlen
 ggplot(mtcars.long, aes(mpg, value, colour = variable)) + geom_line() + scale_x_continuous(breaks = seq(10,35,5), labels=seq(10,35,5))
-# Beschriftungen ändern
-#  Winkel der X-Achsenbeschriftung wählen
+# Beschriftungen ?ndern
+#  Winkel der X-Achsenbeschriftung w?hlen
 ggplot(mtcars.long, aes(mpg, value, colour = variable)) + geom_line() + theme(axis.text.x = element_text(angle=45))
-#  Titel hinzufügen, Schrift fett, Zeilenabstand ändern
+#  Titel hinzuf?gen, Schrift fett, Zeilenabstand ?ndern
 ggplot(mtcars.long, aes(mpg, value, colour = variable)) + geom_line() + ggtitle("Cars") + theme(plot.title = element_text(lineheight=1, face="bold"))
 # Alles zusammen
 colors <- c("red","darkolivegreen4","Blue","gray","orange","DeepSkyBlue","darkviolet","violet","gray32", "black")
@@ -926,17 +930,17 @@ lines(fit1)
 
 # Siehe auch "R-Matlab quick reference.pdf" im Ordner "own functions" oder: http://www.math.umaine.edu/~hiebeler/comp/matlabR.html
 # Alles ueber apply, mapply, tapply...
-http://stackoverflow.com/questions/3505701/r-grouping-functions-sapply-vs-lapply-vs-apply-vs-tapply-vs-by-vs-aggrega
+# http://stackoverflow.com/questions/3505701/r-grouping-functions-sapply-vs-lapply-vs-apply-vs-tapply-vs-by-vs-aggrega
 tapply(aaa[,"fk_ArbeitDritte"],aaa[,"Region"],mean) #Mittelwerte Regionsweise berechnen (fuer eine Variable)
 apply( results,2, function(x) tapply(x,results[,"Clusternummer"],sd) ) #Standardabweichung Clusterweise berechnen. (Fuer alle Variablen)
-# Achtung: apply über data.frames ist sehr langsam, weil erst zu Matrix umgewandelt werden muss
+# Achtung: apply ?ber data.frames ist sehr langsam, weil erst zu Matrix umgewandelt werden muss
 # Da ein data.frame eine Liste ist, ist lapply bzw. sapply viel schneller!
 lapply( list, function(x)mean(x))
-sapply( list, function(x)mean(x)) # Gibt einen Vektor statt einer Liste zurück.
+sapply( list, function(x)mean(x)) # Gibt einen Vektor statt einer Liste zur?ck.
 #
 zapsmall(c(0.00000001,0.004,0.5,5)) # Round values such that the small ones are displayed 0.
 cbind();rbind()
-data.frame(list(col1,col2,col3)) # So kann man characters u. numerics u. Zahlen in Dataframe geben ohne "" bei numerics. Aber Achtung: character werden zu factors. 
+data.frame(list(col1,col2,col3)) # So kann man characters u. numerics u. Zahlen in Dataframe geben ohne "" bei numerics. Aber Achtung: character werden zu factors.
 any(TRUE,FALSE);all(TRUE,FALSE)
 cumsum() # cumulative sum, kumulativ
 rnorm(n,mean=0,sd=1) # bestimmte Anzahl normalverteilte Zufallsvariablen ausgeben.
@@ -946,7 +950,7 @@ relevel(as.factor(c(1,2,3,5,6)), ref=5)
 abs()    # Betrag einer Zahl, negativ zu positv
 table <- matrix(1:25,nrow=5,ncol=5) # Bereich ueber der Diagonale Matrix entfernen
   table[which( row(table)-col(table) <0)] <- 0
-table <- matrix(1:25,nrow=5,ncol=5) # Bereich unter der Diagonale in den Bereich über der Diagonale kopieren
+table <- matrix(1:25,nrow=5,ncol=5) # Bereich unter der Diagonale in den Bereich ?ber der Diagonale kopieren
   ttable <- t(table)
   table[which( row(table)-col(table) <0)] <- ttable[which( row(ttable)-col(ttable) <0)]
 
@@ -955,7 +959,7 @@ do.call(c,list)     # Alle Elemente einer Liste zusammenfuegen, geht auch mit an
 Reduce("+",list)    # Operation ueber alle Elemente einer Liste sukzessive ausfuehren (nicht alles auf einmal).
 1%%2                #gibt Rest wieder
 c(1,2,3,4)%in%c(1,2) # Umkehrung von which in logical
-all.equal(1:3,1:3)  # Sind alle Einträge in zwei Vektoren/Matrizen gleich?
+all.equal(1:3,1:3)  # Sind alle Eintr?ge in zwei Vektoren/Matrizen gleich?
 rev(matrix)         # Gibt Matrix in umgekehrter Spaltenreihenfolge wieder
 combn(x=c(1,2,3), m=2) # Gibt alle moeglichen Kombinationen der Zahlen wieder #require(utils)
 x <- replace(x,3,1.5) # replace x[3] with 1.5
@@ -965,6 +969,12 @@ x; !is.finite(x); x[!is.finite(x)] <- 0; x
 t(matrix(1:100, ncol=10)) # Transponieren
 aperm(array(1:100, dim=c(2,5,10)), c(2,3,1)) # Array Transponieren (Array Permutation)
 
+# Check difference between to groups, generally like this:
+x <- rnorm(50); x2 <- rnorm(50, -1)
+t.test(x, x2, alternative = "g")
+wilcox.test(x, x2, alternative = "g") # non-parametric
+ks.test(x, x2, alternative = "l")
+
 # Wilcoxon Rank sums or Kruskal-Wallis for non-parametric significan differences in values of groups.
 x <- sample(c(1,1,1,0),100,replace=TRUE)
 y <- sample(c(1,1,0,0),100,replace=TRUE)
@@ -972,7 +982,6 @@ kruskal.test(x=c(x,y), g=as.factor(c(rep(1,100),rep(2,100))))
 wilcox.test(x,y, alternative=c("two.sided", "less", "greater")[1], correct=FALSE)
 pairwise.wilcox.test()
 
-strptime ('12:00:00', format= '%H:%M:%OS') # Handling von Uhrzeiten
 require(mvoutlier); outliers <- aq.plot(aaa); aaa <- aaa[outliers$outliers==FALSE,] # Multivariate Outliers entfernen/remove
 
 # Funktionen ableiten und Punkt finden, wo die Steigung 0 ist.
@@ -983,12 +992,12 @@ f(1)
 d0 <- uniroot(f, c(0, 100))$root; d0
 f(d0)
 # alles zusammen wird in der Funktion find.deriv.0 gemacht. Hier ein Beispiel, wie man aus Koeffizienten
-# were rauslesen und die Lösung gleich berechnen kann
+# were rauslesen und die L?sung gleich berechnen kann
 coefs <- c(-0.00360093 ,2.939055e-05); names(coefs) <- c("Alter", "I(Alter^2)")
 expr <- parse(text=paste0(coefs["Alter"],"*x + ", coefs["I(Alter^2)"], "*x^2"))
 find.deriv.0(expr)
 
-nchar("asdf")         # Länge eines Strings
+nchar("asdf")         # L?nge eines Strings
 substr("asdf",1,2)    # Teil eines Strings auslesen
 colnames.x <- c("landWeizen","landGerste","GVE_Milchkuehe","GVE_Mutterkuehe","roh_Weizen")
 grep("land", colnames.x) # Alle colnames finden, die einen gewissen Textteil beinhalten
@@ -1019,6 +1028,8 @@ with()
              summary(glm(lot2 ~ log(u), family = Gamma))))
 
 # Datum formatieren - help siehe auch help(DateTimeClasses)
+# Handling von Uhrzeiten.
+strptime ('12:00:00', format= '%H:%M:%S') # Hinweis: %OS steht fuer fractional seconds (also z.B. 0.5). %S steht fuer ganze Sekunden.
 # - Einlesen ohne Zeit
 strptime("21.4.2015", "%d.%m.%Y")
 # - Einlesen mit Zeit
