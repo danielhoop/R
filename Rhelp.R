@@ -699,7 +699,7 @@ plot(..., add=TRUE)
 # & 2. Achsenbeschriftung (Y-Achse) rechts
 par(mar=c(5, 4, 4, 4) + 0.1);
 plot(x=rnorm(10),main="Entwicklung des ...",ylab="Arbeitstage",xlab="Jahr",type="b",pch=20);
-par(new=T); plot(rnorm(10),xaxt = "n",yaxt = "n",xlab="",ylab="",type="b",pch=20,cex=0.6,lty=2); axis(4); mtext("yaxis",side=4,line=2.5,cex=par()$cex)
+par(new=TRUE); plot(rnorm(10),xaxt = "n",yaxt = "n",xlab="",ylab="",type="b",pch=20,cex=0.6,lty=2); axis(4); mtext("yaxis",side=4,line=2.5,cex=par()$cex)
 # Histogramme in gleichen Plot (und Boxplot)
 F1 <- rnorm(20,2); F2 <- rnorm(25,4);
 par(mfrow=c(1,2));
