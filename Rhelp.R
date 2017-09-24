@@ -313,29 +313,36 @@ pracma::cross(a,b)
 # Base R apply functions (from a presentation given by Hadley):
 
 # ***********************************************************
-# Output>     |  array      data frame    list        nothing
+# Output>     |  array        data frame    list        nothing
 #............................................................
 # Input       |**********************************************
-# array       |  apply      .             .           .
-# data frame  |  .          aggregate     by          .
-# list        |  sapply     .             lapply      .
-# n replic.   |  replicate  .             replicate   .
-# func. arg.  |  mapply     .             mapply      .
+# array       |  apply()      .             .             .
+# data frame  |  .            aggregate()   by()          .
+# list        |  sapply()     .             lapply()      .
+# n replic.   |  replicate()  .             replicate()   .
+# func. arg.  |  mapply()     .             mapply()      .
 
+# ave() also seems to be interesting!
+
+# rbind all places of a list.
+do.call("rbind", list(c(1,2,3),c(2,3,4))) # -> superfast version implemented by data.table::rbindlist()
 
 ################## Data / Import / Export  ##################
+
 ### Data
+# Show the size of an object
+format( object.size(obj), units="MB")
 
 #Encoding - Scripting:
 # Always use the same format: ISO-8859-1
-# Do not open with UTF-8 in the one programm and ISO in the other. This produces ? instead of ???.
+# Do not open with UTF-8 in the one programm and ISO in the other. This produces ? instead of öäü.
 
 # Alle Datasets aus dem Speicher entfernen
 rm(list=ls())
 # Bestimmte Daten behalten mit der keep function
 library(gdata); rm(list=keep(object1,object2,object3,..)) #  #help(keep)
 # Testen, ob ein Objekt exisitert
-exists(as.character(substitute(objectname)))
+exists("nameOfObject")
 
 # Alle Dateien in einem Ordner finden
 list.files("P:/")
@@ -351,15 +358,18 @@ write.table(export, file=paste0("pfad.csv"), sep = ";", eol = "\n", quote=FALSE,
 write.table(export, file=paste0("pfad.csv"), sep = ";", eol = "\n", quote=FALSE, col.names=FALSE, row.names=FALSE) # KEINE Colnames oder Rownames
 
 # Image schreiben
-save.image("pfad.RData")
-save(object1, object2, file="pfad.RData")
+save.image("pfad.RData"); load("...")
+save(object1, object2, file="pfad.RData"); load("...")
+
+saveRDS(object, file="dataFile.rds")
+object <- readRDS("dataFile.rds")
 
 ### Import
 # CSV einlesen
  # nicht read.csv!
-dat <- read.table(paste0("pfad.csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
+read.table(paste0("pfad.csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
  # zip Archive
-dat <- read.table(unz(paste0(pfad, "filename.zip"), "nameOfCSVFile.csv"), sep=";", header=TRUE, stringsAsFactors=FALSE)
+read.table(unz(paste0(pfad, "filename.zip"), "nameOfCSVFile.csv"), sep=";", header=TRUE, stringsAsFactors=FALSE)
 
 # 1. Spalte beinhaltet Rownames. Von 1. Spalte in Rownames transferieren.
 dat <- read.table(paste0("pfad.csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!")); rownames(dat) <- dat[,1]; dat <- dat[,2:ncol(dat),drop=FALSE]
@@ -373,6 +383,10 @@ own.datname <- dat; rm(dat)
 # gdata (kein Support fuer xlsx)
 source("https://gist.github.com/schaunwheeler/5825002/raw/3526a15b032c06392740e20b6c9a179add2cee49/xlsxToR.r")
 dat = xlsxToR("myfile.xlsx", header = TRUE)
+
+# Daten bereits beim Einlesen filtern
+require(sqldf)
+df <- read.csv.sql("sample.csv", "select * from file where age=23")
 
 
 
@@ -526,7 +540,7 @@ factorial <- function(x) {
 # Beliebige, auszufuehrende Funktion als Argument in andere Funktion eingeben.
 # http://onertipaday.blogspot.de/2007/05/how-can-i-turn-string-into-variable.html
 funname <- "mean"
-f <- get(funname, mode="function")
+f <- get(funname, mode="function") # OR: f <- match.fun(funname)
 arglist <- c(1,2,3,4,5)
 f(arglist)
 funcall <- call(funname, arglist);funcall
@@ -558,6 +572,7 @@ eval(parse(text="a"))
 a <- matrix(1:100,nrow=1)
 x <- y <- 1
 eval(parse(text=paste("a[", x,",",y,"]", sep = "")))
+
 
 ################## Write code in other programming languages ##################
 # Example to count number of lines in a file
@@ -1054,3 +1069,10 @@ charcols <- apply(dat_colnames,2,function(x){
 # Memory requirements fuer einen Datensatz berechnen (RAM)
 # https://www.r-bloggers.com/calculating-memory-requirements/
 # http://adv-r.had.co.nz/memory.html
+
+# Moving average
+moving.average <- function(x,n=5,dir=c("middle","retro","forward")){
+  dir <- match.arg(dir)
+  if(dir=="forward") return( rev(as.vector(filter(rev(x),rep(1/n,n), sides=1))) )
+  return(as.vector(filter(x,rep(1/n,n), sides=if(dir=="middle") 2 else 1 )))
+}
