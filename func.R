@@ -47,8 +47,11 @@
 
 
 #### Options ####
+.onHpdaPc <- function() return( isTRUE(file.info("C:/Users/U80823148/")$isdir) || isTRUE(file.info("C:/Users/A80823148/")$isdir) )
+.dataFolder <- function() return( paste0("C:/Users/",Sys.info()["user"],"/_/Data/") )
+
 # Optionen nur bei mir selbst einlesen. Nicht auf anderen Computern (falls Script-Ausfuehrung ueber Laufwerk W:)
-if(FALSE) if(length(list.files("C:/Users/U80823148/"))>0) {
+if(FALSE && .onHpdaPc())  {
   options(scipen = 3) # mit scipen = 3 geht die Digits-Anzeige bis 0.000001 (also 1e-06). Ab 1e-07 in scientific notation.
   options(help.try.all.packages=TRUE)
   #options(prompt="    ")
@@ -100,11 +103,11 @@ if(FALSE) if(length(list.files("C:/Users/U80823148/"))>0) {
 }
 
 
-if(isTRUE(file.info("C:/Users/U80823148/")$isdir)) {
+if(.onHpdaPc()) {
   .copyFuncs(fromPath="//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/R/func/",
              toPath=c("O:/Sites/TA/Transfer/hpda/R/", "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/"))
-  
 }
+
 rm(.copyFuncs, .file.copy.readOnly)
 
 
@@ -526,9 +529,22 @@ slash <- function(reverse=FALSE){
   write.table(txt,'clipboard',quote=FALSE,col.names=FALSE,row.names=FALSE,eol=""); cat("Converted string is in clipboard. Use Ctrl+V:\n",txt,"\n",sep="")
 }
 
+# a=1, b="A,B", d=c(1,1)
 arg <- function(){
-  cb <- suppressWarnings(readLines("clipboard"))
-  txt <- gsub(",",";",cb)
+  txt <- suppressWarnings(readLines("clipboard"))
+  qc <- bc <- 0 # quote counter, bracket counter
+  for(i in 1:nchar(txt)){
+    if(        qc==0 && substr(txt,i,i)%in%c("\"","'")) { qc <- qc+1
+    } else if (qc==1 && substr(txt,i,i)%in%c("\"","'")) { qc <- qc-1 }
+    if(        qc==0 && substr(txt,i,i)%in%c("(")) {      bc <- bc+1
+    } else if (qc==0 && substr(txt,i,i)%in%c(")")) {      bc <- bc-1 }
+    if(        qc==0 && substr(txt,i,i)%in%c("[")) {      bc <- bc+1
+    } else if (qc==0 && substr(txt,i,i)%in%c("]")) {      bc <- bc-1 }
+    
+    if(qc==0 && bc==0 && substr(txt,i,i)==",") {
+      substr(txt,i,i) <- ";"
+    }
+  }
   write.table(txt,'clipboard',quote=FALSE,col.names=FALSE,row.names=FALSE,eol=""); cat("Converted string is in clipboard. Use Ctrl+V:\n",txt,"\n",sep="")
 }
 
@@ -547,10 +563,10 @@ recover.R.installation <- function(){
   cat("Packages installed!\n")
 
   #txt <- scan(paste0(R.home("etc"),"/Rprofile.site"), what=character())
-  if(file.exists("C:/Users/U80823148")){
+  if(.onHpdaPc()){
   txt <- readLines(paste0(R.home("etc"),"/Rprofile.site"))
   txt <- txt[txt!=""]
-  addtxt <- "fortunes::fortune(); source('//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/R/func.R')"
+  addtxt <- "fortunes::fortune(); source('//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/R/func/func.R')"
     if(txt[length(txt)]!=addtxt){
       write.table(c(txt,addtxt), paste0(R.home("etc"),"/Rprofile.site"), quote=FALSE, col.names=FALSE, row.names=FALSE, append=TRUE)
       cat("Rprofile.site updated!\n")
@@ -681,12 +697,13 @@ h <- function(x, n=6) {
   } else {
     if(is.data.frame(x)) {
       cn1 <- colnames(x)
+      rn1 <- rownames(x)
       x <- as.data.frame(rbind(paste0("<", substr( sapply(x[1,,drop=FALSE],function(x)class(x)), 1,3), ">"),
                                as.matrix(x[1:n,,drop=FALSE])
                                ),
                          stringsAsFactors=FALSE)
       colnames(x) <- cn1
-      rownames(x) <- c("-",1:n)
+      rownames(x) <- c("-",rn1)
       return(x)
     }
     return(head(x,n))
@@ -1049,7 +1066,7 @@ c.1b1 <- function(..., add.names=c("char","num","obj.names","own.names","none"),
     if( names.at.front) names(res) <- paste0(rep(obj.names,length.dat), sep.sign, names(res))
   } else if(add.names=="own.names"){
     if(is.null(own.names)) stop("specify own.names!")
-    if(length(own.names)!=n.arg) stop("length(own.names) must be equal the number uf rbind arguments")
+    if(length(own.names)!=n.arg) stop("length(own.names) must be equal the number of objects to bind!")
     if(!names.at.front) names(res) <- paste0(names(res), sep.sign, rep(own.names,length.dat))
     if( names.at.front) names(res) <- paste0(rep(own.names,length.dat), sep.sign, names(res))
   }
@@ -1074,6 +1091,7 @@ rbind.1b1 <- function(..., add.names=c("char","num","obj.names","own.names","non
   add.names <- match.arg(add.names)
   # Create List and delete NULL elements.
   dat <- list(...)
+  if(!is.data.frame(dat[[1]]) && is.list(dat[[1]]) && length(dat)==1) dat <- dat[[1]]
   dat <- dat[ sapply(dat,function(x)!is.null(x)) ]
   if(cbind) dat <- lapply(dat,function(x)t(x))
 
@@ -1385,6 +1403,25 @@ if(FALSE) slapply <- function(X, MARGIN=2, FUN, ...){
   }
 }
 
+.prepare.fixed.index.result <- function(data, index, names.result, index.sep="_", edit.I.colnames=FALSE){
+  # This function is internally used in mean.weight and variance.estimate
+  if(!is.null(dim(data))){
+    rawResult <- tapply.fixed(X=data[,1], INDEX=index, FUN=sum, names.result=names.result, vector.result=TRUE)
+    nam <- names(rawResult)
+    rawResult <- matrix(NA, nrow=length(rawResult), ncol=ncol(data))
+    rownames(rawResult) <- nam; 
+    if(!edit.I.colnames) {
+      colnames(rawResult) <- colnames(data)
+    } else {
+      colnames(rawResult) <- .rm.I.from.names(colnames(data))
+    }
+  } else {
+    rawResult <- tapply.fixed(X=data, INDEX=index, FUN=sum, names.result=names.result, sep.sign=index.sep, vector.result=TRUE)
+    rawResult[] <- NA 
+  }
+  return(rawResult)
+}
+
 #data <- as.data.frame(matrix(1:15, ncol=3)); colnames(data) <- c("I(a+b)","a","b"); weights <- 1:5; index <- as.data.frame(matrix(c(2014,2014,2014,2015,2016,   1,2,2,1,1,   11,11,12,13,13),ncol=3)); calc.sum=FALSE; digits=NULL; na.rm=TRUE; edit.I.colnames=TRUE; del.I.help.columns=FALSE; I.help.columns=NULL; fixed.index=TRUE; index.of.result=c("2014_2_11","2014_1_11","0000_0_00"); index.sep="_"
 #m1ean.weight(data[,1],weights,index,fixed.index=TRUE, index.of.result=index.of.result)
 mean.weight <- function(data, weights=NULL, index=NULL, fixed.index=FALSE, index.of.result=NULL, index.sep="_", calc.sum=FALSE, digits=NULL, na.rm=TRUE, edit.I.colnames=TRUE, del.I.help.columns=FALSE, I.help.columns=NULL){
@@ -1412,29 +1449,16 @@ mean.weight <- function(data, weights=NULL, index=NULL, fixed.index=FALSE, index
   if(is.list(data) && !is.data.frame(data)) stop("data must be matrix or data.frame but not a list.")
   
   # Fixed index ausschalten, wenn Index ein Vektor ist. Dann bringt es nichts.
-  if(fixed.index & is.null(index.of.result) & !is.list(index)) stop("fixed.index & is.null(index.of.result) & !is.list(index)   -> fixed.index doesn't have any effect this way. Give index as a list!")
+  if(fixed.index && is.null(index.of.result) && !is.list(index)) stop("fixed.index & is.null(index.of.result) & !is.list(index)   -> fixed.index doesn't have any effect this way. Give index as a list!")
   
   # Im Falle, dass der index fixiert sein soll, hier die rohe Ergebnisstruktur erstellen.
   if(fixed.index){
-    if(!is.null(dim(data))){
-      rawResult <- tapply.fixed(X=data[,1], INDEX=index, FUN=sum, names.result=index.of.result, vector.result=TRUE)
-      nam <- names(rawResult)
-      rawResult <- matrix(NA, nrow=length(rawResult), ncol=ncol(data))
-      rownames(rawResult) <- nam; 
-      if(!edit.I.colnames) {
-        colnames(rawResult) <- colnames(data)
-      } else {
-        colnames(rawResult) <- .rm.I.from.names(colnames(data))
-      }
-    } else {
-      rawResult <- tapply.fixed(X=data, INDEX=index, FUN=sum, names.result=index.of.result, vector.result=TRUE)
-      rawResult[] <- NA 
-    }
+    rawResult <- .prepare.fixed.index.result(data=data, index=index, names.result=index.of.result, edit.I.colnames=edit.I.colnames)
     index <- .paste.elements(index, sep="_", errorMsg="All indices must have same length!")
   }
   
-  
   # Index muss eine List mit folgender Struktur sein:
+  isNullIndex <- is.null(index)
   if(!is.list(index)) index <- list(index)
   
   
@@ -1451,7 +1475,8 @@ mean.weight <- function(data, weights=NULL, index=NULL, fixed.index=FALSE, index
         result <- apply(data, 2, function(x)mean.weight(data=x, weights=weights, index=index, fixed.index=FALSE, index.of.result=index.of.result, index.sep=index.sep, calc.sum=calc.sum, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))
       } else if(is.data.frame(data)) {
         if(nrow(data)==0) stop("nrow of data is 0.")
-        result <- sapply(data, function(x)  mean.weight(data=x, weights=weights, index=index, fixed.index=FALSE, index.of.result=index.of.result, index.sep=index.sep, calc.sum=calc.sum, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))
+        #result <- sapply(data, function(x)  mean.weight(data=x, weights=weights, index=index, fixed.index=FALSE, index.of.result=index.of.result, index.sep=index.sep, calc.sum=calc.sum, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))
+        result <- as.matrix(as.data.frame(lapply(data, function(x)  mean.weight(data=x, weights=weights, index=index, fixed.index=FALSE, index.of.result=index.of.result, index.sep=index.sep, calc.sum=calc.sum, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns)),stringsAsFactors=FALSE))
       }
       # Wieder zu Marix machen, falls es ein Vektor ist
       if(is.null(dim(result))) result <- t(as.matrix(result))
@@ -1476,7 +1501,7 @@ mean.weight <- function(data, weights=NULL, index=NULL, fixed.index=FALSE, index
       }
       
       # Resultat ausgeben.
-      if(nrow(result)==1) rownames(result) <- NULL
+      if(nrow(result)==1 && isNullIndex) result <- result[1,] #rownames(result) <- NULL
       return(result)
       
       
@@ -1563,139 +1588,288 @@ mean.weight <- function(data, weights=NULL, index=NULL, fixed.index=FALSE, index
   return(result)
 }
 
-if(FALSE) mean.weight_DELETE <- function(data, weights=NULL, index=NULL, calc.sum=FALSE, digits=NULL, na.rm=TRUE, edit.I.colnames=TRUE, del.I.help.columns=FALSE, I.help.columns=NULL){
-  # This function calculates the weighted mean of all variables in a possibly indexed data.frame or matrix.
-
+#index="Reg"; inclusProbs="pik_w0"; weights="Gew_Calib"; dat=db[filtX(),]; Xs=Xs[filtX(),]
+#data=spa[filt_all,unique_form]; weights=spa[filt_all,"Gewicht"]; inclusProbs=spa[filt_all,"pik_w0"]; index=x[["vector"]][filt_all]; fixedIndex=TRUE; indexOfFixedResult=indexOfFixedResult; indexStrata=rep(1,sum(filt_all)); method="ht"; figure="halfLengthCI"; CIprob=0.025; na.rm=TRUE; edit.I.colnames=TRUE; CImultiplier=NULL; relativeToMean=TRUE
+#filt=spa[,"JAHR"]==2016; data=spa[filt,c("P430_0100_94000","P430_0100_94000")]; weights=spa[filt,"Gewicht"]; inclusProbs=spa[filt,"pik_w0"]; index=spa[filt,"ZATYP"]; fixedIndex=TRUE; indexOfFixedResult=c(11,12,21); indexStrata=rep(1,sum(filt)); method="ht"; figure="halfLengthCI"; CIprob=0.025; na.rm=TRUE; edit.I.colnames=TRUE; CImultiplier=NULL; relativeToMean=TRUE
+#filt=spa[,"JAHR"]==2016; variance.estimate(data=spa[filt,c("P430_0100_94000")], weights=spa[filt,"Gewicht"], inclusProbs=spa[filt,"pik_w0"], index=NULL, method="ht", figure="halfLengthCI", CIprob=0.025, na.rm=TRUE, edit.I.colnames=TRUE, CImultiplier=NULL, relativeToMean=TRUE) #spa[filt,"ZATYP"], fixedIndex=TRUE, indexOfFixedResult=c(11,12,21), indexStrata=rep(1,sum(filt)),
+variance.estimate <- function(data, weights, inclusProbs, index=NULL, indexStrata=NULL, fixedIndex=FALSE, indexOfFixedResult=NULL, indexSep="_", 
+                              method=c("ht","calib"), figure=c("var","SE","halfLengthCI"), relativeToMean=FALSE, CIprob=NULL, CImultiplier=NULL, DFestimator=c("simple","satterwaithe"), Xs=NULL, na.rm=TRUE,
+                              edit.I.colnames=FALSE){
+  
+  # This function calculates the variance, standard error or confidence invertals for estimated mean values.
+  #
   # Arguments
-  # data = data of which the weighted means should be calculated. Can be data.frame, matrix or vector
-  #        If any colname of data contains an expression like I(Var_A/Var_B), then the the "weighted mean of the ratio" is calculated.
-  #        This is done by building a model.matrix() of the result matrix.
-  #        Use function extract.I.vars() to add all variables to your data frame that are used in the formula
-  # weights = weights for the weighted mean calculation
-  # index = index in the same structure as used in tapply(). Can be a vector or list of vectors.
-  # calc.sum = Should sum(data*weights) should be calculated, rather than weighted means?
-  # digits = digits for rounding the results
-  # na.rm = na action
-  # edit.I.colnames = Should the colnames containing expressions with I() be edited, such that I() won't be there anymore? TRUE/FALSE
-
-  # Wenn innerhalb eines Indexes mehrere Indexe als Listen abgelegt sind, wird die Berechnung fuer alle Indexe gemacht.
-  #if(is.list(index)){
-  #  if(any(sapply(index,function(x)is.list(x)))){
-  #    return(do.call("rbind", lapply(index, function(x)mean.weight(data=data, weights=weights, index=x, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))))
-  #  }
-  #}
-  if(!is.list(index)) index <- list(index)
-
-  # Im Falle, dass !is.null(dim(data)) folgt eine rekursive Funktionsdefinition!
-  if(!is.null(dim(data))) {
-    # Wenn !is.null(dim(data))
-    # & es keinen oder nur einen Index gibt:
-    if(is.null(index) || length(index)==1) {
-      if(is.matrix(data)) {
-        if(nrow(data)==0) stop("nrow of data is 0.")
-        result <- apply(data, 2, function(x)mean.weight(data=x, weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))
-      } else if(is.data.frame(data)) {
-        if(nrow(data)==0) stop("nrow of data is 0.")
-        result <- sapply(data, function(x)mean.weight(data=x, weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))
-      }
-      # Wieder zu Marix machen, falls es ein Vektor ist
-      if(is.null(dim(result))) result <- t(as.matrix(result))
-      #if(nrow(result)==1) rownames(result) <- NULL
-      # Wieder die alten Colnames vergeben
-      colnames(result) <- colnames(data)
-
-      # Falls eine Expression mit I() in einem der colnames ist, werden diese Kennzahlen neu berechnet.
-      # Konkret wird statt "weighted mean of ratio" das "ratio of weighted means" berechnet.
-      cn.res <- colnames(result) # cn.res.orig
-      icols <- substr(cn.res,1,2)=="I("
-      if(any(icols)){
-        if(!is.null(digits)) stop("When rounding (digts!=NULL) and using I() columns, the results might not be accurate")
-        # Wert der I() columns berechnen
-        result <- calc.I.cols(result, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns)
-      }
-
-      # Resultat ausgeben.
-      if(nrow(result)==1) rownames(result) <- NULL
-      return(result)
-
-
-      # Wenn !is.null(dim(data))
-      # & 2 Indexe eingegeben wurden:
-    } else if(length(index)==2) {
-      # res1 <- mean.weight(data=data[,1], weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm)
-
-      # Hier keine Fallunterscheidung zwischen matrix und data.frame einfuegen, sonst funktioniert es nicht!!
-      res.prov <- apply(data, 2, function(x) mean.weight(data=x, weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm) )
-      if(class(res.prov)!="matrix") res.prov <- t(as.matrix(res.prov))
-
-      res.list <- list()
-      su.index1 <- sort(unique(index[[1]]))
-      su.index2 <- sort(unique(index[[2]]))
-      for(i in 1:ncol(res.prov)){
-        res.list[[i]] <- matrix(res.prov[,i],nrow=length(su.index1), ncol=length(su.index2))
-        dimnames(res.list[[i]]) <- list(su.index1, su.index2)
-      }
-      names(res.list) <- colnames(data)
-
-      # Falls eine Expression mit I() in einem der colnames ist, werden diese Kennzahlen neu berechnet.
-      # Konkret wird statt "weighted mean of ratio" das "ratio of weighted means" berechnet.
-      cn.res <- names(res.list)
-      icols <- grepl("I\\(", cn.res)
-      if(any(icols)){
-        if(!is.null(digits)) stop("When rounding (digts!=NULL) and using I() columns, the results might not be accurate")
-        #if(any(cn.res%in%c("_","."))) stop("When using I() colnames _ and . are not allowed.")
-        res.list <- calc.I.cols(res.list, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns)
-      }
-      return(res.list)
-
-    } else if(length(index)>2) {
-      stop("more than 2 indexes not possible if data is a matrix/data.frame. Please enter data as vector.")
-    }
-  }
-
-
-  # Tatsaechliche mean.weight() Funktion.
-  # Falls es keine numerische Variable ist (weil z.B. ein durchmischter data.frame eingegeben wird),
-  # wird daraus eine 0 gemacht, damit die Funktion trotzdem funktioniert.
-  if(! (is.numeric(data)||is.logical(data)) ) data <- rep(0, length(data))
-
-  if(is.null(weights)) weights <- rep(1,length(data))
-
-  # Falls kein index gegeben wurde, einfache Berechnung (mit weighted.mean)
-  if( is.null(index) | is.null(index[[1]]) ){
-    if(calc.sum){
-      result <- sum( data * weights ,na.rm=na.rm )
-    } else {
-      result <- weighted.mean(data,weights, na.rm=na.rm)
-    }
-
-    # Sonst muss mit index und tapply() gerechnet werden.
+  # data =          the data.frame/matrix that contains the variables of interest.
+  # weights =       the vector that contains the calibrated weightss.
+  # inclusProbs =   the vector that contains the inclusion probabilities
+  # index =         the vector that contains the index for the aggregation level to be estimated. E.g. something like "region". If NULL, the calculation is done for the whole data.frame.
+  # indexStrata =   the vector that contains the statification according to the sample design. This can be different from the index.
+  # fixedIndex, indexOfFixedResult, indexSep
+  #                 special arguments if a fixed index should be contained in the result. E.g. if only region 1 and region 2 occur in the sample, but also region 3 should be displayed as NA.
+  #                 in this case you could specify: index=region, fixedIndex=TRUE, indexOfFixedResult=c("1","2","3"). Or if you want to display all permutations of region and type, also if they don't occur in the sample.
+  #                 then specify something like fixedIndex=TRUE, index=list(region, type)
+  # method =        "ht" for Horvith-Thompson method using VE.HT.Total.NHT{samplingVarEst}. "calib" for the calibration method using varest{sampling}
+  # figure =        the figure to be calculated. var=variance, stErr=standard error, CI=confidence interval
+  # relativeToMean= if TRUE, then the calculated variance/SE/CI will be divided by the weighted mean. Use colnames like "I(a/b)" for ratio of mean figures. see also function mean.weight().
+  # CIprob =        the relative accuracy of the confidence interval (CI). +- 0.025 is the default value and will yield CImultiplier =~ 1.96 for a large sample (student distribution).
+  # CImultiplier =  the factor to calculate the confidence interval (CI). 1.96 is equivalent to +-2.5%, i.e. 95% CI in a large sample (student distribution).
+  # DFestimator =   the estimator to calculate the degrees of freedom if is.null(CImultiplier). CImultiplier is calculated from CIprob with assumed t-distribution. "simple" will use  df=n-(number of strata). "satterwaithe" will use the Satterwaithe approximation
+  # Xs =            the Xs matrix that was used to calibrate the weights with the function sampling::calib(). Use the function calcXsMultiLevel() to calculate Xs.
+  # na.rm =         if TRUE, then for each column of data the NA values will be excluded from the calculation.
+  # edit.I.colnames=if TRUE, then colnames like "I(a/b)" will be edited as "a/b" for the result. This is in accordance to the mean.weight() function.
+  
+  figure <- match.arg(figure)
+  method <- match.arg(method)
+  DFestimator <- match.arg(DFestimator)
+  
+  # Format data
+  if(is.list(data) && !is.data.frame(data)) stop("data must be matrix or data.frame but not a list.")
+  isNullDimData <- is.null(dim(data))
+  if(isNullDimData || !is.data.frame(data)){
+    namesOrig <- if(isNullDimData) names(data) else colnames(data)
+    data <- as.data.frame(data, stringsAsFactors=FALSE)
   } else {
-    index <- lapply(index, function(x)if(length(x)==1) return(rep(x,length(weights))) else return(x))
-    length.index <- sapply(index,function(x)length(x))
-    if(any(length.index!=length.index[1])) stop("All vectors in the index have to have the same length!")
-    #print(length(weights)); print(length.index)
-    if(!all(length(weights)==length.index)) stop("length(weights)!=length(index)")
-
-    # NA Werte in weights uebertragen. Muss so sein, nicht mit na.rm innerhalb der Funktionen, da sonst data und weights evtl. nicht korrespondieren!!
-    dataweights <- data*weights
-    weights[is.na(dataweights)] <- NA
-
-    if(calc.sum){
-      # Resultat = Summe ( Werte * Gewichte )
-      result <-  tapply(dataweights,index,  sum,na.rm=na.rm)
-    } else {
-      # Resultat = Summe ( Werte * Gewichte )                             / Summe( Gewichte )
-      result <-  tapply(dataweights,index,  sum,na.rm=na.rm) / tapply(weights,index,  sum,na.rm=na.rm)
-    }
-
+    namesOrig <- colnames(data)
   }
-
-  # Falls gewuenscht, runden, dann Ergebnis ausgeben.
-  if(!is.null(digits)) result <- round(result, digits)
-  return(result)
+  
+  # Check length of all vectors
+  stopifnot(length(inclusProbs) == nrow(data))
+  stopifnot(length(weights) == nrow(data))
+  if(!is.null(index)) {
+    if(!is.list(index)) {
+      stopifnot(length(index) == nrow(data))
+    } else {
+      lapply(index, function(x)if(length(x)!=nrow(data))stop("If index is a list, for all list entries must hold: length(index[[?]])==nrow(data)"))
+    }
+  }
+  
+  # Assure no NA weights and inclusProbs.
+  if(any(is.na(weights))) stop("There must be no NA values in weights.")
+  if(any(is.na(inclusProbs))) stop("There must be no NA values in inclusProbs")
+  
+  # CI preparations
+  if(figure=="halfLengthCI"){
+    if( is.null(CImultiplier) &&  is.null(CIprob)) stop("Either CImultiplier or CIprob must be specified. E.g. CImultiplier=1.96 or CIprob=0.025")
+    if(!is.null(CImultiplier) && !is.null(CIprob)) stop("Either specifiy CImultiplier or CIprob but not both.")
+    if(!is.null(CImultiplier) && !is.null(index)) warning("If index is given, the CImultiplier should be calculated for each iteration separately based on CIprob. Thus, CIprob should be specified, not CImultiplier.")
+    if(!is.null(CIprob) && is.null(indexStrata)) stop("If CIprob is given, then indexStrata must be specified, such that the degrees of freedom can be calculated. If it isn't a stratified sample, then use indexStrata=rep(1,nrow(data)).")
+    
+    if(!is.null(CIprob)){
+      if(CIprob < 0 || CIprob > 1) stop("CIprob must lie between 0 and 1. For +-2.5%, i.e. 95% confidence, choose 0.025.")
+    }
+  }
+  calcCImultiplierFlag <- figure=="halfLengthCI" && !is.null(CIprob)
+  
+  # Wenn kein Aggregationslevel angegeben wurde, dann einen kuenstlichen erzeugen
+  isNullIndex <- is.null(index)
+  if(isNullIndex) {
+    index <- rep("", nrow(data))
+  } else {
+    if(any(is.na(index))) stop("There must be no NA values in index")
+  }
+  # Fixed index ausschalten, wenn Index ein Vektor ist. Dann bringt es nichts.
+  if(fixedIndex && is.null(indexOfFixedResult) && !is.list(index)) stop("fixedIndex & is.null(indexOfFixedResult) & !is.list(index)   -> fixedIndex doesn't have any effect this way. Give index as a list!")
+  # Im Falle, dass der index fixiert sein soll, hier die rohe Ergebnisstruktur erstellen.
+  if(fixedIndex){
+    rawResult <- .prepare.fixed.index.result(data=data, index=index, names.result=indexOfFixedResult, index.sep=indexSep)
+    index <- .paste.elements(index, sep=indexSep, errorMsg="All indices must have same length!")
+  }
+  
+  if(method=="calib" && (is.null(dim(Xs)) || nrow(data)!=nrow(Xs))) stop("nrow(data) must be equal nrow(Xs)")
+  
+  # Indices (0,1) fuer die verschiedenen Aggregationslevel machen.
+  levelBin <- apply( categ.to.bin(index, varname="var", sep="_"),2,function(x)as.logical(x) )
+  
+  # Indices der Aggregationslevel mit den zugehoerigen Variablen multiplizieren.
+  # Davon die Varianz-Total-Population berechnen
+  var0 <- NULL
+  for(i1 in 1:ncol(levelBin)) { # i1 <- 1
+    # Wenn weniger als 2 Betriebe, dann NaN zurueckgeben
+    if(sum(levelBin[,i1]) < 2){
+      var1 <- rep(NA_integer_, ncol(data))
+      names(var1) <- colnames(data)
+      # Berechnung im fall dass mind. 2 Betriebe
+    } else {
+      # Calculate CI factor, simple case
+      if(calcCImultiplierFlag && DFestimator=="simple")
+        CImultiplier <- .estStudentTmultiplier(prob=1-CIprob, indStr=indexStrata[levelBin[,i1]], y=NULL, w=NULL, simple=TRUE, na.rm=na.rm)
+      # Calculate variance...
+      yCounter <<- 0
+      var1 <- sapply(data, function(Ys) { # Ys <- data[,1]
+        filt <- if(na.rm) which(levelBin[,i1] & !is.na(Ys)) else which(levelBin[,i1])
+        if(length(filt) < 2) return(NA_integer_)
+        # Calculate variance
+        rawVar <- .varestSampling( Ys=Ys[filt], Xs=if(method=="calib") Xs[filt,,drop=FALSE] else NULL, pik=inclusProbs[filt], w=weights[filt] )
+        # Calculate CI factor, with Satterwaithe
+        if(calcCImultiplierFlag && DFestimator=="satterwaithe")
+          CImultiplier <- .estStudentTmultiplier(prob=1-CIprob, indStr=indexStrata[filt], y=Ys[filt], w=weights[filt], simple=FALSE, na.rm=na.rm)
+        #yCounter <<- yCounter+1; cat("CImultiplier=",CImultiplier, ", ", sep=""); cat(colnames(data)[yCounter],"\n",sep="")
+        # Further process variance and return
+        return( .calcVarStErrOrCI(rawVar=rawVar, w=weights[filt], figure=figure, CImultiplier=CImultiplier) )
+      })
+      # Calculate the variance relative to mean. Absoulte value, in case the mean is negative.
+      # Use mean.weight here, because then you can use column names like "I(a/b)" for mean of ratio variables.
+      if(relativeToMean) var1 <- abs( var1 / mean.weight(data=data[levelBin[,i1],,drop=FALSE], weights=weights[levelBin[,i1]], index=NULL, edit.I.colnames=FALSE, na.rm=na.rm) )
+    }
+    #
+    var0 <- rbind(var0,var1)
+  }
+  
+  # Schlussformatierung
+  if(is.null(dim(var0))){
+    var0 <- t(as.matrix(var0))
+  }
+  rownames(var0) <- gsub("var_","",colnames(levelBin))
+  
+  # Ergebnis in fixierte Ergebnisstrutkur einfuegen.
+  if(fixedIndex){
+    var0 <- var0[rownames(var0)%in%rownames(rawResult),,drop=FALSE]
+    rawResult[match(rownames(var0),rownames(rawResult)),] <- var0
+    var0 <- rawResult
+  }
+  
+  # Urspruengliche Namen wiederherstellen. Diese wurden durch data.frame zerstoert.
+  if(edit.I.colnames) namesOrig <- .rm.I.from.names(namesOrig)
+  if(isNullIndex && !fixedIndex) rownames(var0) <- NULL
+  if(isNullDimData){
+    rn1 <- rownames(var0)
+    var0 <- var0[,1]
+    names(var0) <- rn1
+  } else {
+    colnames(var0) <- namesOrig
+  }
+  
+  # Ausgabe des Ergebnisses
+  return(var0)
 }
 
+.varestSampling <- function(Ys, Xs = NULL, pik, w = NULL) {
+  # This function is a copy of the function sampling::varest(). It depends on the function MASS::ginv().
+  # It is used inside the variance.estimate() function.
+  
+  if (any(is.na(pik)))  stop("there are missing values in pik")
+  if (any(is.na(Ys)))  stop("there are missing values in Ys")
+  if (length(Ys) != length(pik))  stop("Ys and pik have different sizes")
+  if (!is.null(Xs)) {
+    if (is.data.frame(Xs)) 
+      Xs = as.matrix(Xs)
+    if (is.vector(Xs) & (length(Ys) != length(Xs)))  stop("Ys and Xs have different sizes")
+    if (is.matrix(Xs) & (length(Ys) != nrow(Xs))) stop("Ys and Xs have different sizes")
+  }
+  a = (1 - pik)/sum(1 - pik)
+  if (is.null(Xs)) {
+    A = sum(a * Ys/pik)
+    var = sum((1 - pik) * (Ys/pik - A)^2)/(1 - sum(a^2))
+  } else {
+    B = t(Xs * w)
+    beta = MASS::ginv(B %*% Xs) %*% B %*% Ys
+    e = Ys - Xs %*% beta
+    A = sum(a * e/pik)
+    var = sum((1 - pik) * (e/pik - A)^2)/(1 - sum(a^2))
+  }
+  return(var)
+}
+
+#indStr=c(1,1,2,2,3,3,3,3); y <- c(1,2,3,4,5,6,7,8); w <- c(3,6,5,8,1,3,1,9)
+.estStudentTmultiplier <- function(prob, indStr, y=NULL, w=NULL, simple=TRUE, na.rm=FALSE){
+  # This function calculates the student t multiplier for a given probability. The degrees of freedom are calculated by simple method or Satterwaithe approximation.
+  # Arguments
+  # prob =   probability
+  # indStr = an index defining the strata
+  # y =      variable of interest. Needed if !simple.
+  # w =      weights. Needed if !simple.
+  # simple = simple calculation or more sophisticated calculation using the Satterwaithe approximation?
+  
+  df <- if(simple) length(indStr) - length(unique(indStr)) else .estSatterDf(y=y, w=w, indStr=indStr, na.rm=na.rm)
+  #cat("df=",df, ", ", sep="")
+  return(qt(prob, max(1,df)))  # suppress NaN warnings if df is 0 or -1
+}
+
+.estSatterDf <- function(y, w, indStr, na.rm=FALSE){
+  # This function calculates the Satterwaithe approximation of degrees of freedom.
+  # Arguments
+  # y =      variable of interest
+  # w =      weights
+  # indStr = an index defining the strata
+  
+  s2 <- tapply(y,indStr,var) # s^2 = var
+  Nh <- tapply(w,indStr,sum)
+  nh <- tapply(w,indStr,length)
+  a <- Nh*(Nh-nh)/nh
+  
+  if(length(Nh)==0) stop("indStr seems to contain only NA values.")
+  
+  if(any(is.na(s2))) {
+    if(na.rm){
+      Nh <- Nh[!is.na(s2)]
+      nh <- nh[!is.na(s2)]
+      a  <- a [!is.na(s2)]
+      s2 <- s2[!is.na(s2)]
+      warning("There are strata with only 1 non-NA observation. In this case the Satterwaithe approximation of degrees of freedom is impossible because var(Ys)==NA. Because na.rm==TRUE, these strata were dropped in order to estimate of the degrees of freedom.")
+    } else {
+      stop("There are strata with only 1 observation. In this case the Satterwaithe approximation of degrees of freedom is impossible.")
+    }
+  }
+  
+  if(sum(a)==0) stop("If all(Nh==nh), in other words, If all(weights==1), then the Satterwaithe approximation does not work.")
+  return( sum(a*s2)^2 / sum((a*s2)^2 / (nh-1)) )
+}
+
+.calcVarStErrOrCI <- function(rawVar, w, figure, CImultiplier){
+  # Function to calculate variance, standard error or confidence interval on the level of the mean (not total population)
+  # Arguments
+  # rawVar =       the "raw" variance that should be further processed. rawVar can be calculated e.g. using sampling::varest().
+  # w =            vector of weights
+  # figure =       the figure to be calculated. Either "var"=variance, "SE"=standard error, "halfLengthCI"=half length of confidence interval.
+  # CImultiplier = multiplier to calculate the confidence interval (CI)
+  
+  if(figure=="halfLengthCI") { sqrt(rawVar)  /  sum(w) * CImultiplier
+  } else if(figure=="SE")    { sqrt(rawVar)  /  sum(w)
+  } else if(figure=="var")   {      rawVar   /  sum(w)^2 }
+}
+
+calcXsMultiLevel <- function(dat, optVarListMultiLevel){
+  # This function calculates the Xs matrix that is needed for the calib{sampling} function if different variables should be calibrated for different aggregation levels.
+  # E.g. you'd like to calibrate variable a on puplation level, but variable b only on regional level.
+  # Arguments
+  # dat =                  the data.frame/matrix that contains the variables that should be calibrated
+  # optVarListMultiLevel = the variable list for different levels. The names of the list correspond to each level that should be calibrated.
+  #                        inside each list place there must be a character vector that holds the variables to be calibrated. e.g. list(levelA=c("var1","var2"), levelB=c("var3"))
+  
+  if(!is.list(optVarListMultiLevel) || is.null(names(optVarListMultiLevel))) stop("optVarListMultiLevel must be a named list.")
+  namesNotInColnames <- names(optVarListMultiLevel)[ !names(optVarListMultiLevel)%in%colnames(dat) ]
+  if(length(namesNotInColnames) > 0) stop(paste0("the names of optVarListMultiLevel must represent columns in dat. Some are not contained in colnames(dat):\n",paste0(namesNotInColnames,collapse=", ")))
+  lapply(optVarListMultiLevel, function(x)if(!is.null(dim(x))) stop("In each list place of optVarListMultiLevel there must be a character vector."))
+  varsNotInColnames <- sort(unique( unlist(optVarListMultiLevel)[ !unlist(optVarListMultiLevel)%in%colnames(dat) ] ))
+  if(length(varsNotInColnames) > 0) stop(paste0("the values in each list place of optVarListMultiLevel must represent columns in dat. Some are not contained in colnames(dat):\n",paste0(varsNotInColnames,collapse=", ")))
+  
+  # Optimierungs-Zielvariablen in Xs ablegen.
+  ## --> In diesem Fall fuer Kalibierung auf Ebene Betriebsform!
+  Xs <- as.list(rep(0, length(optVarListMultiLevel))); names(Xs) <- names(optVarListMultiLevel)
+  specialCase <- FALSE
+  
+  # -> Multiply the variables to be optimized with the binary index for the stratification on each level.
+  for(i in names(optVarListMultiLevel)){
+    # Create binaries (0,1)
+    if( suppressWarnings(all(sort(unique(dat[,i]))==c(0,1))) )  {
+      binInd <- dat[,i,drop=FALSE]
+      specialCase <- TRUE # Prepare warning for special case of pure binary variable.
+    } else {
+      binInd <- categ.to.bin(dat[,i])
+    }
+    # Multiply the binary indices with the corresponding variables that will be calibrated
+    # First multiplication is done "manually"
+    indTimesVar <- dat[,optVarListMultiLevel[[i]],drop=FALSE]*binInd[,1]
+    # The latter will be added to the
+    if(ncol(binInd)>1) for(i2 in 2:ncol(binInd)) indTimesVar <- cbind(indTimesVar, dat[,optVarListMultiLevel[[i]],drop=FALSE]*binInd[,i2])
+    Xs[[i]] <- indTimesVar
+  }
+  # Show warning for special case that is not handled correctly in all cases.
+  if(specialCase) warning("Binary indexes (0,1) are directly multiplied with the calibration variables to calculate Xs. If you want to avoid this, use a categorial variable that starts with 1, not 0. -> E.g. use values 1 and 2.")
+  
+  # Collapse Xs from list to a matrix/data.frame
+  return( as.matrix(do.call("cbind",Xs)) )
+}
 
 #vars <- c("asd","efe+p", "c-1", "f*c", "a/ b", "A^B", "c,d", "a==b", "ifelse(a==b, 1, 2)")
 extract.I.vars <- function(vars, keep.original=FALSE, keep.only.necessary=TRUE){
@@ -1751,10 +1925,14 @@ calc.I.cols <- function(data, edit.I.colnames=FALSE, del.I.help.columns=FALSE, I
 
   i_cols <- names(data)
   i_cols <- i_cols[substr(i_cols,1,2)=="I(" & substr.rev(i_cols,1,1)==")"]
+  # If there are no i_cols then return the original data without calculations.
+  if(length(i_cols)==0) return(data)
+  
   # Calc only if there are elements. Otherwise this would yield an error.
   if(length(data[[1]])>0){
     for(i in 1:length(i_cols)){
-      data[[i_cols[i]]] <- with(data, eval(parse(text=i_cols[i])) )
+      data[[i_cols[i]]] <- with(data, eval(parse(text=i_cols[i])))
+      if(is.data.frame(data)) data[[i_cols[i]]] <- as.vector(data[[i_cols[i]]])
     }
   }
 
@@ -1809,7 +1987,7 @@ quantile.weight <- function(x, weights=NULL, index=NULL, probs=0.5, na.rm=TRUE) 
 
   # Recursive function definition if index is given
   if(!is.null(index)){
-    res <- by(cbind(x=x, weights=weights),index,function(x) quantile.weight(x[,"x"], x[,"weights"], probs=probs, na.rm=na.rm))
+    res <- by(cbind(x=x, weights=weights),index,function(x) quantile.weight(x=x[,"x"], weights=if(is.null(weights)) NULL else x[,"weights"], probs=probs, na.rm=na.rm))
     attr(res,"call") <- NULL
     if(length(res[[1]])>1) res <- do.call("rbind", res) else if(length(dim(res))==1) res <- c(res) else class(res) <- "array"
     return(res)
@@ -2018,6 +2196,7 @@ tapply.fixed <- function(X, INDEX, FUN, names.result=NULL, missing.value=NA, vec
 
   if(!is.null(dim(X))) stop("This function only works for vectors! dim(X) must be NULL!")
   if(length(INDEX)==1) vector.result=TRUE
+  if(is.matrix(INDEX)) INDEX <- as.data.frame(INDEX, stringsAsFactors=FALSE)
 
   # Falls names.result eine Liste ist, werden alle moeglichen Kombinationen der Listenplaetze
   # zusammengestelt und damit ein Vektor erstellt
@@ -3831,6 +4010,9 @@ if(FALSE){
   categ.to.bin(x)
 }
 categ.to.bin <- function(x, varname="var", sep.sign="_", allnames=NULL){
+  
+  if(length(dim(x))>1 || is.list(x)) stop("x must be a vector or array with dim(x)<=1")
+  
   sux <- sort(unique(x))
   lux <- length(sux)
   ord <- array(0, dim=c(length(x), ncol=lux));
@@ -4153,8 +4335,15 @@ if(FALSE){
   match.df.by.id(df1=df1, df2=df2, id1=id1, id2=id2, keep.no.matches=TRUE)
   match.df.by.id(df1=df1, df2=df2, id1=id1, id2=id2, keep.no.matches=FALSE)
   merge(df1, df2, by.x="ID1", by.y="ID2")
-
 }
+
+# Moving average
+moving.average <- function(x, n=5, dir=c("middle","retro","forward")){
+  dir <- match.arg(dir)
+  if(dir=="forward") return( rev(as.vector(filter(rev(x),rep(1/n,n), sides=1))) )
+  return(as.vector(filter(x,rep(1/n,n), sides=if(dir=="middle") 2 else 1 )))
+}
+#moving.average(c(1,2,3,4,5,6,7,8,9,10), n=3, dir=c("middle","retro","forward")[3])
 
 ####
 #' Documentation for automatic .Rd creation with roxygen2 package.
@@ -4399,7 +4588,7 @@ balanced.panel <- function(id, year, YEAR=sort(unique(year)), index=NULL, nYEARm
     # Recursive function definition if !is.null(index)
     # balanced.panel() for each entry in index separately.
     #x <- cbind(counter=1:length(id),id=id,year=year)[index==index[1],]
-    res <- do.call("rbind", by(cbind(counter=1:length(id), id=id,year=year), index, function(x){
+    res <- do.call("rbind", by(cbind(counter=1:length(id), id=id, year=year), index, function(x){
       data.frame(x, filter=balanced.panel(id=x[,"id"], year=x[,"year"], YEAR=YEAR, index=NULL, nYEARmin=nYEARmin, output=output),stringsAsFactors=FALSE)
     }))
     return( res[order(res[,"counter"]),"filter"] )
@@ -4719,6 +4908,7 @@ group.by.fix.scale <- function(x, selection.levels, method=c("< x <=", "<= x <")
   # Otherwise if you give exactely the min(x) and max(x) one of both would be excluded.
   # If selection.levels is only one value then all values below are numbered 1 and all above 2
   method <- match.arg(method)
+
   selection.levels <- sort(selection.levels)
   is.na.x <- is.na(x)
   if(length(selection.levels)==1) {
@@ -4763,43 +4953,54 @@ group.by.fix.scale <- function(x, selection.levels, method=c("< x <=", "<= x <")
 
 ####
 
-group.by.quantiles <- function(x, selection.levels=seq(0,1,0.1), method=c("< x <=", "<= x <"), include.min.max=TRUE, give.names=FALSE, names.digits=2, names.sep="-", weights=NULL, na.rm=FALSE){
+group.by.quantiles <- function(x, probs=seq(0,1,0.1), method=c("< x <=", "<= x <"), index=NULL, include.min.max=TRUE, give.names=FALSE, names.digits=2, names.sep="-", weights=NULL, na.rm=FALSE){
   # Groupy data by quantiles.
   # This is a wrapper for group.by.fix.scale with slightly altered interface.
 
   #x <- rnorm(1000);  selection.levels <- c(0, 0.25, 0.5, 0.75, 1); method=c("<= x <"); include.min.max=TRUE; weights=rnorm(1000)
   #group.by.quartiles(x=x, weights=weights);
   method <- match.arg(method)
-  selection.levels <- sort(selection.levels)
-  selection.levels.rel <- selection.levels; rm(selection.levels)
-  if(any(selection.levels.rel<0) | any(selection.levels.rel>1)) stop("choose 0 >= selection.level >= 1")
-  if(length(selection.levels.rel)==1) {
+  
+  if(!is.null(index)) {
+    index <- .paste.elements(index, sep="_", errorMsg="All indices must have same length!")
+    # Recursive function definition if !is.null(index). --> group.by.fix.scale() for each entry in index separately.
+    res <- do.call("rbind", by(cbind(counter=1:length(x), x=x), index, function(x){
+      data.frame(x, grouping=group.by.quantiles(x=x[,"x"], probs=probs, method=method, index=NULL, include.min.max=include.min.max, give.names=give.names, names.digits=names.digits, names.sep=names.sep, weights=weights, na.rm=na.rm))
+    }))
+    return( res[order(res[,"counter"]),"grouping"] )
+  }
+  
+  probs <- sort(probs)
+  probs.rel <- probs; rm(probs)
+  if(any(probs.rel<0) | any(probs.rel>1)) stop("choose 0 >= probs >= 1")
+  if(length(probs.rel)==1) {
     include.min.max <- TRUE
-    selection.levels.rel <- c(0, selection.levels.rel, 1)
+    probs.rel <- c(0, probs.rel, 1)
   }
 
   if(is.null(weights))  {
-    selection.levels.abs <- quantile(x,selection.levels.rel)
+    probs.abs <- quantile(x,probs.rel)
   } else {
     if(length(weights)!=length(x)) stop("length(x) must be equal length(weights)")
     #require(Hmisc)
-    #selection.levels.abs <- wtd.quantile(x=x, weights=weights, probs=selection.levels.rel)
-    selection.levels.abs <- quantile.weight(x=x, weights=weights, index=NULL, probs=selection.levels.rel, na.rm=na.rm)
-    # Vergleich: quantile(x=x, probs=selection.levels.rel)
-    if(min(selection.levels.rel)==0) selection.levels.abs[which.min(selection.levels.rel)] <- min(x)-1
-    if(max(selection.levels.rel)==1) selection.levels.abs[which.max(selection.levels.rel)] <- max(x)+1
+    #probs.abs <- wtd.quantile(x=x, weights=weights, probs=probs.rel)
+    probs.abs <- quantile.weight(x=x, weights=weights, index=index, probs=probs.rel, na.rm=na.rm)
+    # Vergleich: quantile(x=x, probs=probs.rel)
+    if(min(probs.rel)==0) probs.abs[which.min(probs.rel)] <- min(x)-1
+    if(max(probs.rel)==1) probs.abs[which.max(probs.rel)] <- max(x)+1
   }
 
-  grouping <- group.by.fix.scale(x=x, selection.levels=selection.levels.abs, method=method, include.min.max=include.min.max, give.names=give.names, names.digits=names.digits, names.sep=names.sep)
+  grouping <- group.by.fix.scale(x=x, selection.levels=probs.abs, method=method, include.min.max=include.min.max, give.names=give.names, names.digits=names.digits, names.sep=names.sep)
   return(grouping)
 }
 
 group.by.quartiles <- function(...){
-  group.by.quantiles(..., selection.levels=c(0, 0.25, 0.5, 0.75, 1))
+  group.by.quantiles(..., probs=c(0, 0.25, 0.5, 0.75, 1))
 }
 
 #x <- gb[,"ArbVerd_jeFJAE"]; weights <- gb[,"Gewicht"]; index <- gb[,c("Jahr","Region","Betriebstyp_S3")]
 #x=spa[,"P430_0100_95300"]; weights=spa[,weightCol]; index=spa[,"SchichtJahr"]
+#x=c(1,2,3,4,5,6,7,8,9,10); index=c(1,1,1,1,1,2,2,2,2,2); weights=NULL; probs=c(0, 0.25, 0.5, 0.75, 1); method=c("< x <=", "<= x <")[1]; na.rm=TRUE
 group.by.wtd.quantiles <- function(x, weights=NULL, index=NULL, probs=c(0, 0.25, 0.5, 0.75, 1), method=c("< x <=", "<= x <"), na.rm=TRUE) {
   # This function groups the elements of a vector by weighted quantiles.
   # Weights and index can be given.
@@ -4810,16 +5011,13 @@ group.by.wtd.quantiles <- function(x, weights=NULL, index=NULL, probs=c(0, 0.25,
   # If an index is given, the quantiles are grouped for each index
   if(!is.null(index)) {
     index <- .paste.elements(index, sep="_", errorMsg="All indices must have same length!")
-    
-    is.null.weights <- is.null(weights)
-    x <- cbind(id=1:length(x), x=x, w=weights)
     if(any(weights==0) & na.rm==TRUE) warning("There were weights==0. Wbservations with weight==0 were not allocated to a group.")
-    res <- do.call("rbind",as.list(by(x,index,function(x){
-      if(is.null.weights) w <- NULL else w <- x[,"w"]
-      x[,"q"] <- suppressWarnings( group.by.wtd.quantiles(x=x[,"x"], weights=w, index=NULL, probs=probs, na.rm=na.rm, method=method) )
+    
+    res <- do.call("rbind",as.list(by( cbind(counter=1:length(x), x=x, weights=weights), index,function(x){
+      x[,"q"] <- suppressWarnings( group.by.wtd.quantiles(x=x[,"x"], weights=if(is.null(weights)) NULL else x[,"weights"], index=NULL, probs=probs, na.rm=na.rm, method=method) )
       return(x)
     })))
-    return(res[order(res[,"id"]),"q"])
+    return(res[order(res[,"counter"]),"q"])
   }
 
   # This is the actual grouping function
@@ -4942,9 +5140,10 @@ replace.values <- function(search, replace, x, no.match.NA=FALSE, gsub=FALSE, fi
 
   xnew <- x
   if(!gsub) {
-    xnew <- replace[ match(x, search) ]
+    m1 <- match(x, search)
+    xnew <- replace[ m1 ]
     if(!no.match.NA){
-      isna <- is.na(xnew)
+      isna <- is.na(m1)
       xnew[isna] <- x[isna]
     }
   } else {
@@ -5284,9 +5483,9 @@ format.colnames <- function(x) {
 }
 
 load.spa <- function() {
-  pfad1 <- "C:/Users/U80823148/_/Data/SpE.RData"
+  pfad1 <- paste0(.dataFolder(),"SpE.RData")
   pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4276/alldata/SpE.RData"
-  if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
+  pfad <- if(file.exists(pfad1)) pfad1 else pfad2
   cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
   cat(pfad, "\n", sep="")
   spa <- load2(pfad)
@@ -5339,9 +5538,9 @@ load.spe <- function(...) load.spa(...)
 
 # Fuer SpB
 load.spb <- function() {
-  pfad1 <- "C:/Users/U80823148/_/Data/SpB.RData1"
+  pfad1 <- paste0(.dataFolder(),"SpB.RData")
   pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4275/alldata/SpB.RData"
-  if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
+  pfad <- if(file.exists(pfad1)) pfad1 else pfad2
   cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
   cat(pfad, "\n", sep="")
   return(load2(pfad))
@@ -5349,9 +5548,9 @@ load.spb <- function() {
 
 
 load.gb <- function() {
-  pfad1 <- "C:/Users/U80823148/_/Data/GB.RData"
+  pfad1 <- paste0(.dataFolder(),"GB.RData")
   pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4273/GB/GB.RData"
-  if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
+  pfad <- if(file.exists(pfad1)) pfad1 else pfad2
   cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
   cat(pfad, "\n", sep="")
   load(pfad)
@@ -5360,9 +5559,9 @@ load.gb <- function() {
 }
 
 load.agis <- function(year=2015){
-    pfad1 <- paste0("C:/Users/U80823148/_/Data/AGIS/AGIS_BFS_",year,".RData")
+    pfad1 <- paste0(.dataFolder(),"AGIS/AGIS_BFS_",year,".RData")
     pfad2 <- paste0("//art-settan-1000.evdad.admin.ch/ZAMAIN/ZADaten/AGIS/",year,"/AGIS_BFS_",year,".RData")
-    if(file.exists(pfad1)) pfad <- pfad1 else pfad <- pfad2
+    pfad <- if(file.exists(pfad1)) pfad1 else pfad2
     cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
     cat(pfad, "\n", sep="")
     return(load2(pfad))
@@ -6518,195 +6717,6 @@ string.to.formula <- function(y=NULL,x,intercept=TRUE,func=c("x","x^2","log(2)")
 }
 
 
-production.formula <- function(xnames,ynames,funcform=c("log","translog","log.rts.t_test","log.rts.loglik_test"),dist=FALSE,or=c("in","out"),output=c("formula","string")){
-  # This function creates a formula that can be fed into frontier::sfa()
-  # The function form can be log (Cobb-Douglas) or translog (Transcendental Logarithmic).
-  # If dist=TRUE the distance based formula is formulated. This is needed if more than 2 inputs are used.
-  # or=orientation (only used if dist=TRUE)
-
-  if(FALSE){
-    ynames <- paste("y",1:1,sep="")
-    xnames <- paste("x",1:4,sep="")
-    funcform="translog"
-    dist <- FALSE
-    or <- "in"
-    output <- "formula"
-  }
-
-  output <- match.arg(output)
-  funcform <- match.arg(funcform)
-  or <- match.arg(or)
-  nx <- length(xnames)
-  ny <- length(ynames)
-
-  if(funcform=="translog") {
-    if(!dist){
-      # See Bogetoft & Otto (2011) ch8 p241
-      if(ny>1) stop("Without distance function only 1 output is allowed!")
-      formy <- paste0("I(log(",ynames,"))")
-      formx1 <- paste0("I(log(",xnames,"))",collapse=" + ")
-      comb1 <- combn(xnames,2) # Cross-Interaction
-      comb2 <- matrix(rep(xnames,2),nrow=2,byrow=TRUE) # Self-Interaction
-      comb <- cbind(comb2,comb1)
-      formx2 <- character()
-      for(i in 1:ncol(comb)){
-        formx2[i] <- paste0("I(1/2*", paste0("log(",comb[,i],")",collapse="*"),")" )
-        # Consider this:
-        #x1 <- 5; x2 <- 2
-        #log(x1) * log(x2^(1/2))
-        #log(x1^(1/2)) * log(x2)
-        #1/2 * log(x1) * log(x2)
-      }
-      formx2 <- paste(formx2,collapse=" + ")
-      formx <- paste( paste0(formx1," +") , formx2, collapse="")
-      form <- paste0(formy,"  ~  ", formx, collapse= "")
-    } else { # if(dist)
-      if(or=="in") {
-        # See Bogetoft & Otto (2011) ch8 p243
-        formy <- paste0("I(log(1/",xnames[1],"))")
-        formx1 <- paste0("I(log(",xnames[2:nx],"/",xnames[1],"))",collapse=" + ")
-        formx2 <- paste0("I(log(",ynames,"))", collapse=" + ")
-
-        comb1 <- combn(c(paste0(xnames[2:nx],"/",xnames[1]),ynames),2) # Cross-Interaction
-        comb2 <- matrix(rep(paste0(xnames[2:nx],"/",xnames[1]),2),nrow=2,byrow=TRUE) # Self-Interaction x
-        comb3 <- matrix(rep(ynames,2),nrow=2,byrow=TRUE) # Self-Interaction y
-        comb <- cbind(comb2,comb1,comb3)
-        # The order of first, second and third line is done like in Bogetoft & Otto (2011) ch8 p243
-        first <-  which( apply(comb,2,function(x)length(grep("/",x))==2) )
-        second <- which( apply(comb,2,function(x)length(grep("/",x))==0) )
-        third <-  which( apply(comb,2,function(x)length(grep("/",x))==1) )
-        formx3 <- character()
-        for(i in 1:ncol(comb)){
-          formx3[i] <- paste0("I(1/2*", paste0("log(",comb[,i],")",collapse="*"),")" )
-        }
-        formx3 <- paste( formx3[c(first,second,third)], collapse=" + ")
-
-        formx1 <- paste0(formx1," + ")
-        formx2 <- paste0(formx2," + ")
-        formx <- paste0(formx1,formx2,formx3,collapse="")
-        form <- paste0(formy,"  ~  ",formx,collapse="")
-
-      } else { # if(or=="out")
-        # See Bogetoft & Otto (2011) ch8 p244
-        formy <- paste0("I(log(1/",ynames[1],"))")
-        formx1 <- paste0("I(log(",xnames,"))",collapse=" + ")
-        if(ny>1) {
-          formx2 <- paste0("I(log(",ynames[2:ny],"/",ynames[1],"))",collapse=" + ")
-        } else {
-          formx2 <- ""
-        }
-        if(ny>1) {
-          comb1 <- combn(c(paste0(ynames[2:ny],"/",ynames[1]),xnames),2) # Cross-Interaction
-          comb2 <- matrix(rep(paste0(ynames[2:ny],"/",ynames[1]),2),nrow=2,byrow=TRUE) # Self-Interaction y
-          comb3 <- matrix(rep(xnames,2),nrow=2,byrow=TRUE) # Self-Interaction x
-          comb <- cbind(comb3,comb2,comb1)
-        } else {
-          comb1 <- combn(xnames,2) # Cross-Interaction
-          comb2 <- matrix(rep(xnames,2),nrow=2,byrow=TRUE) # Self-Interaction x
-          comb <- cbind(comb2,comb1)
-        }
-        # The order of first, second and third line is done like in Bogetoft & Otto (2011) ch8 p244
-        first <-  which( apply(comb,2,function(x)length(grep("/",x))==0) )
-        second <- which( apply(comb,2,function(x)length(grep("/",x))==2) )
-        third <-  which( apply(comb,2,function(x)length(grep("/",x))==1) )
-        formx3 <- character()
-        for(i in 1:ncol(comb)){
-          formx3[i] <- paste0("I(1/2*", paste0("log(",comb[,i],")",collapse="*"),")" )
-        }
-        formx3 <- paste( formx3[c(first,second,third)], collapse=" + ")
-
-        formx1 <- paste0(formx1," + ")
-        if(formx2!="") formx2 <- paste0(formx2," + ")
-        formx <- paste0(formx1,formx2,formx3,collapse="")
-        form <- paste0(formy,"  ~  ",formx,collapse="")
-      }
-    }
-  } else if(funcform=="log")  {
-    if(!dist) {
-      if(ny>1) stop("Without distance function only 1 output is allowed!")
-      formy <- paste0("I(log(",ynames,"))")
-      formx <- paste0("I(log(",xnames,"))",collapse=" + ")
-      form <- paste0(formy, "  ~  ", formx)
-
-    } else { # if(dist)
-      # see Bogetoft & Otto (2011) ch 8 p 237
-      if(or=="in"){
-        if(nx>1) {
-          formx1 <- c(paste(xnames[2:nx] ,"/",xnames[1],sep=""), ynames)
-        } else {
-          formx1 <- ynames
-        }
-        formx <- paste( paste("I(log(",formx1,"))",sep=""), collapse=" + ")
-        formy1 <- paste("1/",xnames[1],sep="")
-        formy <- paste("I(log(",formy1,"))",sep="")
-      } else { # if(or="out")
-        # see Bogetoft & Otto (2011) ch 8 p 239. Attention! Specification on p 239 is wrong!!!
-        if(ny>1){
-          formx1 <- c( paste(ynames[2:ny],"/",ynames[1],sep=""), xnames)
-        } else {
-          formx1 <- xnames
-        }
-        formx <- paste( paste("I(log(",formx1,"))",sep=""), collapse=" + ")
-        formy1 <- paste("1/",ynames[1],sep="")
-        formy <- paste("I(log(",formy1,"))",sep="")
-      }
-      form <- paste0(formy,"  ~  ",formx,collapse="")
-    }
-  } else if(funcform=="log.rts.t_test") {
-    # See Bogetoft & Otto (2011) ch8 p255
-    # Check if the Parameter of the last input variable (no quotient) is significantly different from 0 (Pr|>t|).
-    # coef > (<) 0  means positive (negative) scale effects.
-    if(ny>1) stop("For log_rts_check only 1 output is allowed!")
-    formy <- paste0("I(log(",ynames,"/",xnames[1],"))")
-    formx <- paste0("I(log(",xnames[2:length(xnames)],"/",xnames[1],"))",collapse=" + ")
-    formx <- paste0(formx," + ", paste0("I(log(",xnames[1],"))") ,collapse="")
-    form <- paste0(formy, "  ~  ", formx)
-  } else if(funcform=="log.rts.loglik_test"){
-    # Used in function sfa.rts.test()
-    # The formula is used for the null hypothesis of constant returns to scale! We divide all parameters by one input. Then we leave this input completely away instead of summing all coefficients of the other inputs up (see Bogetoft & Otto ch8 p255 and p256 ).
-    if(ny>1) stop("For log_rts_check only 1 output is allowed!")
-    formy <- paste0("I(log(",ynames,"/",xnames[1],"))")
-    formx <- paste0("I(log(",xnames[2:length(xnames)],"/",xnames[1],"))",collapse=" + ")
-    form <- paste0(formy, "  ~  ", formx)
-  }
-  if(output=="formula") form <- formula(form)
-  return(form)
-}
-
-
-long.string <- function(x){
-  if( mode(x)=="call" ) {    # If x is a formula!
-    x <- paste(x[2],x[1],x[3], collapse="")
-    slashpos <- gregexpr(pattern ='\n',x)[[1]][[1]]
-    x <- paste0( substr(x,1,(slashpos-1)), substr(x,(slashpos+5),nchar(x)) )
-  }
-  if(length(x)>1 & any(nchar(x)>1)) { x <- paste0(x,collapse="")  }
-  nchar.x <- nchar(x)
-  xnew <- character()
-  for(i in 1:nchar.x) xnew[i] <- substr(x,i,i)
-  return(xnew)
-}
-
-sep.string <- function(x,sign,keep.sign=TRUE){
-  if( mode(x)=="call" ) {    # If x is a formula!
-    x <- paste(x[2],x[1],x[3], collapse="")
-    slashpos <- gregexpr(pattern ='\n',x)[[1]][[1]]
-    x <- paste0( substr(x,1,(slashpos-1)), substr(x,(slashpos+5),nchar(x)) )
-  }
-  if(length(x)==1) x <- long.string(x)
-  sign.pos <- which(x%in%sign)
-  sign.pos <- c(0,sign.pos,length(x)+1)
-  nblocks <- length(sign.pos)-1
-  blocks <- character(nblocks)
-  if(!keep.sign)  {
-    for(i in 1:nblocks)   blocks[i] <- paste0(x[(sign.pos[i]+1):(sign.pos[i+1]-1) ], collapse="")
-  } else if(keep.sign) {
-    for(i in 1:(nblocks-1))   blocks[i] <- paste0(x[(sign.pos[i]+1):(sign.pos[i+1]  ) ], collapse="")
-    for(i in       nblocks)   blocks[i] <- paste0(x[(sign.pos[i]+1):(sign.pos[i+1]-1  ) ], collapse="")
-  }
-  return(blocks)
-}
-
 #char <- c("0123456789", "9876543210")
 substr.rev <- function(char, start, end, reverse=FALSE) {
   # Reverse substring
@@ -7815,6 +7825,139 @@ qqplot.multiple <- function(data,variables,plotrows=5,mar=c(2.1,2.1,2.1,2.1),win
 
 
 #### DELETE FUNCTIONS ####
+
+if(FALSE) mean.weight_DELETE <- function(data, weights=NULL, index=NULL, calc.sum=FALSE, digits=NULL, na.rm=TRUE, edit.I.colnames=TRUE, del.I.help.columns=FALSE, I.help.columns=NULL){
+  # This function calculates the weighted mean of all variables in a possibly indexed data.frame or matrix.
+  
+  # Arguments
+  # data = data of which the weighted means should be calculated. Can be data.frame, matrix or vector
+  #        If any colname of data contains an expression like I(Var_A/Var_B), then the the "weighted mean of the ratio" is calculated.
+  #        This is done by building a model.matrix() of the result matrix.
+  #        Use function extract.I.vars() to add all variables to your data frame that are used in the formula
+  # weights = weights for the weighted mean calculation
+  # index = index in the same structure as used in tapply(). Can be a vector or list of vectors.
+  # calc.sum = Should sum(data*weights) should be calculated, rather than weighted means?
+  # digits = digits for rounding the results
+  # na.rm = na action
+  # edit.I.colnames = Should the colnames containing expressions with I() be edited, such that I() won't be there anymore? TRUE/FALSE
+  
+  # Wenn innerhalb eines Indexes mehrere Indexe als Listen abgelegt sind, wird die Berechnung fuer alle Indexe gemacht.
+  #if(is.list(index)){
+  #  if(any(sapply(index,function(x)is.list(x)))){
+  #    return(do.call("rbind", lapply(index, function(x)mean.weight(data=data, weights=weights, index=x, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))))
+  #  }
+  #}
+  if(!is.list(index)) index <- list(index)
+  
+  # Im Falle, dass !is.null(dim(data)) folgt eine rekursive Funktionsdefinition!
+  if(!is.null(dim(data))) {
+    # Wenn !is.null(dim(data))
+    # & es keinen oder nur einen Index gibt:
+    if(is.null(index) || length(index)==1) {
+      if(is.matrix(data)) {
+        if(nrow(data)==0) stop("nrow of data is 0.")
+        result <- apply(data, 2, function(x)mean.weight(data=x, weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))
+      } else if(is.data.frame(data)) {
+        if(nrow(data)==0) stop("nrow of data is 0.")
+        result <- sapply(data, function(x)mean.weight(data=x, weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))
+      }
+      # Wieder zu Marix machen, falls es ein Vektor ist
+      if(is.null(dim(result))) result <- t(as.matrix(result))
+      #if(nrow(result)==1) rownames(result) <- NULL
+      # Wieder die alten Colnames vergeben
+      colnames(result) <- colnames(data)
+      
+      # Falls eine Expression mit I() in einem der colnames ist, werden diese Kennzahlen neu berechnet.
+      # Konkret wird statt "weighted mean of ratio" das "ratio of weighted means" berechnet.
+      cn.res <- colnames(result) # cn.res.orig
+      icols <- substr(cn.res,1,2)=="I("
+      if(any(icols)){
+        if(!is.null(digits)) stop("When rounding (digts!=NULL) and using I() columns, the results might not be accurate")
+        # Wert der I() columns berechnen
+        result <- calc.I.cols(result, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns)
+      }
+      
+      # Resultat ausgeben.
+      if(nrow(result)==1) rownames(result) <- NULL
+      return(result)
+      
+      
+      # Wenn !is.null(dim(data))
+      # & 2 Indexe eingegeben wurden:
+    } else if(length(index)==2) {
+      # res1 <- mean.weight(data=data[,1], weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm)
+      
+      # Hier keine Fallunterscheidung zwischen matrix und data.frame einfuegen, sonst funktioniert es nicht!!
+      res.prov <- apply(data, 2, function(x) mean.weight(data=x, weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm) )
+      if(class(res.prov)!="matrix") res.prov <- t(as.matrix(res.prov))
+      
+      res.list <- list()
+      su.index1 <- sort(unique(index[[1]]))
+      su.index2 <- sort(unique(index[[2]]))
+      for(i in 1:ncol(res.prov)){
+        res.list[[i]] <- matrix(res.prov[,i],nrow=length(su.index1), ncol=length(su.index2))
+        dimnames(res.list[[i]]) <- list(su.index1, su.index2)
+      }
+      names(res.list) <- colnames(data)
+      
+      # Falls eine Expression mit I() in einem der colnames ist, werden diese Kennzahlen neu berechnet.
+      # Konkret wird statt "weighted mean of ratio" das "ratio of weighted means" berechnet.
+      cn.res <- names(res.list)
+      icols <- grepl("I\\(", cn.res)
+      if(any(icols)){
+        if(!is.null(digits)) stop("When rounding (digts!=NULL) and using I() columns, the results might not be accurate")
+        #if(any(cn.res%in%c("_","."))) stop("When using I() colnames _ and . are not allowed.")
+        res.list <- calc.I.cols(res.list, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns)
+      }
+      return(res.list)
+      
+    } else if(length(index)>2) {
+      stop("more than 2 indexes not possible if data is a matrix/data.frame. Please enter data as vector.")
+    }
+  }
+  
+  
+  # Tatsaechliche mean.weight() Funktion.
+  # Falls es keine numerische Variable ist (weil z.B. ein durchmischter data.frame eingegeben wird),
+  # wird daraus eine 0 gemacht, damit die Funktion trotzdem funktioniert.
+  if(! (is.numeric(data)||is.logical(data)) ) data <- rep(0, length(data))
+  
+  if(is.null(weights)) weights <- rep(1,length(data))
+  
+  # Falls kein index gegeben wurde, einfache Berechnung (mit weighted.mean)
+  if( is.null(index) | is.null(index[[1]]) ){
+    if(calc.sum){
+      result <- sum( data * weights ,na.rm=na.rm )
+    } else {
+      result <- weighted.mean(data,weights, na.rm=na.rm)
+    }
+    
+    # Sonst muss mit index und tapply() gerechnet werden.
+  } else {
+    index <- lapply(index, function(x)if(length(x)==1) return(rep(x,length(weights))) else return(x))
+    length.index <- sapply(index,function(x)length(x))
+    if(any(length.index!=length.index[1])) stop("All vectors in the index have to have the same length!")
+    #print(length(weights)); print(length.index)
+    if(!all(length(weights)==length.index)) stop("length(weights)!=length(index)")
+    
+    # NA Werte in weights uebertragen. Muss so sein, nicht mit na.rm innerhalb der Funktionen, da sonst data und weights evtl. nicht korrespondieren!!
+    dataweights <- data*weights
+    weights[is.na(dataweights)] <- NA
+    
+    if(calc.sum){
+      # Resultat = Summe ( Werte * Gewichte )
+      result <-  tapply(dataweights,index,  sum,na.rm=na.rm)
+    } else {
+      # Resultat = Summe ( Werte * Gewichte )                             / Summe( Gewichte )
+      result <-  tapply(dataweights,index,  sum,na.rm=na.rm) / tapply(weights,index,  sum,na.rm=na.rm)
+    }
+    
+  }
+  
+  # Falls gewuenscht, runden, dann Ergebnis ausgeben.
+  if(!is.null(digits)) result <- round(result, digits)
+  return(result)
+}
 
 # data=dat; sig.level=0.05; qq=FALSE; window=FALSE
 if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, window=FALSE, ...) {
