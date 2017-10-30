@@ -35,7 +35,7 @@
 # rekid.zaid (key between REK_ID[LINK] & ZA_ID[AGIS] )
 
 # -- Source locally  --
-# if(!exists("mean.weight")) tryCatch( suppressWarnings(source("//adb.intra.admin.ch/Agroscope$/Org/Sites/TA/Transfer/hpda/R/func.R")), error=function(e) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/func.R")), error=function(e) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")))
+# if(!exists("mean.weight")) tryCatch( suppressWarnings(source("//adb.intra.admin.ch/Agroscope$/Org/Sites/TA/Transfer/hpda/R/func.R")), error=function(e) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/func.R")), error=function(e) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/2/3583/Resultate/00-00-00_Zusatzdaten/R_func/func.R")), error=function(e) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R"))))
 
 #
 # -- GitHub --
@@ -139,6 +139,9 @@ if(.onHpdaPc()) {
     # Temporaer: Personen_Indexiert loeschen.
     if(file.exists(paste0(datFold,"Personen_Indexiert.RData"))){
       file.remove(paste0(datFold,"Personen_Indexiert.RData"))
+    }
+    if(file.exists(paste0(datFold,"Personen_Indexiert.csv"))){
+      file.remove(paste0(datFold,"Personen_Indexiert.csv"))
     }
     
     invisible(apply(files,1,function(x){ # x <- files[1,]
@@ -1476,13 +1479,13 @@ mean.weight <- function(data, weights=NULL, index=NULL, fixed.index=FALSE, index
   # Arguments
   # data = data of which the weighted means should be calculated. Can be data.frame, matrix or vector
   #        If any colname of data contains an expression like I(Var_A/Var_B), then the the "weighted mean of the ratio" is calculated.
-  #        This is done by building a model.matrix() of the result matrix.
-  #        Use function extract.I.vars() to add all variables to your data frame that are used in the formula
-  # weights = weights for the weighted mean calculation
-  # index = index in the same structure as used in tapply(). Can be a vector or list of vectors.
-  # calc.sum = Should sum(data*weights) should be calculated, rather than weighted means?
-  # digits = digits for rounding the results
-  # na.rm = na action
+  #           This is done by building a model.matrix() of the result matrix.
+  #           Use function extract.I.vars() to add all variables to your data frame that are used in the formula
+  # weights =         weights for the weighted mean calculation
+  # index =           index in the same structure as used in tapply(). Can be a vector or list of vectors.
+  # calc.sum =        Should sum(data*weights) should be calculated, rather than weighted means?
+  # digits =          digits for rounding the results
+  # na.rm =           na action
   # edit.I.colnames = Should the colnames containing expressions with I() be edited, such that I() won't be there anymore? TRUE/FALSE
   
   # Wenn innerhalb eines Indexes mehrere Indexe als Listen abgelegt sind, wird die Berechnung fuer alle Indexe gemacht.
@@ -4669,7 +4672,8 @@ match.multiple.id.left <- function(id_left, id_right) {
   # Ouput is a matrix. First column serves as index for left vector. Second Column serves as index for right vector.
   
   if(any(duplicated(id_right))) stop("Duplicated IDs in id_right are *not* allowed.")
-  m_right <- match(id_left,id_right); m_right <- m_right[!is.na(m_right)]; m_right
+  m_right <- match(id_left,id_right);
+  m_right <- m_right[!is.na(m_right)]; #m_right
   m_left <- which(id_left%in%id_right)
   return(cbind(left=m_left,right=m_right))
 }
@@ -4679,7 +4683,7 @@ match.multiple.id.left <- function(id_left, id_right) {
     return(l)
   }
   if(is.matrix(l) | is.data.frame(l)) {
-    return(paste.cols(l))
+    return(paste.cols(l, sep=sep))
   }
   if(length(unique(unlist(lapply(l,function(x)length(x)))))>1) {
     stop(errorMsg)
@@ -5020,6 +5024,38 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
   
   if(any(is.na(index)) & geometric) cat("Note that the geometric mean can only be calculated if all numbers are positive.\n")
   return(index)
+}
+####
+
+# x <- data[,"Region"]; index <- data[,c("ID","Region")]
+# index <- c(3,3,5,1,2); x <- c(1,1,2,3,4)
+makeTimeInvariant <- function(x, index, method=c("mostFrequent","mean","median")){
+  # This function makes a variable time invariant. E.g. if an observation has mostly value 1, but sometimes 2. The value 2 is rather a measurement error than the true value.
+  # In this case, the value 2 will be replaced by either 1 (method="mostFrequent"), 1.xxx (method="mean") or the median value (method="median").
+  #
+  # Arguments
+  # x =      The vector of values that shall be checked. If a matrix/data.frame, then the function will be applied to all columns.
+  # index =  The index, e.g. the id of each observation.
+  # metdho = The method to be applied.
+  #
+  # Value
+  # The corrected vector x.
+  
+  if(is.matrix(x)) return(apply(x,2,function(x)makeTimeInvariant(x=x,index=index,method=method))) else
+    if(is.data.frame(x)) return(as.data.frame(lapply(x,function(x)makeTimeInvariant(x=x,index=index,method=method)),stringsAsFactors=FALSE))
+  
+  method <- match.arg(method)
+  if(is.factor(x)) stop("The procedure does not work for factors. You have to convert into numeric/integer/character first.")
+  
+  index <- .paste.elements(index, sep="_a@:!;q_", errorMsg="All indices must have same length!")
+  fun <- if(method=="mostFrequent") function(x) names(table(x)[1]) else if(method=="mean") mean(x) else if(method=="median") median(x)
+  
+  res <- tapply(x, index, fun)
+  res <- res[ match(as.character(index), names(res)) ]
+  
+  if(is.integer(x)) return(as.integer(res)) else
+    if(is.numeric(x)) return(as.numeric(res)) else
+      return(res)
 }
 
 ####
@@ -6545,6 +6581,149 @@ cor.table <- function(data, sig.level=c(0.1,0.05,0.01,0.001)[2], method=c("pears
 }
 print.cor.table <- function(x,quote=FALSE,na.print="", ...){
   print(x$print.table, quote=quote, na.print=na.print, ...)
+}
+
+####
+plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL, timeDummies=NULL, ...){
+  # This function calculates random, fixed, mundlak and within-between models for panel data.
+  # see ANDREW BELL AND KELVYN JONES (2015): Explaining Fixed Effects: Random Effects Modeling of Time-Series Cross-Sectional and Panel Data. p. 141, eq. 11 & 12.
+  #
+  # Arguments
+  # data =           The data.frame/matrix containing all relevant variables.
+  # index =          The colnames of the index columns in data. length(index)==2 is required. First: individual, second: time. E.g. c("id","year")
+  # Y =              Colname of the dependent (y) variable.
+  # timeVariantX =   Colname(s) of the indepentent variables that vary over time within each observation.
+  # timeInvariantX = Colname(s) of the indepentent variables that don't vary over time within each observation. Can be NULL.
+  # timeDummies =    Colname(s) of the time dummies. Can be NULL.
+  #
+  # Value
+  # A list with class "plm.within.between".
+  # ...[["overview"]] The overview of all models in one table.
+  # ...[["summary"]] The summaries for all models. List places are named: rand, fix, mund, wibe.
+  # ...[["model"]] The models. List places are named: rand, fix, mund, wibe.
+  # ...[["niceNames"]] This information can be used to restore the original I() colnames in the model coefficients. E.g.
+  #                    rownames(mod$summary$fix$coefficients) <- replace.values(mod$niceNames$search, mod$niceNames$replace, rownames(mod$summary$fix$coefficients))
+  
+  # Require the plm package
+  require.package(plm)
+  
+  # Error checks
+  if(!is.data.frame(data) || is.matrix(data)) stop("data must be a data.frame/matrix. The conversion to pdata.frame is done automatically within the function.")
+  if(length(Y)>1) stop("Y must be of length 1.")
+  timeNotFound <- timeDummies[!timeDummies%in%colnames(data)]
+  if(length(timeNotFound)>0) stop(paste0("Time dummies not found: ",paste0(timeNotFound,collapse=", ")))
+  
+  # Convert data if necessary
+  if(!is.data.frame(data)) data <- as.data.frame(data)
+  
+  # Define names of columns to be calculated
+  varName <- timeVariantX
+  mVarName <- paste0(varName,"_m")
+  dVarName <- paste0(varName,"_d")
+  fobidden <- colnames(data)[colnames(data)%in%c(mVarName,dVarName)]
+  if(length(fobidden)>0) stop(paste0("Data columns that are named as follows are forbidden: ", paste0(fobidden,collapse=", ") ))
+  
+  # Create columns in data, if specified as I()...
+  allVars <- c(Y, timeVariantX, timeInvariantX)
+  newVars <- allVars[!allVars%in%colnames(data)]
+  data[,newVars] <- NA
+  data <- calc.I.cols(data)
+  alwaysNA <- sapply(data[,allVars],function(x)all(is.na(x)))
+  if(any(alwaysNA)) stop(paste0("The following variables are always NA and can't be used in the model: ", paste0(names(alwaysNA[alwaysNA]),collapse=", ") ))
+  
+  # Create "mean" and "deMean" columns. Select time invariant value 
+  data <- by.add.df.cols(data, relevantColnames=varName, INDICES=data[,index[1]], FUN=function(x){
+    x[,mVarName] <- as.list(colMeans(x[,varName]))
+    return(x)
+  })
+  data[,dVarName] <- data[,varName] - data[,mVarName]
+  
+  # Reformulate the I() colnames, otherwise you will yield an error later on with formula()
+  idVarName <- dVarName[grepl("^I\\(",dVarName)]
+  imVarName <- mVarName[grepl("^I\\(",mVarName)]
+  idVarName_new <- gsub("\\(|\\)|\\-|/|\\*|\\+|\\^|,|=| ",".",idVarName)
+  imVarName_new <- gsub("\\(|\\)|\\-|/|\\*|\\+|\\^|,|=| ",".",imVarName)
+  dVarName <- replace.values(idVarName, idVarName_new, dVarName)
+  mVarName <- replace.values(imVarName, imVarName_new, mVarName)
+  colnames(data) <- replace.values(c(idVarName,imVarName), c(idVarName_new,imVarName_new), colnames(data))
+  
+  # Prepare model inputs
+  input <- list()
+  input[["fix"]] <-  list(model="within", variables=c(timeVariantX,                                    timeDummies))
+  input[["rand"]] <- list(model="random", variables=c(timeVariantX,                    timeInvariantX, timeDummies))
+  input[["mund"]] <- list(model="random", variables=c(timeVariantX,          mVarName, timeInvariantX, timeDummies))
+  input[["wibe"]] <- list(model="random", variables=c(             dVarName, mVarName, timeInvariantX, timeDummies))
+  #
+  for(i in names(input)){
+    input[[i]][["formula"]] <- formula(paste(Y,"~",paste0(input[[i]][["variables"]],collapse=" + ")))
+  }
+  # Keep only relevant columns to save RAM.
+  allVars <- unique(unlist(lapply(input,function(x)x[["variables"]])))
+  allVars <- unique(c(index, extract.I.vars(Y, keep.original=TRUE), extract.I.vars(allVars, keep.original=TRUE), timeDummies))
+  data <- pdata.frame(data[,allVars], index=index)
+  invisible(gc())
+  
+  # Calculate the models
+  mod1 <- lapply(input, function(x){
+    invisible(gc())
+    return(plm(formula=x[["formula"]], data=data, index=index, effect="individual", model=x[["model"]], ...))
+  });
+  su1 <- lapply(mod1, function(x)summary(x))
+  
+  # Calculate summaries and put together the results
+  # ... Prepare
+  allVarsFin <- c("(Intercept)", timeVariantX, mVarName, timeInvariantX, timeDummies)
+  suRes <- as.data.frame( matrix(NA_integer_, nrow=length(allVarsFin)+3, ncol=length(mod1)*2) )
+  rRows <- c("R-Squared","Adj. R-Squared","P-Value")
+  rownames(suRes) <- c(allVarsFin,rRows)
+  pCols <- (1:ncol(suRes))%%2==0
+  colnames(suRes)[!pCols] <- names(mod1)
+  colnames(suRes)[ pCols] <- paste0(substring(names(mod1),1,1),"_P")
+  
+  # ... Create the summary table
+  for(i in names(su1)){ # i <- names(su1)[1]
+    # Put all _d rows into the normal rows for simpler overview.
+    toRows <- match(replace.values(dVarName, varName, rownames(su1[[i]][["coefficients"]])),
+                    rownames(suRes) )
+    if(any(is.na(toRows))){
+      stop(paste0("After formatting the I() colnames, they do not fit to the original ones. Please adapt the original ones like this:", paste0(rownames(su1[[i]][["coefficients"]])[is.na(toRows)],collapse=", ")))
+    }
+    toCols <- which(colnames(suRes)==i)
+    suRes[rRows,toCols+1] <- unname(round(c(su1[[i]]$r.squared, su1[[i]]$fstatistic$p.value),3))
+    toCols <- toCols:(toCols+1)
+    suRes[toRows,toCols] <- su1[[i]][["coefficients"]][,c("Estimate","Pr(>|t|)")]
+  }
+  okRows <- !rownames(suRes)%in%rRows
+  suRes[okRows,pCols] <- lapply(suRes[okRows,pCols], function(x){
+    p <- character(length(x))
+    p[x<=0.1 ] <- ".";    p[x<=0.05] <- "*";    p[x<=0.01] <- "**";    p[x<=0.001] <- "***"
+    return(p)
+  })
+  # Re-establish the original I() colnames in the summary tables.
+  niceNames <- list(search=c( idVarName_new,imVarName_new),
+                    replace=c(idVarName,    imVarName))
+  rownames(suRes) <- replace.values(niceNames[["search"]], niceNames[["replace"]], rownames(suRes))
+  su1 <- lapply(su1, function(x){
+    rownames(x[["coefficients"]]) <- replace.values(niceNames[["search"]], niceNames[["replace"]], rownames(x[["coefficients"]]))
+    return(x)
+  })
+  
+  # Create final result
+  res <- list(overview=suRes, summary=su1, model=mod1, niceNames=niceNames)
+  class(res) <- "plm.within.between"
+  # Clean workspace
+  rm(data,suRes,su1,mod1);
+  invisible(gc())
+  # return
+  return(res)
+}
+print.plm.within.between <- function(x, quote=FALSE, na.print="", digits=2, ...){
+  ov <- mod[["overview"]]
+  if(!is.null(digits)){
+    ov[,(1:ncol(su))%%2==1] <- apply(ov[,(1:ncol(ov))%%2==1], 2, function(x)round(x,2))
+  }
+  print(as.matrix(ov), quote=quote, na.print=na.print, ...)
+  cat("\nThe timeVariantX_d coefficients of the 'wibe' model specification are not shown in separate rows. However, they have been calculated differently!")
 }
 ####
 predict.plm <- function(model, newdata=NULL){
