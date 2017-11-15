@@ -72,11 +72,11 @@ if(FALSE && .onHpdaPc())  {
     write(filesize1, file=pathFilesize)
     
     for(toPath1 in toPath){
-      .file.copy.readOnly(paste0(fromPath,"/func.R"), paste0(toPath1,"/func.R"), overwrite=TRUE)
-      .file.copy.readOnly(paste0(fromPath,"/Rhelp.R"), paste0(toPath1,"/Rhelp.R"), overwrite=TRUE)
+      file.copy.readOnly(paste0(fromPath,"/func.R"), paste0(toPath1,"/func.R"), overwrite=TRUE)
+      file.copy.readOnly(paste0(fromPath,"/Rhelp.R"), paste0(toPath1,"/Rhelp.R"), overwrite=TRUE)
       # SQLUtilities nur fuer ZA verfuegbar machen!
       if( grepl("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1",toPath1) ){
-        .file.copy.readOnly(paste0(fromPath,"/SqlUtilities.R"), paste0(toPath1,"/SqlUtilities.R"), overwrite=TRUE)
+        file.copy.readOnly(paste0(fromPath,"/SqlUtilities.R"), paste0(toPath1,"/SqlUtilities.R"), overwrite=TRUE)
       }
       cat("func.R and Rhelp.R copied from P to W\n")
     }
@@ -85,7 +85,7 @@ if(FALSE && .onHpdaPc())  {
   }
 }
 
-.file.copy.readOnly <- function(from, to, overwrite=TRUE){
+file.copy.readOnly <- function(from, to, overwrite=TRUE, ...){
   # Function to copy a file and set to read only on Windows.
   # Arguments see file.copy()
   
@@ -94,7 +94,7 @@ if(FALSE && .onHpdaPc())  {
     for(to1 in to) {
       to1 <- gsub("/","\\\\",to1)
       if(overwrite) system(paste0("attrib -R \"",to1,"\""), intern=FALSE)
-      file.copy(from, to1, overwrite=overwrite)
+      file.copy(from, to1, overwrite=overwrite, ...)
       system(paste0("attrib +R \"",to1,"\""), intern=FALSE)
     }
   }
@@ -106,6 +106,10 @@ if(.onHpdaPc()) {
              toPath=c("O:/Sites/TA/Transfer/hpda/R/", "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/"))
 }
 
+if(!exists("dir.exists")){
+  dir.exists <- function(x) isTRUE(file.info(x)$isdir)
+}
+
 .copyZaData <- function(){
   # This function copies za data from the network drives to the hard drive of a computer. If all files are up to date, nothing is done.
   # load.spe(), load.spb(), etc. will then access the files on the hard drive instead of the network drives.
@@ -114,8 +118,9 @@ if(.onHpdaPc()) {
   datFold <- .dataFolder()
   zamain <- "//art-settan-1000.evdad.admin.ch/ZAMAIN/ZADaten/"
   oslwParent <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/"
+  oslwCheck <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4276/alldata"
   
-  if(dir.exists(zamain) || dir.exists(oslwParent)){
+  if(dir.exists(zamain) && dir.exists(oslwCheck)){
     
     if(!dir.exists(datFold)){
       cat("Creating folder ", datFold, "\n", sep="")
@@ -158,7 +163,7 @@ if(.onHpdaPc()) {
 }
 .copyZaData()
 
-rm(.copyFuncs, .file.copy.readOnly, .copyZaData)
+rm(.copyFuncs, .copyZaData)
 
 #### GRAPHICS ####
 
@@ -225,6 +230,42 @@ linreg.plot <- function(form,data,method=c("lm","rlm"),...){
   abline(coefs[1],coefs[2],...)
   invisible(summary(reg)$coefficient)
 }
+####
+
+parcoord.sorted <- function(data, orderByCorrelation=TRUE, colorGradient=TRUE, gradientColors=c("red","green","blue"), col=NULL, ...){
+  # This function makes a parallel coordinates plot.
+  #
+  # Arguments
+  # orderByCorrelation: Logical indicating if the variables should ordered by correlation. Like this, pattern can be detected more easily.
+  #                     Variables with negativ correlation to the first column in data will be left of this variable. Those with positive correlation will be right of the first variable.
+  # colorGradient:      Logical indicating if a color gradient should be introduced.
+  # gradientColors:     Character. The colors along which the gradient should be created.
+  # col:                Character. Of length 1, or length(col)==nrow(data). Specifying the exact color for each observation.
+  
+  if(orderByCorrelation){
+    cors <- cor(data)[,1]
+    negCors <- sort( cors[cors< 0], decreasing=TRUE)
+    posCors <- sort( cors[cors>=0], decreasing=TRUE)
+    #cors <- sort(cors, decreasing=TRUE)
+    plotVars <- c(names(negCors),names(posCors))
+  } else {
+    plotVars <- colnames(data)
+  }
+  
+  if(colorGradient & !is.null(col)) stop("Either specifiy colorGradient==TRUE or col. colorGradient==TRUE and !is.null(col) does not work.")
+  
+  if(colorGradient){
+    if(length(gradientColors)==0) stop("length(gradientColors) must be greater than 0.")
+    x <- data[,cvars[1]]
+    col2 <- colorRampPalette(gradientColors) (100) [ findInterval(x, seq(min(x),max(x), length.out=100)) ] # color.gradient(data[,cvars[1]], colors)
+  } else if(!is.null(col)) {
+    if( !length(col)%in%c(1,nrow(data)) ) stop("length(col) must be equal to 1 or nrow(data).")
+    col2 <- if(length(col)==1) "black" else col
+  }
+  
+  MASS::parcoord(data[,plotVars], col=col2, ...)
+}
+
 ####
 if(FALSE){
   pairs.smooth(cor.data, main="Zusammenhang zw. SDB u. Sampling Rate AG(SO)")
@@ -727,14 +768,21 @@ printzeros <- function(x, zero.sign=".") {
   print(x, na=zero.sign)
 }
 
+# http://adv-r.had.co.nz/Functions.html#special-calls
+`%+%` <- function(a, b) paste0(a, b)
+`% %` <- function(a, b) paste (a, b)
+pc <- function(...) paste0(..., collapse=", ") # Try this: # "a" % % "b" % % pc(1:10)
+
 l <- match.fun(length)
-cn <- match.fun(colnames)
-rn <- match.fun(rownames)
-dn <- match.fun(dimnames)
+# http://adv-r.had.co.nz/Functions.html#replacement-functions
+cn <- match.fun(colnames); `cn<-` <- function(x, value){ colnames(x) <- value; return(x) }
+rn <- match.fun(rownames); `rn<-` <- function(x, value){ rownames(x) <- value; return(x) }
+dn <- match.fun(dimnames); `dn<-` <- function(x, value){ dimnames(x) <- value; return(x) }
 nc <- match.fun(ncol)
 nr <- match.fun(nrow)
 su <- function(x) sort(unique(x))
 # x <- data.frame(a=as.factor(c("b","c")),b=1:2,c=c("a","z"),stringsAsFactors=FALSE)
+
 h <- function(x, n=6) {
   
   if(is.null(dim) || is.matrix(x))(return(head(x,n)))
@@ -3288,12 +3336,12 @@ setMarkers(map, locationProperties);
   #### Skript ist fertig
   
   # Tempor?re Datei erstellen
-  write.table(text4, paste0(Sys.getenv("TMP"),"\\googlemaps_tmp.html"), col.names=FALSE, row.names=FALSE, quote=FALSE)
+  write.table(text4, paste0(tempdir(),"/googlemaps_tmp.html"), col.names=FALSE, row.names=FALSE, quote=FALSE)
   # ?ffnen
-  browseURL(paste0(Sys.getenv("TMP"),"\\googlemaps_tmp.html"))
+  browseURL(paste0(tempdir(),"/googlemaps_tmp.html"))
   
   if(!del.tmp.file){ # length(unique(labels))>1 & labels[1]!="" |
-    cat("File is stored in the folder:   ", Sys.getenv("TMP"),"\\\n", sep="")
+    cat("File is stored in the folder:   ", tempdir(),"\\\n", sep="")
     cat("                    filename:   googlemaps_tmp.html\n" )
     cat("Use\nfile.remove(paste0(Sys.getenv('TMP'),'\\\\googlemaps_tmp.html'))\nto delete the file when you don't need it anymore\n")
     
@@ -3930,7 +3978,7 @@ check.group.sd <- function(data,grouping=NULL,test=c("all","any",factor=10)[1],r
     
   } else if(matrix.output=="full")     { results <- sds==0
   } else if(matrix.output=="relevant") {
-    semi.result <- sds==0[]
+    semi.result <- sds==0
     results <- semi.result [, apply(sds,2,function(x) any(x==0) )]
     if(ncol(results)<1) results <- NA
   }
@@ -5025,38 +5073,6 @@ balanced.panel.development <- function(x,id,year,YEAR=sort(unique(year)),baseyea
   if(any(is.na(index)) & geometric) cat("Note that the geometric mean can only be calculated if all numbers are positive.\n")
   return(index)
 }
-####
-
-# x <- data[,"Region"]; index <- data[,c("ID","Region")]
-# index <- c(3,3,5,1,2); x <- c(1,1,2,3,4)
-makeTimeInvariant <- function(x, index, method=c("mostFrequent","mean","median")){
-  # This function makes a variable time invariant. E.g. if an observation has mostly value 1, but sometimes 2. The value 2 is rather a measurement error than the true value.
-  # In this case, the value 2 will be replaced by either 1 (method="mostFrequent"), 1.xxx (method="mean") or the median value (method="median").
-  #
-  # Arguments
-  # x =      The vector of values that shall be checked. If a matrix/data.frame, then the function will be applied to all columns.
-  # index =  The index, e.g. the id of each observation.
-  # metdho = The method to be applied.
-  #
-  # Value
-  # The corrected vector x.
-  
-  if(is.matrix(x)) return(apply(x,2,function(x)makeTimeInvariant(x=x,index=index,method=method))) else
-    if(is.data.frame(x)) return(as.data.frame(lapply(x,function(x)makeTimeInvariant(x=x,index=index,method=method)),stringsAsFactors=FALSE))
-  
-  method <- match.arg(method)
-  if(is.factor(x)) stop("The procedure does not work for factors. You have to convert into numeric/integer/character first.")
-  
-  index <- .paste.elements(index, sep="_a@:!;q_", errorMsg="All indices must have same length!")
-  fun <- if(method=="mostFrequent") function(x) names(table(x)[1]) else if(method=="mean") mean(x) else if(method=="median") median(x)
-  
-  res <- tapply(x, index, fun)
-  res <- res[ match(as.character(index), names(res)) ]
-  
-  if(is.integer(x)) return(as.integer(res)) else
-    if(is.numeric(x)) return(as.numeric(res)) else
-      return(res)
-}
 
 ####
 #x <- rnorm(100); selection.levels <- 0.1; method=c("<= x <", "< x <=")[1]; include.min.max=TRUE; give.names=TRUE
@@ -5333,7 +5349,7 @@ write.table <- function(x, file, ...) {
   } else {
     utils::write.table(x=1, file=file, ...) # First try to write a file. If not possible (e.g. because directory does not exist) this will return a error message.
     tryCatch({
-      folder <- paste0(Sys.getenv("TMP"), "\\R\\RFastWrite\\")
+      folder <- paste0(tempdir(),"/RFastWrite") # paste0(Sys.getenv("TMP"), "\\R\\RFastWrite\\")
       dir.create(folder, recursive=TRUE, showWarnings=FALSE)
       file.remove(list.files(folder,full.names=TRUE))
       file2 <- paste0(folder, paste0(sample(letters,4,replace=TRUE),collapse=""), ".csv" )
@@ -5390,14 +5406,14 @@ write.table.zipped <- function(x, file, ...){
   if(ending=="zip") stop("Please use the ending of the data file (e.g. csv), not zip!")
   
   # Create temporary file
-  folder <- paste0(Sys.getenv("TMP"), "/R/Rzipped")
+  folder <- paste0(tempdir(),"/Rzipped") #paste0(Sys.getenv("TMP"), "\\R\\Rzipped")
   dir.create(folder, recursive=TRUE, showWarnings=FALSE)
   tmpCSVfile <- paste0(folder, "/", filename )
   write.table(x, tmpCSVfile, ...)
   
   # Create zip file containing csv. Remove temporary folder.
   zip.nodirs(zipfile=paste0(parentdir,filenameWithoutEnding, ".zip"), files=tmpCSVfile, remove.original=TRUE, showWarnings=FALSE, invoked.internally=TRUE)
-  unlink(folder)
+  unlink(folder, recursive=TRUE, force=TRUE)
 }
 
 
@@ -5554,7 +5570,7 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=-1, ncols=-1, fast
   # Define paths
   # If is.null(folder), wird ein temporaerer Ordner im Windows-Dateisystem angelegt.
   if(is.null(folder)) {
-    folder <- paste0(Sys.getenv("TMP"), "\\R\\Rview")
+    folder <- paste0(tempdir(),"/Rview") # paste0(Sys.getenv("TMP"), "\\R\\Rview")
     dir.create(folder, recursive=TRUE, showWarnings=FALSE)
   }
   
@@ -5624,7 +5640,7 @@ view <- function(x, names=c("col","rowcol","row","no"), nrows=-1, ncols=-1, fast
 }
 
 view.folder <- function() {
-  browseURL(paste0(Sys.getenv("TMP"), "\\R\\Rview"))
+  browseURL(paste0(tempdir(),"/Rview"))# (paste0(Sys.getenv("TMP"), "\\R\\Rview"))
 }
 
 load2 <- function(file){
@@ -6184,38 +6200,68 @@ read.xlsx <- function(filename, sheet=1, header=TRUE, create=FALSE){
   wb = loadWorkbook(filename)
   return( readWorksheet(wb, sheet=sheet, header=header) )
 }
-write.xlsx <- function(file, data, sheetName=NULL, row.names=FALSE, col.names=TRUE, append=FALSE){
+
+#mat <- matrix(rep(c("\"b\"&char(10)&\"b\""),10), ncol=2); colnames(mat) <- c("test1","test2"); rownames(mat) <- 1:nrow(mat); data <- list(mat,mat); names(data) <- c("sheet1","sheet2"); 
+#file="testfile.xlsx"; sheetName=NULL; row.names=TRUE; col.names=TRUE; append=FALSE; asFormula=TRUE; wrapText=FALSE; columnWidth=100; convertColumnWith="default"
+#write.xlsx(file=file, data=data, wrapText=TRUE, columnWidth=list(50, c(100,400)), asFormula=list(c(TRUE,FALSE),FALSE), convertColumnWith="pixel")
+write.xlsx <- function(file, data, sheetName=NULL, row.names=FALSE, col.names=TRUE, append=FALSE, asFormula=FALSE, wrapText=FALSE, columnWidth=-1, convertColumnWith=c("default","pixel","no")){
   # This function writes a xls file from either a matrix/data.frame or a list conaining several matrices/data.frames.
   # It is a convenient version of writeWorksheetToFile{XLConnect}
   # Arguments
-  # file:      The file of the xls file
-  # data:      A matrix/data.frame or list containing matrices/data.frames
-  # sheetName: Optional sheet names in the Excel file. If NULL, then names Sheet1, Sheet2, etc. are given.
-  # row.names: logical indicating if rownames should be written or character giving the header for rowname colum. Single value or list.
-  # col.names: logical indicating if a header should be written. Single value or list.
+  # file:        The file of the xls file
+  # data:        A matrix/data.frame or list containing matrices/data.frames
+  # sheetName:   Optional sheet names in the Excel file. If NULL, then names Sheet1, Sheet2, etc. are given.
+  # row.names:   logical indicating if rownames should be written or character giving the header for rowname colum. Single value or list.
+  # col.names:   logical indicating if a header should be written. Single value or list.
+  # asFormula:   logical indicating if formulas should be written rather than values. Note that no "=" sign at the beginning of the cell is required.
+  # append:      logical indicating if the excel file should be appended rather than newly created
+  # wrapText:    logical indicating if the text in the cells should be wrapped (Zeilenumbruch)
+  # columnWidth: The column width that will be applied to all columns. If -1, then auto-width is applied.
+  # convertColumnWith: If no, then the standard of XLConnect is used. It is the 1/256 part of a character. "default" will convert in 1 character units. "pixel" will convert to number of pixel.
   
   require.package(XLConnect) # options ( java.parameters = "-Xmx1024m ")
   
+  convertColumnWith <- match.arg(convertColumnWith)
   if(is.matrix(data) || is.data.frame(data)) data <- list(data)
-  names(data) <- paste0("i",1:length(data))
+  if(is.null(names(data))) names(data) <- paste0("Sheet",1:length(data))
+  if(is.null(sheetName) && any(duplicated(names(data)))) stop("Each list place in data must contain a unique name. Otherwise speccify the sheetName argument.")
   
   if(!is.null(sheetName)){
     if(is.list(sheetName)) sheetName <- unlist(sheetName)
     if(length(data)!=length(sheetName)) stop("length(data) has to be equal length(sheetName)")
     if(any(duplicated(unlist(sheetName)))) stop("There must be no duplicated sheet names. Otherwise the sheets will be overwritten.")
   } else {
-    sheetName <- paste0("Sheet",1:length(data))
+    sheetName <- names(data)
   }
   
-  convertRowColNames <- function(nam, trueVal=TRUE, falseVal=FALSE, errorNam="names", allowCharacters=FALSE){
+  convertRowColNames <- function(nam, errorNam="names", expand=FALSE, allowCharacters=FALSE, checkDimFunc=NULL) { # trueVal=TRUE, falseVal=FALSE, 
     if(!is.list(nam)) nam <- as.list(nam)
     if(!allowCharacters) if(any(sapply(nam,function(x)!is.logical(x)))) stop("row.names must be logical.")
-    if(length(nam)==1) nam <- as.list(rep(nam[[1]],length(sheetName)))
-    if(length(nam)!=length(sheetName)) stop(paste0("length(",errorNam,") must be either 1 or length(data)"))
-    if(!allowCharacters) return( lapply(nam,function(x)if(x) return(trueVal) else return(falseVal) ) ) else return(nam)
+    if(length(nam)==1) nam <- lapply(sheetName, function(x)nam[[1]])
+    if(expand) nam <- expandListPlaces(nam)
+    if(length(nam)!=length(sheetName)) stop(paste0("length(",errorNam,") must be either 1 or length(data). If you want to specify for each column try e.g. list(5,10,15) or list(TRUE,FALSE,TRUE)"))
+    if(!is.null(checkDimFunc)){
+      errorFlag <- FALSE;
+      for(i in 1:length(nam)) errorFlag <- errorFlag | ( !is.null(data[[i]]) && length(nam[[i]])>1 && length(nam[[i]])!=ncol(data[[i]]) )
+      if(errorFlag) stop(paste0("if ", errorNam, " are specified separately in a list place for each file, then they must be either of length 1 or equal to ncol of data."))
+    }
+    return(nam)
   }
-  rownames=convertRowColNames(row.names, trueVal="", falseVal=NULL,  errorNam="row.names", allowCharacters=TRUE)
-  header=convertRowColNames(col.names, trueVal=TRUE, falseVal=FALSE, errorNam="col.names", allowCharacters=FALSE)
+  expandListPlaces <- function(x){
+    for(i in 1:length(x))
+      if(!is.null(data[[i]]) && length(x[[i]])==1) x[[i]] <- rep(x[[i]], ncol(data[[i]]))
+    return(x)
+  }
+  rownames <- convertRowColNames(row.names, errorNam="row.names", expand=FALSE, allowCharacters=TRUE, checkDimFunc=NULL)#, trueVal="", falseVal=NULL)
+  header <- convertRowColNames(col.names, errorNam="col.names", expand=FALSE, allowCharacters=FALSE, checkDimFunc=NULL)#, trueVal=TRUE, falseVal=FALSE)
+  asFormula <- convertRowColNames(asFormula, errorNam="asFormula", expand=TRUE, allowCharacters=FALSE, checkDimFunc=ncol)#, trueVal=TRUE, falseVal=FALSE)
+  columnWidth <- convertRowColNames(columnWidth, errorNam="columnWidth", expand=FALSE, allowCharacters=TRUE, checkDimFunc=ncol)#, trueVal="", falseVal="",  )
+  columnWidth <- lapply(columnWidth, function(x){
+    if(convertColumnWith=="default") x * 256 else
+      if(convertColumnWith=="pixel") x * 256 / 7 else
+        x
+  })
+
   
   if(substr.rev(file,1,4)==".xls") {
     warning("file must end with xlsx. The file was appended.")
@@ -6223,7 +6269,40 @@ write.xlsx <- function(file, data, sheetName=NULL, row.names=FALSE, col.names=TR
   }
   if(file.exists(file) && !append) file.remove(file)
   
-  writeWorksheetToFile(file=file, data=data, sheet=sheetName, rownames=rownames, header=col.names)
+  # Create the file and write...
+  if(!wrapText && sum(unlist(asFormula))==0 && all(unlist(columnWidth)==-1)){
+    writeWorksheetToFile(file=file, data=data, sheet=sheetName, rownames=rownames, header=col.names)
+  } else {
+    wb <- loadWorkbook(file=file, create=!append)
+    if(wrapText){
+      cs <- wb$createCellStyle()
+      cs$setWrapText(wrap=TRUE)
+    }
+    for(i in 1:length(data)){ # i <- 1
+      wb$createSheet(name=names(data)[i])
+      if(!is.null(data[[i]])){
+        
+        wb$writeWorksheet(data=data[[i]], sheet=names(data)[i], header=header[[i]], rownames=rownames[[i]])
+        addR <- as.numeric(header[[i]])
+        if(any(asFormula[[i]])) {
+          for(c1 in 1:ncol(data[[i]])) if(asFormula[[i]][c1]) for(r1 in 1:nrow(data[[i]])) wb$setCellFormula(sheet=names(data)[i], formula=data[[i]][r1,c1], row=r1+addR, col=c1)
+        }
+        
+        if(wrapText)
+          for(c1 in 1:ncol(data[[i]])) for(r1 in 1:nrow(data[[i]])) wb$setCellStyle(sheet=names(data)[i], cellstyle=cs, row=r1+addR, col=c1)
+        
+        if(any(columnWidth[[i]] != -1)){
+          if(length(unique(columnWidth[[i]]))==1) {
+            wb$setColumnWidth(sheet=names(data)[i], column=1:ncol(data[[i]]), width=columnWidth[[i]])
+          } else {
+            for(c1 in 1:ncol(data[[i]])) if(columnWidth[[i]][c1] != -1) wb$setColumnWidth(sheet=names(data)[i], column=c1, width=columnWidth[[i]][c1])
+          }
+        }
+          
+      }
+    }
+    saveWorkbook(wb)
+  }
 }
 
 
@@ -6315,7 +6394,7 @@ getFullyQualifiedFileName <- function(filename){
   } else {
     # Check if the filename is valid only together with the current wd. If so, then expand the filename.
     wd <- getwd() # Store working directory.
-    setwd(Sys.getenv("TMP")) # Set wd to tmp.
+    setwd(tempdir()) # Set wd to tmp.
     if(file.exists(filename)){  # If file exists, then it is an absolute path
       setwd(wd)
       return( filename )
@@ -6601,8 +6680,8 @@ plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL
   # ...[["overview"]] The overview of all models in one table.
   # ...[["summary"]] The summaries for all models. List places are named: rand, fix, mund, wibe.
   # ...[["model"]] The models. List places are named: rand, fix, mund, wibe.
-  # ...[["niceNames"]] This information can be used to restore the original I() colnames in the model coefficients. E.g.
-  #                    rownames(mod$summary$fix$coefficients) <- replace.values(mod$niceNames$search, mod$niceNames$replace, rownames(mod$summary$fix$coefficients))
+  # ...[["colnames"]] This information can be used to restore the original I() colnames in the model coefficients. E.g.
+  #                    rownames(mod$summary$fix$coefficients) <- replace.values(mod$colnames$adapted, mod$colnames$original, rownames(mod$summary$fix$coefficients))
   
   # Require the plm package
   require.package(plm)
@@ -6616,80 +6695,121 @@ plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL
   # Convert data if necessary
   if(!is.data.frame(data)) data <- as.data.frame(data)
   
-  # Define names of columns to be calculated
-  varName <- timeVariantX
-  mVarName <- paste0(varName,"_m")
-  dVarName <- paste0(varName,"_d")
-  fobidden <- colnames(data)[colnames(data)%in%c(mVarName,dVarName)]
-  if(length(fobidden)>0) stop(paste0("Data columns that are named as follows are forbidden: ", paste0(fobidden,collapse=", ") ))
+  # Make inner function to create the deMean data etc.
+  pre.plm.data.transformation <- function(data, timeVariantX){
+    # Define names of columns to be calculated
+    varName <- timeVariantX
+    mVarName <- paste0("m_",varName)
+    dVarName <- paste0("d_",varName)
+    fobidden <- colnames(data)[colnames(data)%in%c(mVarName,dVarName)]
+    if(length(fobidden)>0) stop(paste0("Data columns that are named as follows are forbidden: ", paste0(fobidden,collapse=", ") ))
+    
+    # Create columns in data, if specified as I()...
+    allVars <- c(Y, timeVariantX, timeInvariantX)
+    newVars <- allVars[!allVars%in%colnames(data)]
+    data[,newVars] <- NA
+    data <- calc.I.cols(data)
+    alwaysNA <- sapply(data[,allVars],function(x)all(is.na(x)))
+    if(any(alwaysNA)) stop(paste0("The following variables are always NA and can't be used in the model: ", paste0(names(alwaysNA[alwaysNA]),collapse=", ") ))
+    
+    # Create "mean" and "deMean" columns. Select time invariant value 
+    data <- by.add.df.cols(data, relevantColnames=varName, INDICES=data[,index[1]], FUN=function(x){
+      x[,mVarName] <- as.list(colMeans(x[,varName]))
+      return(x)
+    })
+    data[,dVarName] <- data[,varName] - data[,mVarName]
+    
+    # Reformulate the I() colnames, otherwise you will yield an error later on with formula()
+    idVarName <- dVarName[grepl("^d_I\\(",dVarName)]
+    imVarName <- mVarName[grepl("^m_I\\(",mVarName)]
+    idVarName_new <- gsub("\\(|\\)|\\-|/|\\*|\\+|\\^|,|=| ",".",idVarName)
+    imVarName_new <- gsub("\\(|\\)|\\-|/|\\*|\\+|\\^|,|=| ",".",imVarName)
+    niceNames <- list(original=c(idVarName,    imVarName),
+                      adapted=c( idVarName_new,imVarName_new))
+    dVarName <- replace.values(niceNames[["original"]], niceNames[["adapted"]], dVarName) #replace.values(idVarName, idVarName_new, dVarName)
+    mVarName <- replace.values(niceNames[["original"]], niceNames[["adapted"]], mVarName) #replace.values(imVarName, imVarName_new, mVarName)
+    colnames(data) <- replace.values(niceNames[["original"]], niceNames[["adapted"]], colnames(data)) #replace.values(c(idVarName,imVarName), c(idVarName_new,imVarName_new), colnames(data))
+
+    # Return
+    return(list(data=data, varName=varName, mVarName=mVarName, dVarName=dVarName, colnames=niceNames))
+                #imVarName=imVarName, idVarName=idVarName, imVarName_new=imVarName_new, idVarName_new=idVarName_new))
+  }
   
-  # Create columns in data, if specified as I()...
-  allVars <- c(Y, timeVariantX, timeInvariantX)
-  newVars <- allVars[!allVars%in%colnames(data)]
-  data[,newVars] <- NA
-  data <- calc.I.cols(data)
-  alwaysNA <- sapply(data[,allVars],function(x)all(is.na(x)))
-  if(any(alwaysNA)) stop(paste0("The following variables are always NA and can't be used in the model: ", paste0(names(alwaysNA[alwaysNA]),collapse=", ") ))
+  d <- pre.plm.data.transformation(data=data, timeVariantX=timeVariantX)
+  data <- d[["data"]]; d[["data"]] <- NULL; invisible(gc())
   
-  # Create "mean" and "deMean" columns. Select time invariant value 
-  data <- by.add.df.cols(data, relevantColnames=varName, INDICES=data[,index[1]], FUN=function(x){
-    x[,mVarName] <- as.list(colMeans(x[,varName]))
-    return(x)
-  })
-  data[,dVarName] <- data[,varName] - data[,mVarName]
-  
-  # Reformulate the I() colnames, otherwise you will yield an error later on with formula()
-  idVarName <- dVarName[grepl("^I\\(",dVarName)]
-  imVarName <- mVarName[grepl("^I\\(",mVarName)]
-  idVarName_new <- gsub("\\(|\\)|\\-|/|\\*|\\+|\\^|,|=| ",".",idVarName)
-  imVarName_new <- gsub("\\(|\\)|\\-|/|\\*|\\+|\\^|,|=| ",".",imVarName)
-  dVarName <- replace.values(idVarName, idVarName_new, dVarName)
-  mVarName <- replace.values(imVarName, imVarName_new, mVarName)
-  colnames(data) <- replace.values(c(idVarName,imVarName), c(idVarName_new,imVarName_new), colnames(data))
   
   # Prepare model inputs
   input <- list()
-  input[["fix"]] <-  list(model="within", variables=c(timeVariantX,                                    timeDummies))
-  input[["rand"]] <- list(model="random", variables=c(timeVariantX,                    timeInvariantX, timeDummies))
-  input[["mund"]] <- list(model="random", variables=c(timeVariantX,          mVarName, timeInvariantX, timeDummies))
-  input[["wibe"]] <- list(model="random", variables=c(             dVarName, mVarName, timeInvariantX, timeDummies))
+  # summaryModels will be put into the summary table ...[["summary"]] of the result. wibe* is especially for this porpuse.
+  summaryModels <- c("fix","rand","mund","wibe*")
+  input[["fix"]] <-   list(model="within", variables=c(timeVariantX,                                         timeDummies))
+  input[["rand"]] <-  list(model="random", variables=c(timeVariantX,                         timeInvariantX, timeDummies))
+  input[["mund"]] <-  list(model="random", variables=c(timeVariantX,             d$mVarName, timeInvariantX, timeDummies))
+  input[["wibe"]] <-  list(model="random", variables=c(              d$dVarName, d$mVarName, timeInvariantX, timeDummies))
+  input[["wibe*"]] <- list(model="random", variables=c(timeVariantX,             d$mVarName, timeInvariantX, timeDummies))
+  if(names(input)[length(input)]!="wibe*") stop("Last model must be within between. Otherwise the calculation won't be correct. Because before the last step all d$varName-columns are replaced with d$dVarName-columns!")
+  wibeName <- names(input)[length(input)]
   #
   for(i in names(input)){
     input[[i]][["formula"]] <- formula(paste(Y,"~",paste0(input[[i]][["variables"]],collapse=" + ")))
   }
   # Keep only relevant columns to save RAM.
   allVars <- unique(unlist(lapply(input,function(x)x[["variables"]])))
+  allVars <- unique(c(allVars,d$dVarName)) # d$dVarName auch dran heften. Wegen Ersetzung timeVariantX mit d$dVarName unten im loop der Models.
   allVars <- unique(c(index, extract.I.vars(Y, keep.original=TRUE), extract.I.vars(allVars, keep.original=TRUE), timeDummies))
   data <- pdata.frame(data[,allVars], index=index)
   invisible(gc())
   
   # Calculate the models
-  mod1 <- lapply(input, function(x){
+  mod1 <- vector("list",length(input)); names(mod1) <- names(input)
+  for(i in names(input)){
+    # In case of wibeName-model, replace the real data with the "deMean" (difference from mean) data.
+    if(i==wibeName) {
+      data[,paste0(timeVariantX,"_0r19iN4L")] <- data[,timeVariantX]
+      data[,timeVariantX] <- data[,d$dVarName]
+    }
+    # Calc model
+    tryCatch({
+      mod1[[i]] <- plm(formula=input[[i]][["formula"]], data=data, index=index, effect="individual", model=input[[i]][["model"]], ...)
+    },error=function(e){
+      print(cor.table(data[,input[[i]][["variables"]]]))
+      stop(e$message)
+    })
+    
+    # In case of wibeName-model, reverse the data replacement.
+    if(i==wibeName){
+      data[,timeVariantX] <- data[,paste0(timeVariantX,"_0r19iN4L")]
+      data <- data[,!colnames(data)%in%paste0(timeVariantX,"_0r19iN4L")]
+    }
+    # Garbage collect
     invisible(gc())
-    return(plm(formula=x[["formula"]], data=data, index=index, effect="individual", model=x[["model"]], ...))
-  });
+  }
   su1 <- lapply(mod1, function(x)summary(x))
   
   # Calculate summaries and put together the results
   # ... Prepare
-  allVarsFin <- c("(Intercept)", timeVariantX, mVarName, timeInvariantX, timeDummies)
-  suRes <- as.data.frame( matrix(NA_integer_, nrow=length(allVarsFin)+3, ncol=length(mod1)*2) )
+  allVarsFin <- c("(Intercept)", timeVariantX, d$mVarName, timeInvariantX, timeDummies)
+  suRes <- as.data.frame( matrix(NA_integer_, nrow=length(allVarsFin)+3, ncol=length(summaryModels)*2) )
   rRows <- c("R-Squared","Adj. R-Squared","P-Value")
   rownames(suRes) <- c(allVarsFin,rRows)
   pCols <- (1:ncol(suRes))%%2==0
-  colnames(suRes)[!pCols] <- names(mod1)
-  colnames(suRes)[ pCols] <- paste0(substring(names(mod1),1,1),"_P")
+  colnames(suRes)[!pCols] <- summaryModels
+  colnames(suRes)[ pCols] <- paste0(substring(summaryModels,1,1),"_P")
   
   # ... Create the summary table
-  for(i in names(su1)){ # i <- names(su1)[1]
-    # Put all _d rows into the normal rows for simpler overview.
-    toRows <- match(replace.values(dVarName, varName, rownames(su1[[i]][["coefficients"]])),
-                    rownames(suRes) )
+  for(i in summaryModels){ # i <- names(su1)[1]
+    toRows <- match(
+      # replace.values() to put all _d rows into the normal rows for simpler overview.
+      replace.values(d$dVarName, d$varName, rownames(su1[[i]][["coefficients"]])),
+      rownames(suRes) )
     if(any(is.na(toRows))){
       stop(paste0("After formatting the I() colnames, they do not fit to the original ones. Please adapt the original ones like this:", paste0(rownames(su1[[i]][["coefficients"]])[is.na(toRows)],collapse=", ")))
     }
+    # Add Rsquared an P values into the coefficients table
     toCols <- which(colnames(suRes)==i)
     suRes[rRows,toCols+1] <- unname(round(c(su1[[i]]$r.squared, su1[[i]]$fstatistic$p.value),3))
+    # Add all coefficients.
     toCols <- toCols:(toCols+1)
     suRes[toRows,toCols] <- su1[[i]][["coefficients"]][,c("Estimate","Pr(>|t|)")]
   }
@@ -6700,16 +6820,14 @@ plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL
     return(p)
   })
   # Re-establish the original I() colnames in the summary tables.
-  niceNames <- list(search=c( idVarName_new,imVarName_new),
-                    replace=c(idVarName,    imVarName))
-  rownames(suRes) <- replace.values(niceNames[["search"]], niceNames[["replace"]], rownames(suRes))
+  rownames(suRes) <- replace.values(d$colnames[["adapted"]], d$colnames[["original"]], rownames(suRes))
   su1 <- lapply(su1, function(x){
-    rownames(x[["coefficients"]]) <- replace.values(niceNames[["search"]], niceNames[["replace"]], rownames(x[["coefficients"]]))
+    rownames(x[["coefficients"]]) <- replace.values(d$colnames[["adapted"]], d$colnames[["original"]], rownames(x[["coefficients"]]))
     return(x)
   })
   
   # Create final result
-  res <- list(overview=suRes, summary=su1, model=mod1, niceNames=niceNames)
+  res <- list(overview=suRes, summary=su1, model=mod1, colnames=d$colnames, pre.plm.data.transformation.function=pre.plm.data.transformation)
   class(res) <- "plm.within.between"
   # Clean workspace
   rm(data,suRes,su1,mod1);
@@ -6720,16 +6838,16 @@ plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL
 print.plm.within.between <- function(x, quote=FALSE, na.print="", digits=2, ...){
   ov <- mod[["overview"]]
   if(!is.null(digits)){
-    ov[,(1:ncol(su))%%2==1] <- apply(ov[,(1:ncol(ov))%%2==1], 2, function(x)round(x,2))
+    ov[,(1:ncol(ov))%%2==1] <- apply(ov[,(1:ncol(ov))%%2==1], 2, function(x)round(x,2))
   }
   print(as.matrix(ov), quote=quote, na.print=na.print, ...)
-  cat("\nThe timeVariantX_d coefficients of the 'wibe' model specification are not shown in separate rows. However, they have been calculated differently!")
+  cat("\n* The timeVariantX_d coefficients of the 'wibe*' model specification are not shown in separate rows. However, they have been calculated differently!")
 }
 ####
 predict.plm <- function(model, newdata=NULL){
   
   if(is.matrix(newdata)) newdata <- as.data.frame(newdata) else if(!is.null(newdata) & !is.data.frame(newdata)) stop("newdata must be NULL, matrix or data.frame!")
-  if(is.null(mod$fitted.values)) mod$fitted.values <- mod$model[,1]-mod$residuals
+  if(is.null(model$fitted.values)) model$fitted.values <- model$model[,1]-model$residuals
   
   if(is.null(newdata)) {
     return(model$fitted.values)
@@ -6753,6 +6871,38 @@ predict.plm <- function(model, newdata=NULL){
 }
 # Predict rlm wie plm aber mit Intercept, falls vorhanden
 #predict.rlm <- predict.plm
+
+####
+# x <- data[,"Region"]; index <- data[,c("ID","Region")]
+# index <- c(3,3,5,1,2); x <- c(1,1,2,3,4)
+plm.make.variable.time.invariant <- function(x, index, method=c("mostFrequent","mean","median")){
+  # This function makes a variable time invariant. E.g. if an observation has mostly value 1, but sometimes 2. The value 2 is rather a measurement error than the true value.
+  # In this case, the value 2 will be replaced by either 1 (method="mostFrequent"), 1.xxx (method="mean") or the median value (method="median").
+  #
+  # Arguments
+  # x =      The vector of values that shall be checked. If a matrix/data.frame, then the function will be applied to all columns.
+  # index =  The index, e.g. the id of each observation.
+  # metdho = The method to be applied.
+  #
+  # Value
+  # The corrected vector x.
+  
+  if(is.matrix(x)) return(apply(x,2,function(x)plm.make.variable.time.invariant(x=x,index=index,method=method))) else
+    if(is.data.frame(x)) return(as.data.frame(lapply(x,function(x)plm.make.variable.time.invariant(x=x,index=index,method=method)),stringsAsFactors=FALSE))
+  
+  method <- match.arg(method)
+  if(is.factor(x)) stop("The procedure does not work for factors. You have to convert into numeric/integer/character first.")
+  
+  index <- .paste.elements(index, sep="_a@:!;q_", errorMsg="All indices must have same length!")
+  fun <- if(method=="mostFrequent") function(x) names(table(x)[1]) else if(method=="mean") mean(x) else if(method=="median") median(x)
+  
+  res <- tapply(x, index, fun)
+  res <- res[ match(as.character(index), names(res)) ]
+  
+  if(is.integer(x)) return(as.integer(res)) else
+    if(is.numeric(x)) return(as.numeric(res)) else
+      return(res)
+}
 
 ####
 extract.regression.p <- function (modelobject) {
