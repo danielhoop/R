@@ -36,7 +36,6 @@
 
 # -- Source locally  --
 # if(!exists("mean.weight")) tryCatch( suppressWarnings(source("//adb.intra.admin.ch/Agroscope$/Org/Sites/TA/Transfer/hpda/R/func.R")), error=function(e) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/func.R")), error=function(e) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/2/3583/Resultate/00-00-00_Zusatzdaten/R_func/func.R")), error=function(e) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R"))))
-
 #
 # -- GitHub --
 # if(!exists("mean.weight")) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")
@@ -97,7 +96,7 @@ file.copy.readOnly <- function(from, to, overwrite=TRUE, ...){
       file.copy(from, to1, overwrite=overwrite, ...)
       system(paste0("attrib +R \"",to1,"\""), intern=FALSE)
     }
-  }
+  } else warning("The function currently works only on Windows operating systems.")
 }
 
 
@@ -232,15 +231,16 @@ linreg.plot <- function(form,data,method=c("lm","rlm"),...){
 }
 ####
 
-parcoord.sorted <- function(data, orderByCorrelation=TRUE, colorGradient=TRUE, gradientColors=c("red","green","blue"), col=NULL, ...){
-  # This function makes a parallel coordinates plot.
+parcoord.sorted <- function(data, orderByCorrelation=TRUE, colorGradient=TRUE, gradientColors=c("red","green","blue"), col=NULL, alpha=0.4, ...){
+  # This function makes a parallel coordinates plot and sorts it according to the correlations between the variables.
   #
   # Arguments
-  # orderByCorrelation: Logical indicating if the variables should ordered by correlation. Like this, pattern can be detected more easily.
-  #                     Variables with negativ correlation to the first column in data will be left of this variable. Those with positive correlation will be right of the first variable.
+  # orderByCorrelation: Logical indicating if the variables should ordered by correlation. Like this, patterns can be detected more easily.
+  #                     Variables correlating negatively with the first variable (in data) will be placed left to this variable. Those with positive correlation will be right to the first variable.
   # colorGradient:      Logical indicating if a color gradient should be introduced.
   # gradientColors:     Character. The colors along which the gradient should be created.
   # col:                Character. Of length 1, or length(col)==nrow(data). Specifying the exact color for each observation.
+  # alpha:              The transparency value as in rgb(..., alpha=...)
   
   if(orderByCorrelation){
     cors <- cor(data)[,1]
@@ -262,8 +262,33 @@ parcoord.sorted <- function(data, orderByCorrelation=TRUE, colorGradient=TRUE, g
     if( !length(col)%in%c(1,nrow(data)) ) stop("length(col) must be equal to 1 or nrow(data).")
     col2 <- if(length(col)==1) "black" else col
   }
+  col2 <- rgb( t(col2rgb(col2, alpha=FALSE)/255 ), alpha=alpha)
   
   MASS::parcoord(data[,plotVars], col=col2, ...)
+}
+
+####
+radarchart.tutorial <- function() {
+  # Radar chart / spider chart / Spinnendiagramm
+  dat <- as.data.frame(matrix(sample(1:9,9), ncol=3))
+  # Data must contain max and min values in the top 2 rows.
+  radarData <- rbind(sapply(dat,range)[2:1,,drop=FALSE],
+                     dat)
+  # Line color
+  pcol <- adjustcolor(rainbow(nrow(radarData)-2), alpha=0.5)
+  # Filling collor
+  pfcol <- adjustcolor(pcol, alpha=0.2)
+  # Function
+  fmsb::radarchart(
+    radarData, title="Radarchart",
+    # Settings for lines
+    pcol=pcol, pfcol=pfcol, 
+    plwd=1, plty=1,
+    # Settings for axis
+    cglcol="grey", cglty=1, cglwd=0.8, axislabcol="black", axistype=2,
+    # Settings for points
+    vlcex=0.8, palcex=0.8 # use pty=32 to disable points.
+  )
 }
 
 ####
@@ -769,15 +794,15 @@ printzeros <- function(x, zero.sign=".") {
 }
 
 # http://adv-r.had.co.nz/Functions.html#special-calls
-`%+%` <- function(a, b) paste0(a, b)
-`% %` <- function(a, b) paste (a, b)
-pc <- function(...) paste0(..., collapse=", ") # Try this: # "a" % % "b" % % pc(1:10)
+#`%+%` <- function(a, b) paste0(a, b)
+#`% %` <- function(a, b) paste (a, b)
+#pc <- function(...) paste0(..., collapse=", ") # Try this: # "a" % % "b" % % pc(1:10)
 
 l <- match.fun(length)
 # http://adv-r.had.co.nz/Functions.html#replacement-functions
-cn <- match.fun(colnames); `cn<-` <- function(x, value){ colnames(x) <- value; return(x) }
-rn <- match.fun(rownames); `rn<-` <- function(x, value){ rownames(x) <- value; return(x) }
-dn <- match.fun(dimnames); `dn<-` <- function(x, value){ dimnames(x) <- value; return(x) }
+cn <- match.fun(colnames);# `cn<-` <- `colnames<-`
+rn <- match.fun(rownames);# `rn<-` <- `rownames<-`
+dn <- match.fun(dimnames);# `dn<-` <- `dimnames<-`
 nc <- match.fun(ncol)
 nr <- match.fun(nrow)
 su <- function(x) sort(unique(x))
@@ -802,8 +827,9 @@ h <- function(x, n=6) {
       colnames(x) <- cn1
       rownames(x) <- c("-",rn1[1:n])
       return(x)
+    } else {
+      return(head(x,n))
     }
-    return(head(x,n))
   }
 }
 
@@ -1912,7 +1938,7 @@ variance.estimate <- function(data, weights, inclusProbs, index=NULL, indexStrat
   return( sum(a*s2)^2 / sum((a*s2)^2 / (nh-1)) )
 }
 
-.calcVarStErrOrCI <- function(rawVar, w, figure, CImultiplier){
+.calcVarStErrOrCI <- function(rawVar, w, figure=c("var","SE","halfLengthCI"), CImultiplier){
   # Function to calculate variance, standard error or confidence interval on the level of the mean (not total population)
   # Arguments
   # rawVar =       the "raw" variance that should be further processed. rawVar can be calculated e.g. using sampling::varest().
@@ -1920,6 +1946,7 @@ variance.estimate <- function(data, weights, inclusProbs, index=NULL, indexStrat
   # figure =       the figure to be calculated. Either "var"=variance, "SE"=standard error, "halfLengthCI"=half length of confidence interval.
   # CImultiplier = multiplier to calculate the confidence interval (CI)
   
+  figure <- match.arg(figure)
   if(figure=="halfLengthCI") { sqrt(rawVar)  /  sum(w) * CImultiplier
   } else if(figure=="SE")    { sqrt(rawVar)  /  sum(w)
   } else if(figure=="var")   {      rawVar   /  sum(w)^2 }
@@ -1966,6 +1993,49 @@ calcXsMultiLevel <- function(dat, optVarListMultiLevel){
   
   # Collapse Xs from list to a matrix/data.frame
   return( as.matrix(do.call("cbind",Xs)) )
+}
+
+calibevE <- function (Ys, Xs, total, pikl, d, g, q = rep(1, length(d)), with = FALSE,  EPS = 1e-06) {
+  # This funciton is a clone of sampling::calibev(). Refer to the help files of that package.
+  # Only difference is, that e (the residuals of the calibration model) is returned as well.
+  
+  if (any(is.na(g))) 
+    stop("There are missing values in g")
+  stopifnot((ns <- length(g)) >= 1)
+  if (min(pikl) == 0) {
+    ss = NULL
+    warning("There are zero values in the 'pikl' matrix. The variance estimator can not be computed.\n")
+  }
+  piks = as.vector(diag(pikl))
+  if (!checkcalibration(Xs, d, total, g, EPS)$result) 
+    stop("The calibration is not possible. The calibration estimator is not computed.\n")
+  if (is.data.frame(Xs)) 
+    Xs = as.matrix(Xs)
+  if (!is.vector(Ys)) 
+    Ys = as.vector(Ys)
+  if (is.matrix(Xs)) 
+    n = nrow(Xs) else
+      n = length(Xs)
+  if (ns != length(Ys) | ns != length(piks) | ns != n | ns != 
+      length(d)) 
+    stop("The parameters have different sizes.\n")
+  w = g * d
+  wtilde = w * q
+  B = t(Xs * wtilde)
+  beta = ginv(B %*% Xs) %*% B %*% Ys
+  e = Ys - Xs %*% beta
+  if (!with) 
+    e = e * w else
+      e = e * d
+  ss = 0
+  for (k in 1:ns) {
+    ss2 = 0
+    for (l in 1:ns) ss2 = ss2 + (1 - piks[k] * piks[l]/pikl[k, 
+                                                            l]) * e[l]
+    ss = ss + e[k] * ss2
+  }
+  
+  return( list(calest = sum(w * Ys), evar = as.numeric(ss), e=e) )
 }
 
 #vars <- c("asd","efe+p", "c-1", "f*c", "a/ b", "A^B", "c,d", "a==b", "ifelse(a==b, 1, 2)")
@@ -5333,6 +5403,29 @@ replace.values <- function(search, replace, x, no.match.NA=FALSE, gsub=FALSE, fi
   return(xnew)
 }
 
+recover.distorted.string <- function(original, distorted, max.rel.dist=0.7, no.match.NA=TRUE, ...){
+  # This function compares the strings in argument "original" and "distorted".
+  # It replaces all occurences in "distorted" with matches in "orgininal" if the relative distance is smaller than "max.rel.dist".
+  # If no.match.NA==TRUE, then no matches are NA in the output vector. Otherwise no matches are the same as inputed in "distorted".
+  # ... further arguments to pass into stringist::stringdistmatrix
+  
+  require.package(stringdist)
+  distmat <- stringdist::stringdistmatrix(original, distorted)
+  corrected <- if(no.match.NA) rep(NA_character_, length(distorted)) else distorted
+  
+  for(i in 1:ncol(distmat)){ # i <- 1
+    d1 <- distmat[,i] / nchar(distorted[i])
+    whichMin <- which(d1==min(d1) & d1<1)
+    if(length(whichMin)>0){
+      if(length(whichMin)>1) {
+        warning(paste0("Several matches found for ", distorted[i], ": ", paste0(original[whichMin],collapse=", "), ". First was taken."), immediate.=TRUE)
+        whichMin <- whichMin[1]
+      }
+      corrected[i] <- original[whichMin]
+    }
+  }
+  return(corrected)
+}
 
 #### CSV/RData/XLS - READ/WRITE & MANIPULATION ####
 
@@ -5718,6 +5811,10 @@ load.spa <- function() {
 }
 # Alias erzeugen
 load.spe <- function(...) load.spa(...)
+load.spe.pers <- function(){
+  pfad <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4276/Personen/SpE_Personen_Indexiert.RData"
+  return(load2(pfad))
+}
 
 # Fuer SpB
 load.spb <- function() {
@@ -5726,6 +5823,10 @@ load.spb <- function() {
   pfad <- if(file.exists(pfad1)) pfad1 else pfad2
   cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
   cat(pfad, "\n", sep="")
+  return(load2(pfad))
+}
+load.spb.pers <- function(){
+  pfad <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4275/Personen/SpB_Personen_Indexiert.RData"
   return(load2(pfad))
 }
 
@@ -5761,6 +5862,8 @@ load.cost <- function(years=2014, ignore_P_cols=TRUE, non_aggr=FALSE, filter_exp
   #                     this could look like expression(cost[ cost[,"BZ"]=="Milch" ,c("ID","Jahr","BZ","ArbeitNAT","Maschinen")])
   # parentDir     = The parent directory in which the folders of all years are located.
   
+  if(!is.null(filter_expression) && !is.expression(filter_expression)) stop("filter_expression must be an expression! Use e.g. expression(cost[c(1,2),])")
+  
   # Automatically choose the newest folder for the directories of Daniel.
   if(is.null(parentDir)){
     parentDir <- "C:/Tools/ME/ME_data_out/data_final"
@@ -5794,8 +5897,22 @@ load.cost <- function(years=2014, ignore_P_cols=TRUE, non_aggr=FALSE, filter_exp
     }
     # Berechnungen mit propoertionaler Zuteilung entfernen.
     if(ignore_P_cols) cost <- cost[,substr.rev(colnames(cost),1,2)!="_P"]
-    # Falls gewuenscht, Saatgutproduzenten ausschliessen
-    cost1 <- rbind(cost1,cost)
+    tryCatch({
+      cost1 <- rbind(cost1,cost)
+    },
+    error=function(e){
+      cn1 <- colnames(cost1)
+      cn2 <- colnames(cost)
+      cn1_noMatch <- cn1[!cn1%in%cn2]
+      cn2_noMatch <- cn2[!cn2%in%cn1]
+      cat("*** FEHLER! ***\n")
+      cat("Die Spalten der verschiedenen Jahre passen nicht zueinander!\n")
+      if(length(cn1_noMatch)>0) cat("Spalten in ",years[i-1],", die in ",years[i  ]," nicht vorkommen: ", paste0(cn1_noMatch,collapse=", "),"\n",sep="")
+      if(length(cn2_noMatch)>0) cat("Spalten in ",years[i  ],", die in ",years[i-1]," nicht vorkommen: ", paste0(cn2_noMatch,collapse=", "),"\n",sep="")
+      cat("*** ******* ***\n")
+      stop(e)
+    })
+    
     rm(cost); invisible(gc())
   }
   return(cost1);
@@ -6191,14 +6308,14 @@ write.cb <- function(data, names=c("col","rowcol","row","no"), ...){
     write.table(data, 'clipboard', sep='\t', quote=FALSE, col.names=FALSE, row.names=FALSE, ...)
   }
 }
-read.xlsx <- function(filename, sheet=1, header=TRUE, create=FALSE){
+read.xlsx <- function(filename, sheet=1, ...){
   # This function reads xls and xlsx files into a data.frame. Package XLConnect must be installed.
   # Sheet can also be given as character. If all sheets of the workbook should be imported, rather use loadWorkbook{XLConnect}
   # http://www.r-bloggers.com/read-excel-files-from-r/
   require.package(XLConnect) # #options ( java.parameters = "-Xmx1024m ")
   
-  wb = loadWorkbook(filename)
-  return( readWorksheet(wb, sheet=sheet, header=header) )
+  wb = loadWorkbook(filename, create=FALSE)
+  return( readWorksheet(wb, sheet=sheet, ...) )
 }
 
 #mat <- matrix(rep(c("\"b\"&char(10)&\"b\""),10), ncol=2); colnames(mat) <- c("test1","test2"); rownames(mat) <- 1:nrow(mat); data <- list(mat,mat); names(data) <- c("sheet1","sheet2"); 
@@ -6235,11 +6352,11 @@ write.xlsx <- function(file, data, sheetName=NULL, row.names=FALSE, col.names=TR
   }
   
   convertRowColNames <- function(nam, errorNam="names", expand=FALSE, allowCharacters=FALSE, checkDimFunc=NULL) { # trueVal=TRUE, falseVal=FALSE, 
-    if(!is.list(nam)) nam <- as.list(nam)
+    if(!is.list(nam)) nam <- list(nam)
     if(!allowCharacters) if(any(sapply(nam,function(x)!is.logical(x)))) stop("row.names must be logical.")
     if(length(nam)==1) nam <- lapply(sheetName, function(x)nam[[1]])
     if(expand) nam <- expandListPlaces(nam)
-    if(length(nam)!=length(sheetName)) stop(paste0("length(",errorNam,") must be either 1 or length(data). If you want to specify for each column try e.g. list(5,10,15) or list(TRUE,FALSE,TRUE)"))
+    if(length(nam)!=length(sheetName)) stop(paste0("length(",errorNam,") must be either 1 or length(data). If you want to specify for each column try different things like c(2,10,15) or list(c(5,10,15)) or list(TRUE,FALSE,TRUE)"))
     if(!is.null(checkDimFunc)){
       errorFlag <- FALSE;
       for(i in 1:length(nam)) errorFlag <- errorFlag | ( !is.null(data[[i]]) && length(nam[[i]])>1 && length(nam[[i]])!=ncol(data[[i]]) )
@@ -6682,6 +6799,11 @@ plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL
   # ...[["model"]] The models. List places are named: rand, fix, mund, wibe.
   # ...[["colnames"]] This information can be used to restore the original I() colnames in the model coefficients. E.g.
   #                    rownames(mod$summary$fix$coefficients) <- replace.values(mod$colnames$adapted, mod$colnames$original, rownames(mod$summary$fix$coefficients))
+  #
+  # For Hausman-Taylor Check also
+  # Source: http://www.econ.uiuc.edu/~econ472/panel.R.txt
+  # Tutorial (not useful): http://www.econ.uiuc.edu/~econ472/tutorial13.html [at bottom of page]
+  # And plm::pht()
   
   # Require the plm package
   require.package(plm)
@@ -6694,6 +6816,19 @@ plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL
   
   # Convert data if necessary
   if(!is.data.frame(data)) data <- as.data.frame(data)
+  
+  # Check if more than 1 year was given for all IDs
+  indexNotAvail <- index[!index%in%colnames(data)]
+  if(length(indexNotAvail)>0)
+    stop(paste0("Some index columns are not available in the data: ", paste0(indexNotAvail,collapse=", ")))
+  tabId <- table(data[,index[1]]) # The first index must be the id of the individuum
+  if(all(tabId==1)) stop("For all individuums only 1 observation was given. This is not a panel.")
+  
+  # Check for duplicated entries
+  checkVars <- c(timeVariantX, timeInvariantX, timeDummies)
+  duplVars <- unique(checkVars[duplicated(checkVars)])
+  if(length(duplVars)>0) stop(paste0("There must be no duplicated variables in timeVariantX, timeInvariantX or timeDummies.\n",paste0(duplVars,collapse=", ")))
+  
   
   # Make inner function to create the deMean data etc.
   pre.plm.data.transformation <- function(data, timeVariantX){
@@ -6709,7 +6844,7 @@ plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL
     newVars <- allVars[!allVars%in%colnames(data)]
     data[,newVars] <- NA
     data <- calc.I.cols(data)
-    alwaysNA <- sapply(data[,allVars],function(x)all(is.na(x)))
+    alwaysNA <- sapply(data[,allVars,drop=FALSE],function(x)all(is.na(x)))
     if(any(alwaysNA)) stop(paste0("The following variables are always NA and can't be used in the model: ", paste0(names(alwaysNA[alwaysNA]),collapse=", ") ))
     
     # Create "mean" and "deMean" columns. Select time invariant value 
@@ -6729,7 +6864,15 @@ plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL
     dVarName <- replace.values(niceNames[["original"]], niceNames[["adapted"]], dVarName) #replace.values(idVarName, idVarName_new, dVarName)
     mVarName <- replace.values(niceNames[["original"]], niceNames[["adapted"]], mVarName) #replace.values(imVarName, imVarName_new, mVarName)
     colnames(data) <- replace.values(niceNames[["original"]], niceNames[["adapted"]], colnames(data)) #replace.values(c(idVarName,imVarName), c(idVarName_new,imVarName_new), colnames(data))
-
+    
+    # Pruefen, ob gewisse Variablen sehr wenig aendern. Falls ja, dann Warnung ausgeben.
+    notVaryingVars <- sapply(data[,dVarName,drop=FALSE], function(x)length(which(x!=0)))
+    notVaryingVars <- names(notVaryingVars)[ notVaryingVars/nrow(data) < 0.05 ]
+    if(length(notVaryingVars)>0) {
+      notVaryingVars <- replace.values(niceNames[["adapted"]], niceNames[["original"]], notVaryingVars)
+      notVaryingVars <- sub("^d_","",notVaryingVars)
+      warning(paste0("Some variables hardly differ within observations. You should reconsider defining them as timeVariantX variables. timeInvariantX would be more appropriate:\n",paste0(notVaryingVars,collapse=", ")))
+    }
     # Return
     return(list(data=data, varName=varName, mVarName=mVarName, dVarName=dVarName, colnames=niceNames))
                 #imVarName=imVarName, idVarName=idVarName, imVarName_new=imVarName_new, idVarName_new=idVarName_new))
@@ -6748,6 +6891,7 @@ plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL
   input[["mund"]] <-  list(model="random", variables=c(timeVariantX,             d$mVarName, timeInvariantX, timeDummies))
   input[["wibe"]] <-  list(model="random", variables=c(              d$dVarName, d$mVarName, timeInvariantX, timeDummies))
   input[["wibe*"]] <- list(model="random", variables=c(timeVariantX,             d$mVarName, timeInvariantX, timeDummies))
+  # Info: Die Variablennamen im Datensatz werden fuer wibe* nicht mehr umbenannt, weil dies zu falschen Koeffizienten fuehrt!!!
   if(names(input)[length(input)]!="wibe*") stop("Last model must be within between. Otherwise the calculation won't be correct. Because before the last step all d$varName-columns are replaced with d$dVarName-columns!")
   wibeName <- names(input)[length(input)]
   #
@@ -6756,16 +6900,28 @@ plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL
   }
   # Keep only relevant columns to save RAM.
   allVars <- unique(unlist(lapply(input,function(x)x[["variables"]])))
-  allVars <- unique(c(allVars,d$dVarName)) # d$dVarName auch dran heften. Wegen Ersetzung timeVariantX mit d$dVarName unten im loop der Models.
+  # d$dVarName auch dran heften. Wegen Ersetzung timeVariantX mit d$dVarName unten im loop der Models.
+  allVars <- unique(c(allVars, if(FALSE) d$dVarName))
+  # I() Variablen extrahieren.
   allVars <- unique(c(index, extract.I.vars(Y, keep.original=TRUE), extract.I.vars(allVars, keep.original=TRUE), timeDummies))
+  # Kontrolle, ob es NA-Werte gibt.
+  isna <- sapply(data[,allVars], function(x)any(!is.finite(x)))
+  isna <- names(isna[isna])
+  if(length(isna)>0)
+    stop(paste0("Some variables contain NA/NaN/Inf values. This is not allowed. See list below.\n",paste0(isna,collapse=", ")))
+  # Make pdata.frame
   data <- pdata.frame(data[,allVars], index=index)
   invisible(gc())
+  if(ncol(data)!=length(allVars) || colnames(data)!=c(allVars)){
+    stop(paste0("Some variables where automatically dropped from pdata.frame because they don't show any variance. Something seems wrong with your data!\n",
+                "Kicked variables are:\n", paste0(allVars[!allVars%in%colnames(data)],collapse=", ")))
+  }
   
   # Calculate the models
   mod1 <- vector("list",length(input)); names(mod1) <- names(input)
   for(i in names(input)){
     # In case of wibeName-model, replace the real data with the "deMean" (difference from mean) data.
-    if(i==wibeName) {
+    if(FALSE && i==wibeName) {
       data[,paste0(timeVariantX,"_0r19iN4L")] <- data[,timeVariantX]
       data[,timeVariantX] <- data[,d$dVarName]
     }
@@ -6774,11 +6930,12 @@ plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL
       mod1[[i]] <- plm(formula=input[[i]][["formula"]], data=data, index=index, effect="individual", model=input[[i]][["model"]], ...)
     },error=function(e){
       print(cor.table(data[,input[[i]][["variables"]]]))
+      browser()
       stop(e$message)
     })
     
     # In case of wibeName-model, reverse the data replacement.
-    if(i==wibeName){
+    if(FALSE && i==wibeName){
       data[,timeVariantX] <- data[,paste0(timeVariantX,"_0r19iN4L")]
       data <- data[,!colnames(data)%in%paste0(timeVariantX,"_0r19iN4L")]
     }
@@ -6835,10 +6992,11 @@ plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL
   # return
   return(res)
 }
-print.plm.within.between <- function(x, quote=FALSE, na.print="", digits=2, ...){
-  ov <- mod[["overview"]]
+print.plm.within.between <- function(x, quote=FALSE, na.print="", digits=2, signif=FALSE, ...){
+  ov <- x[["overview"]]
   if(!is.null(digits)){
-    ov[,(1:ncol(ov))%%2==1] <- apply(ov[,(1:ncol(ov))%%2==1], 2, function(x)round(x,2))
+    roundFunc <- if(signif) match.fun("signif") else match.fun("round")
+    ov[,(1:ncol(ov))%%2==1] <- apply(ov[,(1:ncol(ov))%%2==1], 2, function(x)roundFunc(x,2))
   }
   print(as.matrix(ov), quote=quote, na.print=na.print, ...)
   cat("\n* The timeVariantX_d coefficients of the 'wibe*' model specification are not shown in separate rows. However, they have been calculated differently!")
@@ -6875,7 +7033,7 @@ predict.plm <- function(model, newdata=NULL){
 ####
 # x <- data[,"Region"]; index <- data[,c("ID","Region")]
 # index <- c(3,3,5,1,2); x <- c(1,1,2,3,4)
-plm.make.variable.time.invariant <- function(x, index, method=c("mostFrequent","mean","median")){
+make.variable.time.invariant <- function(x, index, method=c("mostFrequent","mean","median")){
   # This function makes a variable time invariant. E.g. if an observation has mostly value 1, but sometimes 2. The value 2 is rather a measurement error than the true value.
   # In this case, the value 2 will be replaced by either 1 (method="mostFrequent"), 1.xxx (method="mean") or the median value (method="median").
   #
@@ -6887,8 +7045,8 @@ plm.make.variable.time.invariant <- function(x, index, method=c("mostFrequent","
   # Value
   # The corrected vector x.
   
-  if(is.matrix(x)) return(apply(x,2,function(x)plm.make.variable.time.invariant(x=x,index=index,method=method))) else
-    if(is.data.frame(x)) return(as.data.frame(lapply(x,function(x)plm.make.variable.time.invariant(x=x,index=index,method=method)),stringsAsFactors=FALSE))
+  if(is.matrix(x)) return(apply(x,2,function(x)make.variable.time.invariant(x=x,index=index,method=method))) else
+    if(is.data.frame(x)) return(as.data.frame(lapply(x,function(x)make.variable.time.invariant(x=x,index=index,method=method)),stringsAsFactors=FALSE))
   
   method <- match.arg(method)
   if(is.factor(x)) stop("The procedure does not work for factors. You have to convert into numeric/integer/character first.")
