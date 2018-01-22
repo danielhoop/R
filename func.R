@@ -60,6 +60,26 @@ if(FALSE && .onHpdaPc())  {
 }
 
 #### Automatisches Kopieren auf Laufwerke ####
+
+file.copy.readOnly <- function(from, to, overwrite=TRUE, ...){
+  # Function to copy a file and set to read only on Windows.
+  # Arguments see file.copy()
+  
+  onWindows <- grepl("window",Sys.info()['sysname'], ignore.case=TRUE)
+  if(onWindows){
+    for(to1 in to) {
+      to1 <- gsub("/","\\\\",to1)
+      if(overwrite) system(paste0("attrib -R \"",to1,"\""), intern=FALSE)
+      file.copy(from, to1, overwrite=overwrite, ...)
+      system(paste0("attrib +R \"",to1,"\""), intern=FALSE)
+    }
+  } else warning("The function currently works only on Windows operating systems.")
+}
+
+if(!exists("dir.exists")){
+  dir.exists <- function(x) isTRUE(file.info(x)$isdir)
+}
+
 # Nicht auf anderen Computern (falls Script-Ausfuehrung ueber Laufwerk W:)
 .copyFuncs <- function(fromPath, toPath){
   
@@ -82,32 +102,6 @@ if(FALSE && .onHpdaPc())  {
   } else {
     cat("func.R did not change. Files not copied from P to W\n")
   }
-}
-
-file.copy.readOnly <- function(from, to, overwrite=TRUE, ...){
-  # Function to copy a file and set to read only on Windows.
-  # Arguments see file.copy()
-  
-  winPath <- grepl("window",Sys.info()['sysname'], ignore.case=TRUE)
-  if(winPath){
-    for(to1 in to) {
-      to1 <- gsub("/","\\\\",to1)
-      if(overwrite) system(paste0("attrib -R \"",to1,"\""), intern=FALSE)
-      file.copy(from, to1, overwrite=overwrite, ...)
-      system(paste0("attrib +R \"",to1,"\""), intern=FALSE)
-    }
-  } else warning("The function currently works only on Windows operating systems.")
-}
-
-
-if(.onHpdaPc()) {
-  if(file.exists("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/R/func/func.R"))
-  .copyFuncs(fromPath="//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/R/func/",
-             toPath=c("O:/Sites/TA/Transfer/hpda/R/", "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/"))
-}
-
-if(!exists("dir.exists")){
-  dir.exists <- function(x) isTRUE(file.info(x)$isdir)
 }
 
 .copyZaData <- function(){
@@ -161,9 +155,17 @@ if(!exists("dir.exists")){
     
   }
 }
+
+## Copying func & data here ##
+if( .onHpdaPc() && file.exists("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/R/func/func.R") ) {
+  .copyFuncs(fromPath="//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/R/func/",
+             toPath=c("O:/Sites/TA/Transfer/hpda/R/", "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/"))
+}
 .copyZaData()
 
+## Removing functions that are not used. ##
 rm(.copyFuncs, .copyZaData)
+
 
 #### GRAPHICS ####
 
@@ -646,7 +648,7 @@ slash <- function(reverse=FALSE){
 }
 
 winSlashes <- function(x){
-  if(!grepl("windows",Sys.info()["sysname"],ignore.case=TRUE))
+  if(!grepl("window",Sys.info()["sysname"],ignore.case=TRUE))
     return(x)
   
   x <- gsub("/","\\\\",x)
@@ -5624,13 +5626,13 @@ read.table2 <- function(file, header=TRUE, sep=";", fileEncoding=""){
 # write.table(1:(1e7+351981), file=file, col.names=FALSE, row.names=FALSE); system.time( print(c1ount.lines(file)) ); file.remove(file)
 count.lines <- function(file) {
   # count lines of file.
-  if(Sys.info()["sysname"]=="Windows"){
+  if( grepl("window",Sys.info()["sysname"],ignore.case=TRUE) ){
     file <- gsub("/","\\\\",file) # Replace all forward-slashes with backward-slashes
     file <- gsub("(\\\\){2,10}","\\\\",file) # Replace all multiple slashes with unique slashes.
     str <- paste0(system(paste0("find /c /v \"\" \"",file,"\" "), intern=TRUE), collapse="") # Looks for "nonblank" lines but actually also "blank" lines contain "\n" and are therefore counted.
     str <- unlist(strsplit(str, ":"))
     return(as.numeric(str[length(str)]))
-  } else if(tolower(Sys.info()["sysname"])=="linux"){
+  } else if( grepl("linux",Sys.info()["sysname"],ignore.case=TRUE) ){
     file <- gsub("\\\\","/",file) # Replace all backward-slashes with forward-slashes
     file <- gsub("(/){2,10}","/",file) # Replace all multiple slashes with unique slashes.
     str <- paste0(system(paste0("wc -l \"",file,"\""), intern=TRUE), collapse="")
@@ -8534,331 +8536,6 @@ qqplot.multiple <- function(data,variables,plotrows=5,mar=c(2.1,2.1,2.1,2.1),win
 
 
 #### DELETE FUNCTIONS ####
-
-if(FALSE) mean.weight_DELETE <- function(data, weights=NULL, index=NULL, calc.sum=FALSE, digits=NULL, na.rm=TRUE, edit.I.colnames=TRUE, del.I.help.columns=FALSE, I.help.columns=NULL){
-  # This function calculates the weighted mean of all variables in a possibly indexed data.frame or matrix.
-  
-  # Arguments
-  # data = data of which the weighted means should be calculated. Can be data.frame, matrix or vector
-  #        If any colname of data contains an expression like I(Var_A/Var_B), then the the "weighted mean of the ratio" is calculated.
-  #        This is done by building a model.matrix() of the result matrix.
-  #        Use function extract.I.vars() to add all variables to your data frame that are used in the formula
-  # weights = weights for the weighted mean calculation
-  # index = index in the same structure as used in tapply(). Can be a vector or list of vectors.
-  # calc.sum = Should sum(data*weights) should be calculated, rather than weighted means?
-  # digits = digits for rounding the results
-  # na.rm = na action
-  # edit.I.colnames = Should the colnames containing expressions with I() be edited, such that I() won't be there anymore? TRUE/FALSE
-  
-  # Wenn innerhalb eines Indexes mehrere Indexe als Listen abgelegt sind, wird die Berechnung fuer alle Indexe gemacht.
-  #if(is.list(index)){
-  #  if(any(sapply(index,function(x)is.list(x)))){
-  #    return(do.call("rbind", lapply(index, function(x)mean.weight(data=data, weights=weights, index=x, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))))
-  #  }
-  #}
-  if(!is.list(index)) index <- list(index)
-  
-  # Im Falle, dass !is.null(dim(data)) folgt eine rekursive Funktionsdefinition!
-  if(!is.null(dim(data))) {
-    # Wenn !is.null(dim(data))
-    # & es keinen oder nur einen Index gibt:
-    if(is.null(index) || length(index)==1) {
-      if(is.matrix(data)) {
-        if(nrow(data)==0) stop("nrow of data is 0.")
-        result <- apply(data, 2, function(x)mean.weight(data=x, weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))
-      } else if(is.data.frame(data)) {
-        if(nrow(data)==0) stop("nrow of data is 0.")
-        result <- sapply(data, function(x)mean.weight(data=x, weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns))
-      }
-      # Wieder zu Marix machen, falls es ein Vektor ist
-      if(is.null(dim(result))) result <- t(as.matrix(result))
-      #if(nrow(result)==1) rownames(result) <- NULL
-      # Wieder die alten Colnames vergeben
-      colnames(result) <- colnames(data)
-      
-      # Falls eine Expression mit I() in einem der colnames ist, werden diese Kennzahlen neu berechnet.
-      # Konkret wird statt "weighted mean of ratio" das "ratio of weighted means" berechnet.
-      cn.res <- colnames(result) # cn.res.orig
-      icols <- substr(cn.res,1,2)=="I("
-      if(any(icols)){
-        if(!is.null(digits)) stop("When rounding (digts!=NULL) and using I() columns, the results might not be accurate")
-        # Wert der I() columns berechnen
-        result <- calc.I.cols(result, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns)
-      }
-      
-      # Resultat ausgeben.
-      if(nrow(result)==1) rownames(result) <- NULL
-      return(result)
-      
-      
-      # Wenn !is.null(dim(data))
-      # & 2 Indexe eingegeben wurden:
-    } else if(length(index)==2) {
-      # res1 <- mean.weight(data=data[,1], weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm)
-      
-      # Hier keine Fallunterscheidung zwischen matrix und data.frame einfuegen, sonst funktioniert es nicht!!
-      res.prov <- apply(data, 2, function(x) mean.weight(data=x, weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm) )
-      if(class(res.prov)!="matrix") res.prov <- t(as.matrix(res.prov))
-      
-      res.list <- list()
-      su.index1 <- sort(unique(index[[1]]))
-      su.index2 <- sort(unique(index[[2]]))
-      for(i in 1:ncol(res.prov)){
-        res.list[[i]] <- matrix(res.prov[,i],nrow=length(su.index1), ncol=length(su.index2))
-        dimnames(res.list[[i]]) <- list(su.index1, su.index2)
-      }
-      names(res.list) <- colnames(data)
-      
-      # Falls eine Expression mit I() in einem der colnames ist, werden diese Kennzahlen neu berechnet.
-      # Konkret wird statt "weighted mean of ratio" das "ratio of weighted means" berechnet.
-      cn.res <- names(res.list)
-      icols <- grepl("I\\(", cn.res)
-      if(any(icols)){
-        if(!is.null(digits)) stop("When rounding (digts!=NULL) and using I() columns, the results might not be accurate")
-        #if(any(cn.res%in%c("_","."))) stop("When using I() colnames _ and . are not allowed.")
-        res.list <- calc.I.cols(res.list, edit.I.colnames=edit.I.colnames, del.I.help.columns=del.I.help.columns, I.help.columns=I.help.columns)
-      }
-      return(res.list)
-      
-    } else if(length(index)>2) {
-      stop("more than 2 indexes not possible if data is a matrix/data.frame. Please enter data as vector.")
-    }
-  }
-  
-  
-  # Tatsaechliche mean.weight() Funktion.
-  # Falls es keine numerische Variable ist (weil z.B. ein durchmischter data.frame eingegeben wird),
-  # wird daraus eine 0 gemacht, damit die Funktion trotzdem funktioniert.
-  if(! (is.numeric(data)||is.logical(data)) ) data <- rep(0, length(data))
-  
-  if(is.null(weights)) weights <- rep(1,length(data))
-  
-  # Falls kein index gegeben wurde, einfache Berechnung (mit weighted.mean)
-  if( is.null(index) | is.null(index[[1]]) ){
-    if(calc.sum){
-      result <- sum( data * weights ,na.rm=na.rm )
-    } else {
-      result <- weighted.mean(data,weights, na.rm=na.rm)
-    }
-    
-    # Sonst muss mit index und tapply() gerechnet werden.
-  } else {
-    index <- lapply(index, function(x)if(length(x)==1) return(rep(x,length(weights))) else return(x))
-    length.index <- sapply(index,function(x)length(x))
-    if(any(length.index!=length.index[1])) stop("All vectors in the index have to have the same length!")
-    #print(length(weights)); print(length.index)
-    if(!all(length(weights)==length.index)) stop("length(weights)!=length(index)")
-    
-    # NA Werte in weights uebertragen. Muss so sein, nicht mit na.rm innerhalb der Funktionen, da sonst data und weights evtl. nicht korrespondieren!!
-    dataweights <- data*weights
-    weights[is.na(dataweights)] <- NA
-    
-    if(calc.sum){
-      # Resultat = Summe ( Werte * Gewichte )
-      result <-  tapply(dataweights,index,  sum,na.rm=na.rm)
-    } else {
-      # Resultat = Summe ( Werte * Gewichte )                             / Summe( Gewichte )
-      result <-  tapply(dataweights,index,  sum,na.rm=na.rm) / tapply(weights,index,  sum,na.rm=na.rm)
-    }
-    
-  }
-  
-  # Falls gewuenscht, runden, dann Ergebnis ausgeben.
-  if(!is.null(digits)) result <- round(result, digits)
-  return(result)
-}
-
-# data=dat; sig.level=0.05; qq=FALSE; window=FALSE
-if(FALSE) normalize_OLD_DELETE <- function(data, sig.level=0.05, qq=FALSE, window=FALSE, ...) {
-  if(!any(c(is.matrix(data), is.data.frame(data)))) stop("Data must be a matrix or data.frame.")
-  if(any(  c(data[!is.na(data[]==Inf)]==Inf, data[!is.na(data[]==-Inf)]==-Inf)  ))  stop("Infinite numbers are not allowed")
-  
-  data <- as.data.frame(data)
-  lillie.test <- function (x)         # lillie.test{nortest} modified. Now it also works with data containing always the same number.
-  {
-    DNAME <- deparse(substitute(x))
-    x <- sort(x[complete.cases(x)])
-    n <- length(x)
-    if (n > 4) {                                                   # change from original here
-      
-      p <- pnorm((x - mean(x))/sd(x))
-      Dplus <- max(seq(1:n)/n - p)
-      Dminus <- max(p - (seq(1:n) - 1)/n)
-      K <- max(Dplus, Dminus)
-      if (n <= 100) {
-        Kd <- K
-        nd <- n
-      }  else {
-        Kd <- K * ((n/100)^0.49)
-        nd <- 100
-      }
-      pvalue <- exp(-7.01256 * Kd^2 * (nd + 2.78019) + 2.99587 *
-                      Kd * sqrt(nd + 2.78019) - 0.122119 + 0.974598/sqrt(nd) +
-                      1.67997/nd)
-      if (!is.na(pvalue)) {                                        # change from original here
-        if (pvalue > 0.1) {
-          KK <- (sqrt(n) - 0.01 + 0.85/sqrt(n)) * K
-          if (KK <= 0.302) {
-            pvalue <- 1
-          }    else if (KK <= 0.5) {
-            pvalue <- 2.76773 - 19.828315 * KK + 80.709644 *
-              KK^2 - 138.55152 * KK^3 + 81.218052 * KK^4
-          }    else if (KK <= 0.9) {
-            pvalue <- -4.901232 + 40.662806 * KK - 97.490286 *
-              KK^2 + 94.029866 * KK^3 - 32.355711 * KK^4
-          }    else if (KK <= 1.31) {
-            pvalue <- 6.198765 - 19.558097 * KK + 23.186922 *
-              KK^2 - 12.234627 * KK^3 + 2.423045 * KK^4
-          }    else {
-            pvalue <- 0
-          }
-        }
-      } else {pvalue <- 0}                                          # change from original here
-    } else {pvalue <- 0                                             # change from original here
-    K <- 0                                                  # change from original here
-    D <- 0}                                                 # change from original here
-    RVAL <- list(statistic = c(D = K), p.value = pvalue, method = "Lilliefors (Kolmogorov-Smirnov) normality test",
-                 data.name = DNAME)
-    class(RVAL) <- "htest"
-    return(RVAL)
-  }
-  
-  minsize <- apply(data,2,function(x)length(x[!is.na(x)])>4) # lillie.test needs sample of size 4
-  minsize <- names(minsize[minsize[]==TRUE])
-  too.small <- apply(data,2,function(x)length(x[!is.na(x)])<=4)
-  too.small <- names(too.small[too.small[]==TRUE])
-  if (length(too.small)==0) too.small <- NULL
-  data.orig <- data
-  data <- data[,minsize,drop=FALSE]
-  
-  # 0 ok without operation
-  # 1 ok with ^(-2)
-  # 2 ok with ^(-1)
-  # 3 ok with ^(-0.5)
-  # 4 ok with log()
-  # 5 ok with ^(0.5)
-  # 6 ok with ^(2)
-  # 7 ok with exp()
-  
-  if(qq) qqplot.multiple(data,colnames(data),window=window,mt="orig")#,...)
-  a0.p <- apply(data,2,function(x)lillie.test(x)$p.value)
-  a0 <- a0.p >= sig.level
-  a0.ok <- names(a0)[a0]; if(length(a0.ok)==0) a0.ok <- NULL
-  a0.next <- names(a0)[!a0]
-  # Einschub: alle Werte positiv machen, zusaetzlich wurde ganz unten fuer data[,a0.ok] data.orig[,a0.ok] eingefuegt
-  mins <- apply(data,2,function(x) if (min(x,na.rm=TRUE)<0) -min(x,na.rm=TRUE) else 0)
-  min.matrix <- t(matrix( rep(mins,nrow(data)), ncol=nrow(data) ))
-  data <- data + min.matrix
-  # Ende Einschub
-  data.new <- data[,a0.next,drop=FALSE]^(-2)
-  data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
-  if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(-2)")#,...)
-  
-  
-  if(ncol(data.new)>0){
-    a1.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
-    a1 <- a1.p >= sig.level
-    a1.ok <- names(a1)[a1]; if(length(a1.ok)==0) a1.ok <- NULL
-    a1.next <- names(a1)[!a1]
-    data.new <- data[,a1.next,drop=FALSE]^(-1)
-    data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
-    if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(-1)")#,...)
-  } else {a1.ok <- NULL}
-  
-  if(ncol(data.new)>0){
-    a2.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
-    a2 <- a2.p >= sig.level
-    a2.ok <- names(a2)[a2]; if(length(a2.ok)==0) a2.ok <- NULL
-    a2.next <- names(a2)[!a2]
-    data.new <- data[,a2.next,drop=FALSE]^(-0.5)
-    data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
-    if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(-0.5)")#,...)
-  } else {a2.ok <- NULL}
-  
-  if(ncol(data.new)>0){
-    a3.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
-    a3 <- a3.p >= sig.level
-    a3.ok <- names(a3)[a3]; if(length(a3.ok)==0) a3.ok <- NULL
-    a3.next <- names(a3)[!a3]
-    data.new <- log(data[,a3.next,drop=FALSE])
-    data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
-    if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="log()")#,...)
-  } else {a3.ok <- NULL}
-  
-  if(ncol(data.new)>0){
-    a4.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
-    a4 <- a4.p >= sig.level
-    a4.ok <- names(a4)[a4]; if(length(a4.ok)==0) a4.ok <- NULL
-    a4.next <- names(a4)[!a4]
-    data.new <- data[,a4.next,drop=FALSE]^(0.5)
-    data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
-    if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(0.5)")#,...)
-  } else {a4.ok <- NULL}
-  
-  if(ncol(data.new)>0){
-    a5.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
-    a5 <- a5.p >= sig.level
-    a5.ok <- names(a5)[a5]; if(length(a5.ok)==0) a5.ok <- NULL
-    a5.next <- names(a5)[!a5]
-    data.new <- data[,a5.next,drop=F]^(2)
-    data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
-    if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="^(2)")#,...)
-  } else {a5.ok <- NULL}
-  
-  if(ncol(data.new)>0){
-    a6.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
-    a6 <- a6.p >= sig.level
-    a6.ok <- names(a6)[a6]; if(length(a6.ok)==0) a6.ok <- NULL
-    a6.next <- names(a6)[!a6]
-    data.new <- exp(data[,a6.next,drop=FALSE])
-    data.new[data.new==Inf] <- NA; data.new[data.new==-Inf] <- NA
-    if(qq) qqplot.multiple(data.new,colnames(data.new),window=window,mt="exp()")#,...)
-  } else {a6.ok <- NULL}
-  
-  if(ncol(data.new)>0){
-    a7.p <- apply(data.new,2,function(x)lillie.test(x)$p.value)
-    a7 <- a7.p >= sig.level
-    a7.ok <- names(a7)[a7]; if(length(a7.ok)==0) a7.ok <- NULL
-    a7.next <- names(a7)[!a7]
-  } else {a7.ok <- NULL; a7.next <- NULL}
-  
-  ok.data <- c(a0.ok, a1.ok, a2.ok, a3.ok, a4.ok, a5.ok, a6.ok, a7.ok)
-  data.new <- matrix(NA, ncol=length(ok.data), nrow=nrow(data))
-  data.orig <- as.matrix(data.orig)
-  data.new <- as.matrix(data.new)
-  colnames(data.new) <- ok.data
-  if (length(a0.ok)>0) data.new[,a0.ok] <- data.orig[,a0.ok] # if (length(a0.ok)>0) data.new[,a0.ok] <- data[,a0.ok]  # so war's vorher.
-  if (length(a1.ok)>0) data.new[,a1.ok] <- data[,a1.ok]^(-2)
-  if (length(a2.ok)>0) data.new[,a2.ok] <- data[,a2.ok]^(-1)
-  if (length(a3.ok)>0) data.new[,a3.ok] <- data[,a3.ok]^(-0.5)
-  if (length(a4.ok)>0) data.new[,a4.ok] <- log(data[,a4.ok])
-  if (length(a5.ok)>0) data.new[,a5.ok] <- data[,a5.ok]^(0.5)
-  if (length(a6.ok)>0) data.new[,a6.ok] <- data[,a6.ok]^(2)
-  if (length(a7.ok)>0) data.new[,a7.ok] <- exp(data[,a7.ok])
-  
-  toImproveMessage <- ""
-  toImproveP <- toImprove <- NULL
-  if (length(a7.next)>0 | length(too.small)>0) {
-    # Check if a transformation is at least better than the original. Although the significance value was not achieved.
-    toImproveP <- cbind(a0.p[a7.next], a1.p[a7.next], a2.p[a7.next], a3.p[a7.next], a4.p[a7.next], a5.p[a7.next], a6.p[a7.next], a7.p[a7.next])
-    colnames(toImproveP) <- c("original","x^(-2)","x^(-1)","x^(-0.5)","log(x)","x^(0.5)","x^(2)","exp(x)")
-    if(any( apply(toImproveP,1,function(x)any(x>x[1]))  )) {
-      toImprove <- apply(toImproveP,1,function(x) x > x[1] )
-      if(ncol(toImprove)==1) toImprove <- t(toImprove)
-      colnames(toImprove) <- colnames(toImproveP)
-      toImproveMessage <- "Some variables can be improved by using other transformations. See $to.improve in result."
-    }
-    # Make the new data set.
-    data.mixed <- data.new
-    if (length(a7.next)>0)   data.mixed <- cbind(data.mixed, data.orig[,a7.next,drop=FALSE])
-    if (length(too.small)>0) data.mixed <- cbind(data.mixed, data.orig[,too.small,drop=FALSE])
-    data.mixed <- data.mixed[,colnames(data.orig),drop=FALSE]
-  }
-  if(qq) qqplot.multiple(data.mixed,colnames(data.mixed),window=window,mt="mixed")
-  explanation <- "normal: data was already normally distributed, reciprocal.square: ^(-2) was needed to normalize, reciprocal: ^(-1) ..., reciprocal.square.root: ^(-0.5) ..., log: log() ..., square.root: ^0.5 ..., square: ^2 ..., exp: exp() ..."
-  result <- list(normalized.data=data.new, mixed.normalized.data=data.mixed, normal=a0.ok, reciprocal.square=a1.ok, reciprocal=a2.ok, reciprocal.square.root=a3.ok, log=a4.ok, square.root=a5.ok, square=a6.ok, exp=a7.ok, never.normal=a7.next, not.enough.observations.for.analysis=too.small, to.improve.p.val=toImproveP, to.improve=toImprove, explanation=explanation, to.improve.message=toImproveMessage)
-  return(result)
-}
 
 
 #### Anzeige, dass Funktionen geladen wurden ####
