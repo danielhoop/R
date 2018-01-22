@@ -88,7 +88,7 @@ file.copy.readOnly <- function(from, to, overwrite=TRUE, ...){
   # Function to copy a file and set to read only on Windows.
   # Arguments see file.copy()
   
-  winPath <- grepl("window",Sys.info()['sysname'],ignore.case=TRUE)
+  winPath <- grepl("window",Sys.info()['sysname'], ignore.case=TRUE)
   if(winPath){
     for(to1 in to) {
       to1 <- gsub("/","\\\\",to1)
@@ -101,6 +101,7 @@ file.copy.readOnly <- function(from, to, overwrite=TRUE, ...){
 
 
 if(.onHpdaPc()) {
+  if(file.exists("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/R/func/func.R"))
   .copyFuncs(fromPath="//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/R/func/",
              toPath=c("O:/Sites/TA/Transfer/hpda/R/", "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/"))
 }
@@ -643,6 +644,17 @@ slash <- function(reverse=FALSE){
   }
   write.table(txt,'clipboard',quote=FALSE,col.names=FALSE,row.names=FALSE,eol=""); cat("Converted string is in clipboard. Use Ctrl+V:\n",txt,"\n",sep="")
 }
+
+winSlashes <- function(x){
+  if(!grepl("windows",Sys.info()["sysname"],ignore.case=TRUE))
+    return(x)
+  
+  x <- gsub("/","\\\\",x)
+  if(substr.rev(x,1,1)=="\\")
+    x <- substr(x, 1, nchar(x)-1)
+  return(x)
+}
+
 
 # a=1, b="A,B", d=c(1,1)
 arg <- function(){
@@ -5436,8 +5448,8 @@ write.table <- function(x, file, ...) {
   # This function writes tables much faster if they should be written onto network drives.
   # If a network drive is detected and the file will be larger than approx. 300kb, it first creates a temporary file on the local hard drive.
   # Then it moves the file from local to network drive.
-  create.new <- substr( getFullyQualifiedFileName(file) ,1,1)%in%c("/","\\") && object.size(x)>1400000
-  if(!create.new){
+  
+  if( ! .isNecessaryToUseTmpDir(x, file) ){
     utils::write.table(x=x, file=file, ...)
   } else {
     utils::write.table(x=1, file=file, ...) # First try to write a file. If not possible (e.g. because directory does not exist) this will return a error message.
@@ -5472,7 +5484,18 @@ if(FALSE){
   })
 }
 
-# wr1ite.table.zipped(x, file)
+
+# Function is e.g. necessary for write.table.zipped & write.table (fast version)
+.isNecessaryToUseTmpDir <- function(x, file, sizeThreshold=1400000) {
+  # Gives the answer to the question if it is necessary to write x to a temporary dir and move it afterwards.
+  # Arguments
+  # x             = The object to be written to disk. E.g. a matrix or data.frame.
+  # file          = The file to which the object should be written.
+  # sizeThreshold = The threshold of the object.size(x) in bits. If the object is greater than that amount & file is on network drive, temp dir will be used first.
+  
+  return( substr( getFullyQualifiedFileName(file) ,1,1)%in%c("/","\\") && object.size(x)>sizeThreshold )
+}
+
 write.table.zipped <- function(x, file, ...){
   # This file creates a zip file that contains a csv file.
   # zip files created like this can
@@ -5499,14 +5522,19 @@ write.table.zipped <- function(x, file, ...){
   if(ending=="zip") stop("Please use the ending of the data file (e.g. csv), not zip!")
   
   # Create temporary file
-  folder <- paste0(tempdir(),"/Rzipped") #paste0(Sys.getenv("TMP"), "\\R\\Rzipped")
-  dir.create(folder, recursive=TRUE, showWarnings=FALSE)
+  if(.isNecessaryToUseTmpDir(x,file)){
+    folder <- paste0(tempdir(), "/Rzipped")
+    dir.create(folder, recursive=TRUE, showWarnings=FALSE)
+  } else {
+    folder <- parentdir
+  }
+  
   tmpCSVfile <- paste0(folder, "/", filename )
   write.table(x, tmpCSVfile, ...)
   
   # Create zip file containing csv. Remove temporary folder.
   zip.nodirs(zipfile=paste0(parentdir,filenameWithoutEnding, ".zip"), files=tmpCSVfile, remove.original=TRUE, showWarnings=FALSE, invoked.internally=TRUE)
-  unlink(folder, recursive=TRUE, force=TRUE)
+  unlink(folder)
 }
 
 
@@ -6431,7 +6459,6 @@ list.nodirs <- function(path = ".", ...){
 }
 
 #zipfile <- "C:/Users/U80823148/_/ME/ME_data_out/data_final/2014/allcosts_info.zip"
-#files <- c("C:/Users/U80823148/_/ME/ME_data_out/data_final/2013/allcosts_info - Kopie.csv", "C:/Users/U80823148/_/ME/ME_data_out/data_final/2014/allcosts_info - Kopie.csv")
 #remove.original=TRUE; showWarnings=TRUE
 #z1ip.nodirs(zipfile, files, remove.original=TRUE, showWarnings=FALSE)
 zip.nodirs <- function(zipfile, files, remove.original=FALSE, showWarnings=TRUE, invoked.internally=FALSE, ...){
@@ -6439,7 +6466,7 @@ zip.nodirs <- function(zipfile, files, remove.original=FALSE, showWarnings=TRUE,
   # Arguments
   # zipfile         = The zipfile containing all compressed files.
   # files           = All files to be packed into the zip file.
-  # remove.original = Should original files be removed after they were packed into the zip file?
+  # remove.original = Should original files be removed after they were packed into the zip file? If there was an error while zipping, the original files will not be removed.
   # showWarnings    = Should warnings be showed if the zipfile already exists?
   
   # Check if zipfile already exists.
@@ -6452,7 +6479,7 @@ zip.nodirs <- function(zipfile, files, remove.original=FALSE, showWarnings=TRUE,
   }
   
   # Assure fully qualified filenames.
-  zipfile <- getFullyQualifiedFileName(zipfile)
+  zipfile <- winSlashes(getFullyQualifiedFileName(zipfile))
   files <- getFullyQualifiedFileName(files)
   
   # Save original working directory.
@@ -6533,9 +6560,12 @@ getFullyQualifiedFileName <- function(filename){
 
 splitFileNameIntoParts <- function(filename){
   # This funciton splits a filename into the directory, filename and extension.
-  # It returns character vector c(dir=..., file=..., extension=...)
+  # It returns data.frame(dir=..., file=..., extension=...)
   
-  if(length(filename)>1) return( as.data.frame(do.call("rbind", lapply(filename, splitFileNameIntoParts),stringsAsFactors=FALSE)) )
+  if(length(filename)>1) return( as.data.frame(do.call("rbind", lapply(filename, splitFileNameIntoParts)), stringsAsFactors=FALSE) )
+  
+  # Get the parent directory.
+  dir <- dirname(filename)
   
   # Grasp filename and extension
   fileName1 <- basename(filename)
@@ -6547,13 +6577,15 @@ splitFileNameIntoParts <- function(filename){
     fileName <- fileName1
     extension <- ""
   }
-  
-  # Get the parent directory.
-  dir <- dirname(filename)
+  # Grasp filename and extension. ALTERNATIVE. This is not as reliable. Does not work for filenames that start with a dot. Like ".hiddenLinuxFile"
+  #filename <- basename(filename) # Without directory
+  #file <- tools::file_path_sans_ext(filename)
+  #extension <- tools::file_ext(filename)
   
   # Return result
   return(data.frame(dir=dir, file=fileName, extension=extension, stringsAsFactors=FALSE))
 }
+
 
 makeBackupOfFile <- function(file, backupSubFolder="backup", timeAccuracy=c("s","m","h","d"), removeOriginal=FALSE){
   # This function makes a copy of a file in the backupSubFolder. The copy is appended with the date and time of the last changed file info.
