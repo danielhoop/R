@@ -33,11 +33,12 @@
 # Other (translate coding and decrypt IDs)
 # transl.reg, transl.typ, transl.ths, transl.lbf, transl.mm, transl.spb.330col.340row, transl.spb.320row, transl.ref.210row, transl.EB.MM
 # id.entschluesseln (decrypt IDs of Referenzbetriebe)
-# rekid.zaid (key between REK_ID[LINK] & ZA_ID[AGIS] )
+# rekid.zaid (key between REK_ID[LINK] & ZA_ID[AGIS])
 #
 # -- Source locally  --
 # if(!exists("mean.weight")) source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/func.R")
-# if(!exists("mean.weight")) tryCatch( suppressWarnings(source("//adb.intra.admin.ch/Agroscope$/Org/Sites/TA/Transfer/hpda/R/func.R")), error=function(e) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/func.R")), error=function(e) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/2/3583/Resultate/00-00-00_Zusatzdaten/R_func/func.R")), error=function(e) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R"))))
+# if(!exists("mean.weight")) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/func.R")), error=function(e) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R"))
+# if(!exists("mean.weight")) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/func.R")), error=function(e) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/2/3583/Resultate/00-00-00_Zusatzdaten/R_func/func.R")), error=function(e) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")))
 #
 # -- GitHub --
 # if(!exists("mean.weight")) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")
@@ -170,13 +171,11 @@ x[code] <- gsub(replCode[i,"s"], replCode[i,"r"], x[code])
 x <- x[!code | (code & x!="")]# & !startsWith(x,"#"))]
 for(i in 1:nrow(replAll))
 x <- gsub(replAll[i,"s"], replAll[i,"r"], x)
-#x <- paste0(x,collapse="\n")
-#x <- gsub("}\n}","}}",x,fixed=TRUE)
-#x <- gsub("}\n}","}}",x,fixed=TRUE)
 write.table(x,fileOut,col.names=FALSE,row.names=FALSE,quote=FALSE)
 return(TRUE)
 }
 #x <- c("\\*\\*\\* Tutorial \\*\\*\\*","asdf","*x*x* Tutorial *x*x*", "adsf", "asdfwaef")
+#x <- c("a","b",gsub("x","","DxONT_COMPRESS_SOURCE_STARxT"), gsub("x","","DxONT_COMPRESS_SOURCE_STARxT"), "c", "d", gsub("x","","DxONT_COMPRESS_SOURCE_ENxD"), gsub("x","","DxONT_COMPRESS_SOURCE_ENxD"))
 .isFunctionDescription <- function(x) {
 # This function tests if "#"-Commented lines in a function follow directly to the function description signature.
 # If so, then these lines are marked as function description comments. A logical vector is returned.
@@ -188,7 +187,10 @@ isTutorial[max(which(isTutorial)):length(isTutorial)]=TRUE
 if(length(x)>200&&sum(isTutorial)/length(x)>0.1)
 warning (paste0("More than 10% of the code was classified as tutorial. Please check the source file for multiple occurences of : ",tutorialString) )
 }
-isCom <- grepl("(<\\-|=) *function\\(",x) | isTutorial
+# dcs <- gsub("x","","DxONT_COMPRESS_SOURCE_STARxT")
+# dce <- gsub("x","","DxONT_COMPRESS_SOURCE_ENxD")
+#   for(i in 2:length(x)) # i <- 4
+isCom <- grepl("(<\\-|=) *function\\(",x) | isTutorial #| isDc
 hasHash <- grepl(" *#", x)
 for (i in 2:length(x)) { # i <- 3
 isCom[i]=isCom[i]||
@@ -206,11 +208,11 @@ filesize0=scan(pathFilesize,quiet=TRUE)
 filesize1 <- sum( file.info(c(paste0(origPath, c("/func.R","/SqlUtilities.R","/GbUtilities.R")),
 paste0(vokoPath,c("/other_func_Vollk.R"))))$size )
 if(filesize0!=filesize1){
-compressFiles <- c("/func.R","/GbUtilities.R","/SqlUtilities.R")
+compressFiles <- c("/func.R","/GbUtilities.R")
 .compressSource(paste0(origPath,compressFiles),paste0(compressedPath,compressFiles))
-file.copy(paste0(origPath,c("/Rhelp.R")), compressedPath, overwrite=TRUE)
+file.copy(paste0(origPath,c("/Rhelp.R", "/SqlUtilities.R")), compressedPath, overwrite=TRUE)
 .copyFuncs(fromPath=compressedPath,
-toPath=c("O:/Sites/TA/Transfer/hpda/R/", "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/", "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/2/3583/Resultate/00-00-00_Zusatzdaten/R_func/"))
+toPath=c("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/", "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/2/3583/Resultate/00-00-00_Zusatzdaten/R_func/"))
 .copyFuncs(fromPath=vokoPath,
 toPath=c("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/2/3583/Resultate/00-00-00_Zusatzdaten/R_func/"))
 write(filesize1,file=pathFilesize)
@@ -219,6 +221,7 @@ cat("func.R did not change. Files not copied from P to W\n")
 }
 }
 .copyZaData()
+unitTestBool_982h3fls=FALSE
 rm(origPath,compressedPath,vokoPath,.copyFuncs,.copyZaData,.compressSource,.isFunctionDescription)
 show.pch <- function(show=1:255,mfrow=c(5,5),mar=c(4,1,1,3)){
 # Show what the pch numbers mean (in a graph).
@@ -992,6 +995,8 @@ func=match.arg(func)
 aligned=match.arg(aligned)
 integrate.dimnames=match.arg(integrate.dimnames)
 li=list(...)
+if(length(li)==1&&is.list(li[[1]])&&!is.data.frame(li[[1]]))
+li=li[[1]]
 li=lapply(li,function(x){
 if(is.null(x))x=fill
 if(is.null(dim(x))) {return(t(as.matrix(x)))} else return(x)
@@ -1440,7 +1445,11 @@ result=apply(data,2,function(x)mean.weight(data=x,weights=weights,index=index,fi
 if(nrow(data)==0) stop("nrow of data is 0.")
 result=as.matrix(as.data.frame(lapply(data,function(x)mean.weight(data=x,weights=weights,index=index,fixed.index=FALSE,index.of.result=index.of.result,index.sep=index.sep,calc.sum=calc.sum,digits=digits,na.rm=na.rm,edit.I.colnames=edit.I.colnames,del.I.help.columns=del.I.help.columns,I.help.columns=I.help.columns)),stringsAsFactors=FALSE))
 }
-if(is.null(dim(result)))result=t(as.matrix(result))
+if(is.null(dim(result))){
+result=t(as.matrix(result))
+if(!isNullIndex&&length(index)==1&&length(unique(index[[1]]))==1)
+rownames(result)=index[[1]][1]
+}
 colnames(result)=colnames(data)
 # Konkret wird statt "weighted mean of ratio" das "ratio of weighted means" berechnet.
 cn.res=colnames(result)
@@ -1513,14 +1522,14 @@ return(result)
 #data=spa[filt_all,unique_form]; weights=spa[filt_all,"Gewicht"]; inclusProbs=spa[filt_all,"pik_w0"]; index=x[["vector"]][filt_all]; fixedIndex=TRUE; indexOfFixedResult=indexOfFixedResult; indexStrata=rep(1,sum(filt_all)); method="ht"; figure="halfLengthCI"; CIprob=0.975; na.rm=TRUE; edit.I.colnames=TRUE; CImultiplier=NULL; relativeToMean=TRUE
 #filt=spa[,"JAHR"]==2016; data=spa[filt,c("P430_0100_94000","P430_0100_94000")]; weights=spa[filt,"Gewicht"]; inclusProbs=spa[filt,"pik_w0"]; index=spa[filt,"ZATYP"]; fixedIndex=TRUE; indexOfFixedResult=c(11,12,21); indexStrata=rep(1,sum(filt)); method="ht"; figure="halfLengthCI"; CIprob=0.975; na.rm=TRUE; edit.I.colnames=TRUE; CImultiplier=NULL; relativeToMean=TRUE
 #filt=spa[,"JAHR"]==2016; variance.estimate(data=spa[filt,c("P430_0100_94000")], weights=spa[filt,"Gewicht"], inclusProbs=spa[filt,"pik_w0"], index=NULL, method="ht", figure="halfLengthCI", CIprob=0.975, na.rm=TRUE, edit.I.colnames=TRUE, CImultiplier=NULL, relativeToMean=TRUE) #spa[filt,"ZATYP"], fixedIndex=TRUE, indexOfFixedResult=c(11,12,21), indexStrata=rep(1,sum(filt)),
-variance.estimate <- function(data, weights, inclusProbs, index=NULL, indexStrata=NULL, fixedIndex=FALSE, indexOfFixedResult=NULL, indexSep="_",
-method=c("ht","calib"), figure=c("var","SE","halfLengthCI"), relativeToMean=FALSE, CIprob=NULL, CImultiplier=NULL, DFestimator=c("simple","satterwaithe"), Xs=NULL, na.rm=TRUE,
+variance.estimate_OLD <- function(data, weights, inclusProbs, index=NULL, indexStrata=NULL, fixedIndex=FALSE, indexOfFixedResult=NULL, indexSep="_",
+method=c("ht","calib"), figure=c("var","SE","halfLengthCI"), relativeToMean=FALSE, CIprob=NULL, CImultiplier=NULL, DFestimator=c("simple","satterthwaite"), Xs=NULL, na.rm=TRUE,
 edit.I.colnames=FALSE){
 # index =         the vector that contains the index for the aggregation level to be estimated. E.g. something like "region". If NULL, the calculation is done for the whole data.frame.
 #                 in this case you could specify: index=region, fixedIndex=TRUE, indexOfFixedResult=c("1","2","3"). Or if you want to display all permutations of region and type, also if they don't occur in the sample.
 # method =        "ht" for Horvith-Thompson method using VE.HT.Total.NHT{samplingVarEst}. "calib" for the calibration method using varest{sampling}
 # relativeToMean= if TRUE, then the calculated variance/SE/CI will be divided by the weighted mean. Use colnames like "I(a/b)" for ratio of mean figures. See also function mean.weight().
-# DFestimator =   the estimator to calculate the degrees of freedom if is.null(CImultiplier). CImultiplier is calculated from CIprob with assumed t-distribution. "simple" will use  df=n-(number of strata). "satterwaithe" will use the Satterwaithe approximation
+# DFestimator =   the estimator to calculate the degrees of freedom if is.null(CImultiplier). CImultiplier is calculated from CIprob with assumed t-distribution. "simple" will use  df=n-(number of strata). "satterthwaite" will use the satterthwaite approximation
 # edit.I.colnames=if TRUE, then colnames like "I(a/b)" will be edited as "a/b" for the result. This is in accordance to the mean.weight() function.
 figure=match.arg(figure)
 method=match.arg(method)
@@ -1579,7 +1588,7 @@ var1=sapply(data,function(Ys){
 filt <- if(na.rm) which(levelBin[,i1] & !is.na(Ys)) else which(levelBin[,i1])
 if(length(filt)<2)return(NA_integer_)
 rawVar <- .varestSampling( Ys=Ys[filt], Xs=if(method=="calib") Xs[filt,,drop=FALSE] else NULL, pik=inclusProbs[filt], w=weights[filt] )
-if(calcCImultiplierFlag && DFestimator=="satterwaithe")
+if(calcCImultiplierFlag && DFestimator=="satterthwaite")
 CImultiplier=.estStudentTmultiplier(prob=CIprob,indStr=indexStrata[filt],y=Ys[filt],w=weights[filt],simple=FALSE,na.rm=na.rm)
 return(.calcVarStErrOrCI(rawVar=rawVar,w=weights[filt],figure=figure,CImultiplier=CImultiplier))
 })
@@ -1635,20 +1644,20 @@ var=sum((1-pik)*(e/pik-A)^2)/(1-sum(a^2))
 return(var)
 }
 .estStudentTmultiplier <- function(prob, indStr, y=NULL, w=NULL, simple=TRUE, na.rm=FALSE){
-# This function calculates the student t multiplier for a given probability. The degrees of freedom are calculated by simple method or Satterwaithe approximation.
+# This function calculates the student t multiplier for a given probability. The degrees of freedom are calculated by simple method or satterthwaite approximation.
 # Arguments
 # prob =   probability
 # indStr = an index defining the strata
 # y =      variable of interest. Needed if !simple.
 # w =      weights. Needed if !simple.
-# simple = simple calculation or more sophisticated calculation using the Satterwaithe approximation?
+# simple = simple calculation or more sophisticated calculation using the satterthwaite approximation?
 
 df <- if(simple) length(indStr) - length(unique(indStr)) else .estSatterDf(y=y, w=w, indStr=indStr, na.rm=na.rm)
 #cat("df=",df, ", ", sep="")
 return(qt(prob,max(1,df)))
 }
 .estSatterDf <- function(y, w, indStr, na.rm=FALSE){
-# This function calculates the Satterwaithe approximation of degrees of freedom.
+# This function calculates the satterthwaite approximation of degrees of freedom.
 # Arguments
 # y =      variable of interest
 # w =      weights
@@ -1665,12 +1674,12 @@ Nh=Nh[!is.na(s2)]
 nh=nh[!is.na(s2)]
 a=a[!is.na(s2)]
 s2=s2[!is.na(s2)]
-warning("There are strata with only 1 non-NA observation. In this case the Satterwaithe approximation of degrees of freedom is impossible because var(Ys)==NA. Because na.rm==TRUE, these strata were dropped in order to estimate of the degrees of freedom.")
+warning("There are strata with only 1 non-NA observation. In this case the satterthwaite approximation of degrees of freedom is impossible because var(Ys)==NA. Because na.rm==TRUE, these strata were dropped in order to estimate of the degrees of freedom.")
 } else {
-stop("There are strata with only 1 observation. In this case the Satterwaithe approximation of degrees of freedom is impossible.")
+stop("There are strata with only 1 non-NA observation. In this case the satterthwaite approximation of degrees of freedom is impossible. If you specify na.rm==TRUE, then these stata will be ignored.")
 }
 }
-if(sum(a)==0) stop("If all(Nh==nh), in other words, If all(weights==1), then the Satterwaithe approximation does not work.")
+if(sum(a)==0) stop("If all(Nh==nh), in other words, If all(weights==1), then the satterthwaite approximation does not work.")
 return(sum(a*s2)^2/sum((a*s2)^2/(nh-1)))
 }
 .calcVarStErrOrCI <- function(rawVar, w, figure=c("var","SE","halfLengthCI"), CImultiplier){
@@ -1685,6 +1694,19 @@ figure=match.arg(figure)
 if(figure=="halfLengthCI") { sqrt(rawVar)  /  sum(w) * CImultiplier
 } else if(figure=="SE")    { sqrt(rawVar)  /  sum(w)
 } else if(figure=="var")   {      rawVar   /  sum(w)^2 }
+}
+.calcVarStErrOrCI_NEW <- function(rawVar, w, figure=c("var","SE","halfLengthCI"), CImultiplier){
+# Function to calculate variance, standard error or confidence interval on the level of the mean (not total population)
+# Arguments
+# rawVar =       the "raw" variance that should be further processed. rawVar can be calculated e.g. using sampling::varest().
+# w =            vector of weights
+# figure =       the figure to be calculated. Either "var"=variance, "SE"=standard error, "halfLengthCI"=half length of confidence interval.
+# CImultiplier = multiplier to calculate the confidence interval (CI)
+
+figure=match.arg(figure)
+if(figure=="halfLengthCI") { sqrt(rawVar) * CImultiplier
+} else if(figure=="SE")    { sqrt(rawVar)
+} else if(figure=="var")   {      rawVar }
 }
 calcXsMultiLevel <- function(dat, optVarListMultiLevel){
 # This function calculates the Xs matrix that is needed for the calib{sampling} function if different variables should be calibrated for different aggregation levels.
@@ -2546,23 +2568,61 @@ deriv.value(expr,at=3,times=2)
 expr <- "x+x^2+x^3"
 deriv.value(expr,at=10,times=2)
 }
-approx.own <- function(x,y,xout) {
-if(length(xout)>1)return(sapply(xout,function(xout1)approx.own(x,y,xout1)))
-if(all(is.na(x))||all(is.na(y)))return(rep(NA,length(xout)))
+# x <- c(100,101,102,103); y <- c(0,1,11,20); xout <- c(99, 104); etrapolate <- TRUE; extrapolMethod <- c("lastPoint","linRegr")[1]
+approx.own <- function(x, y, xout, extrapolate=FALSE, extrapolMethod=c("lastPoint","linRegr")) {
+#if(length(xout)>1)
+#  return(sapply(xout,function(xout1)approx.own(x,y,xout1)))
+extrapolMethod=match.arg(extrapolMethod)
+if(length(x)!=length(y))
+stop("length(x) must be equal to length(y).")
 isnaxy=is.na(x)|is.na(y)
 if(any(isnaxy)){
+if(all(isnaxy))
+return(rep(NA,length(xout)))
 x=x[!isnaxy]
 y=y[!isnaxy]
 }
-if(length(x)==1){
+if(any(duplicated(x)))
+stop("There must be no duplicated values in x.")
+if(length(x)==1)
 return(y)
-} else if(all(xout<x)) {
-return(y[which.min(x)])
-} else if(all(xout>x)) {
-return(y[which.max(x)])
-} else {
-return(approx(x=x,y=y,xout=xout)$y)
+naF <- function(x){
+x[is.na(x)]=FALSE
+return(x)
 }
+res=approx(x=x,y=y,xout=xout)$y
+rng=range(x)
+if(!extrapolate){
+res[xout<rng[1]]=y[which.min(x)]
+res[xout>rng[2]]=y[which.max(x)]
+} else {
+sma=naF(xout<rng[1]);
+big=naF(xout>rng[2]);
+smaFlag=any(sma)
+bigFlag=any(big)
+if (extrapolMethod=="lastPoint") {
+if(smaFlag||bigFlag){
+newo=order(x)
+x=x[newo]
+y=y[newo]
+j=length(x)
+}
+if(smaFlag)
+res[sma]=y[1]+(x[1]-x[2])*(y[2]-y[1])*(x[1]-xout[sma])
+if(bigFlag)
+res[big]=y[j]+(x[j]-x[j-1])*(y[j-1]-y[j])*(x[j]-xout[big])
+} else if (extrapolMethod=="linRegr") {
+smabig=sma|big
+mod=lm(y~x)
+res[smabig]=predict(mod,newdata=data.frame(x=xout[smabig],y=0))
+}
+}
+return(res)
+}
+if(unitTestBool_982h3fls){
+res=approx.own(x=c(100,101,102,103),y=c(0,1,10,20),xout=c(99,104),extrapolate=TRUE)
+if(!assertthat::are_equal(res,c(-1,31)))
+stop("approx.own: Unit test failed.")
 }
 lpsolve <- function(obj_coef, A, LHS_ge=NULL, LHS_le=NULL, opt_val_ge=NULL, opt_val_le=NULL,  maximize=FALSE) {
 # This function transforms a given optimization model in a not very intuitive and rather special form and solves with the
@@ -3674,6 +3734,16 @@ return(apply(res,2,function(x)gsub(" ","",x)))
 }
 return( formatC(x, format="f", digits=digits) )
 }
+maxDigits <- function(x, startDigits=5, tol=10^(-startDigits)) {
+# This function finds the maximal relevant digits for a numeric vector 'x'.
+# It rounds all numbers from 'startDigits' to 0 and checks if the difference between the original values and the rounded values are smaller than 'tol'.
+rx=round(x,startDigits)
+nDigReal=startDigits
+for(d in startDigits:0)
+if(all(abs(rx-round(x,d))<tol))
+nDigReal=d
+return(nDigReal)
+}
 if(FALSE){
 x=data.frame(a=seq(0.1,1,0.1),b=c(1:10))
 x=data.frame(a=seq(0.1,1,0.1),b=c(1:9,10.001))
@@ -4214,13 +4284,15 @@ if(any(is.na(index)) & geometric) cat("Note that the geometric mean can only be 
 return(index)
 }
 #x <- rnorm(100); selection.levels <- 0.1; method=c("<= x <", "< x <=")[1]; include.min.max=TRUE; give.names=TRUE
-#g1roup.by.fix.scal1e(x,c(0),c("<= x <", "< x <="),FALSE)
-group.by.fix.scale <- function(x, selection.levels, method=c("< x <=", "<= x <"), include.min.max=FALSE, give.names=FALSE, names.digits=2, names.sep="-"){
+group.by.fix.scale <- function(x, selection.levels, method=c("< x <=", "<= x <"), include.min.max=FALSE, give.names=FALSE, names.digits=2, names.sep="-", equal.length.names=FALSE){
 # This function returns a grouping according to the chosen absolute selection.levels.
 # If include.min.max=TRUE depending on the method the minimum (maximum) point is included with the <= sign instead of <
 # Otherwise if you give exactely the min(x) and max(x) one of both would be excluded.
 # If selection.levels is only one value then all values below are numbered 1 and all above 2
+
 method=match.arg(method)
+if(length(dim(x))>1)
+stop("x must be a vector or array with 1 dimension.")
 selection.levels=sort(selection.levels)
 is.na.x=is.na(x)
 if(length(selection.levels)==1){
@@ -4228,30 +4300,42 @@ include.min.max=TRUE
 selection.levels=c(min(x[!is.na.x]),selection.levels,max(x[!is.na.x]))
 }
 length.selection.levels=length(selection.levels)
+if(give.names){
+if(equal.length.names){
+nDigReal=maxDigits(selection.levels,startDigits=names.digits)
+slc <- equal.length(equal.n.decimals(selection.levels, nDigReal), add=" ")
+nam <- function(j, k)
+#return( paste(slc[c(j,k)], collapse=names.sep) )
+return(paste(c(slc[j],zapsmall(round(selection.levels[k],names.digits))),collapse=names.sep))
+} else {
+nam <- function(j, k)
+return(paste(zapsmall(round(c(selection.levels[j],selection.levels[k]),names.digits)),collapse=names.sep))
+}
+}
 grouping=rep(NA,length(x))
 if(method=="<= x <")  {
 for(i in 1:(length.selection.levels-2)) {
 grouping[x>=selection.levels[i]&x<selection.levels[i+1]]=i
-if(give.names)names(grouping)[x>=selection.levels[i]&x<selection.levels[i+1]]=paste(zapsmall(round(c(selection.levels[i],selection.levels[i+1]),names.digits)),collapse=names.sep)
+if(give.names)names(grouping)[x>=selection.levels[i]&x<selection.levels[i+1]]=nam(i,i+1)
 }
 if(include.min.max){
 grouping[x>=selection.levels[length.selection.levels-1]&x<=selection.levels[length.selection.levels]]=length.selection.levels-1
-if(give.names)names(grouping)[x>=selection.levels[length.selection.levels-1]&x<=selection.levels[length.selection.levels]]=paste(zapsmall(round(c(selection.levels[length.selection.levels-1],selection.levels[length.selection.levels]),names.digits)),collapse=names.sep)
+if(give.names)names(grouping)[x>=selection.levels[length.selection.levels-1]&x<=selection.levels[length.selection.levels]]=nam(length.selection.levels-1,length.selection.levels)
 } else {
 grouping[x>=selection.levels[length.selection.levels-1]&x<selection.levels[length.selection.levels]]=length.selection.levels-1
-if(give.names)names(grouping)[x>=selection.levels[length.selection.levels-1]&x<selection.levels[length.selection.levels]]=paste(zapsmall(round(c(selection.levels[length.selection.levels-1],selection.levels[length.selection.levels]),names.digits)),collapse=names.sep)
+if(give.names)names(grouping)[x>=selection.levels[length.selection.levels-1]&x<selection.levels[length.selection.levels]]=nam(length.selection.levels-1,length.selection.levels)
 }
-} else  if(method=="< x <=")  {
+} else if(method=="< x <=")  {
 if(include.min.max){
 grouping[x>=selection.levels[1]&x<=selection.levels[2]]=1
-if(give.names)names(grouping)[x>=selection.levels[1]&x<=selection.levels[2]]=paste(zapsmall(round(c(selection.levels[1],selection.levels[2]),names.digits)),collapse=names.sep)
+if(give.names)names(grouping)[x>=selection.levels[1]&x<=selection.levels[2]]=nam(1,2)
 } else {
 grouping[x>selection.levels[1]&x<=selection.levels[2]]=1
-if(give.names)names(grouping)[x>selection.levels[1]&x<=selection.levels[2]]=paste(zapsmall(round(c(selection.levels[1],selection.levels[2]),names.digits)),collapse=names.sep)
+if(give.names)names(grouping)[x>selection.levels[1]&x<=selection.levels[2]]=nam(1,2)
 }
 for(i in 2:(length(selection.levels-1)))  {
 grouping[x>selection.levels[i]&x<=selection.levels[i+1]]=i
-if(give.names)names(grouping)[x>selection.levels[i]&x<=selection.levels[i+1]]=paste(zapsmall(round(c(selection.levels[i],selection.levels[i+1]),names.digits)),collapse=names.sep)
+if(give.names)names(grouping)[x>selection.levels[i]&x<=selection.levels[i+1]]=nam(i,i+1)
 }
 }
 if(any(is.na(grouping))){
@@ -4259,7 +4343,7 @@ warning("NAs produced")
 }
 return(grouping)
 }
-group.by.quantiles <- function(x, probs=seq(0,1,0.1), method=c("< x <=", "<= x <"), index=NULL, include.min.max=TRUE, give.names=FALSE, names.digits=2, names.sep="-", weights=NULL, na.rm=FALSE){
+group.by.quantiles <- function(x, probs=seq(0,1,0.1), method=c("< x <=", "<= x <"), index=NULL, include.min.max=TRUE, give.names=FALSE, names.digits=2, names.sep="-", equal.length.names=FALSE, weights=NULL, na.rm=FALSE){
 # Groupy data by quantiles.
 # This is a wrapper for group.by.fix.scale with slightly altered interface.
 
@@ -4269,7 +4353,7 @@ method=match.arg(method)
 if(!is.null(index)){
 index <- .paste.elements(index, sep="_", errorMsg="All indices must have same length!")
 res <- do.call("rbind", by(cbind(counter=1:length(x), x=x), index, function(x){
-data.frame(x, grouping=group.by.quantiles(x=x[,"x"], probs=probs, method=method, index=NULL, include.min.max=include.min.max, give.names=give.names, names.digits=names.digits, names.sep=names.sep, weights=weights, na.rm=na.rm))
+data.frame(x, grouping=group.by.quantiles(x=x[,"x"], probs=probs, method=method, index=NULL, include.min.max=include.min.max, give.names=give.names, names.digits=names.digits, names.sep=names.sep, equal.length.names=equal.length.names, weights=weights, na.rm=na.rm))
 }))
 return( res[order(res[,"counter"]),"grouping"] )
 }
@@ -4288,7 +4372,7 @@ probs.abs=quantile.weight(x=x,weights=weights,index=index,probs=probs.rel,na.rm=
 if(min(probs.rel)==0)probs.abs[which.min(probs.rel)]=min(x)-1
 if(max(probs.rel)==1)probs.abs[which.max(probs.rel)]=max(x)+1
 }
-grouping=group.by.fix.scale(x=x,selection.levels=probs.abs,method=method,include.min.max=include.min.max,give.names=give.names,names.digits=names.digits,names.sep=names.sep)
+grouping=group.by.fix.scale(x=x,selection.levels=probs.abs,method=method,include.min.max=include.min.max,give.names=give.names,names.digits=names.digits,names.sep=names.sep,equal.length.names=equal.length.names)
 return(grouping)
 }
 group.by.quartiles <- function(...){
@@ -4305,7 +4389,7 @@ method=match.arg(method)
 if(!is.null(dim(x))) stop("x must be a vector")
 if(!is.null(index)){
 index <- .paste.elements(index, sep="_", errorMsg="All indices must have same length!")
-if(any(weights==0) & na.rm==TRUE) warning("There were weights==0. Wbservations with weight==0 were not allocated to a group.")
+if(any(weights==0) & na.rm==TRUE) warning("There were weights==0. Observations with weight==0 were not allocated to a group.")
 res <- do.call("rbind",as.list(by( cbind(counter=1:length(x), x=x, weights=weights), index,function(x){
 x[,"q"] <- suppressWarnings( group.by.wtd.quantiles(x=x[,"x"], weights=if(is.null(weights)) NULL else x[,"weights"], index=NULL, probs=probs, na.rm=na.rm, method=method) )
 return(x)
@@ -4476,7 +4560,7 @@ suppressWarnings(file.remove(list.files(folder,full.names=TRUE)))
 unlink(folder)
 }
 }, error = function(e) {
-stop(paste0(e$message, "write.table() has encountered an error. This is not the original write.table() function but an edited version by Daniel Hoop. It was optimized to save files on network drives.\nTry utils::write.table() to use the default function."))
+stop(paste0(e$message, "\nwrite.table() has encountered an error. This is not the original write.table() function but an edited version by Daniel Hoop. It was optimized to save files on network drives.\nTry utils::write.table() to use the default function."))
 })
 }
 if(FALSE){
@@ -4754,11 +4838,11 @@ load.spa <- function() {
 pfad1 <- paste0(.dataFolder(),"SpE.RData")
 pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4276/alldata/SpE.RData"
 pfad <- if(file.exists(pfad1)) pfad1 else pfad2
-cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
+cat("Daten werden aus folgendem Verzeichnis geladen:\n")
 cat(pfad, "\n", sep="")
 spa=load2(pfad)
-if(FALSE){
-BHJ=2016
+if(TRUE){
+BHJ=2017
 pfad_CRM_plaus_t0 <- paste0("//art-settan-1000.evdad.admin.ch/ZAMAIN/ZADaten/SpE/Liste_Plausible/B",BHJ,"/")
 fold=list.files(pfad_CRM_plaus_t0)
 fold <- fold[grepl("Termin",fold)]
@@ -4794,28 +4878,33 @@ paste0(id_not_in_plauslist,collapse=", ")))
 }
 return(spa)
 }
-load.spe <- function(...) load.spa(...)
+load.spe=load.spa
 load.spe.pers <- function(){
 pfad <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4276/Personen/SpE_Personen_Indexiert.RData"
+cat("Daten werden aus folgendem Verzeichnis geladen:\n")
+cat(pfad, "\n", sep="")
 return(load2(pfad))
 }
 load.spb <- function() {
 pfad1 <- paste0(.dataFolder(),"SpB.RData")
 pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4275/alldata/SpB.RData"
 pfad <- if(file.exists(pfad1)) pfad1 else pfad2
-cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
+cat("Daten werden aus folgendem Verzeichnis geladen:\n")
 cat(pfad, "\n", sep="")
 return(load2(pfad))
 }
 load.spb.pers <- function(){
 pfad <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4275/Personen/SpB_Personen_Indexiert.RData"
+cat("Daten werden aus folgendem Verzeichnis geladen:\n")
+cat(pfad, "\n", sep="")
 return(load2(pfad))
 }
 load.gb <- function() {
 pfad1 <- paste0(.dataFolder(),"GB.RData")
 pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4273/GB/GB.RData"
-pfad <- if(file.exists(pfad1)) pfad1 else pfad2
-cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
+pfad3 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/2/3583/Resultate/00-00-00_Zusatzdaten/Grundlagenbericht_RefB/GB.RData"
+pfad <- if(file.exists(pfad1)) pfad1  else if(file.exists(pfad2)) pfad2 else if(file.exists(pfad3)) pfad3 else stop("You don't have permission to load this data set.")
+cat("Daten werden aus folgendem Verzeichnis geladen:\n")
 cat(pfad, "\n", sep="")
 load(pfad)
 cat("**********\nGewichte in Jahr 2015 sind immer 1, da ab dann SpE die offizielle Stichprobe ist.\n**********\n")
@@ -4825,7 +4914,7 @@ load.agis <- function(year=2015){
 pfad1 <- paste0(.dataFolder(),"AGIS/AGIS_BFS_",year,".RData")
 pfad2 <- paste0("//art-settan-1000.evdad.admin.ch/ZAMAIN/ZADaten/AGIS/",year,"/AGIS_BFS_",year,".RData")
 pfad <- if(file.exists(pfad1)) pfad1 else pfad2
-cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
+cat("Daten werden aus folgendem Verzeichnis geladen:\n")
 cat(pfad, "\n", sep="")
 return(load2(pfad))
 }
@@ -4861,7 +4950,7 @@ for(i in 1:length(years)) {
 pfad1 <- paste0(parentDir,"/",years[i],fileName)
 if(!file.exists(pfad1)) stop(paste("The file does not exist. You might have chosen the wrong parentDir.",
 "The following folders/files are available:", paste0(list.files(parentDir,full.names=TRUE),collapse="\n") ,sep="\n"))
-if(is.null(cost1)) cat("Tabellen werden aus folgendem Verzeichnis geladen:\n")
+if(is.null(cost1)) cat("Daten werden aus folgendem Verzeichnis geladen:\n")
 cat(pfad1, "\n", sep="")
 cost=load2(pfad1)
 if(!is.null(filter_expression)){
@@ -5588,7 +5677,7 @@ if(triangle)print.table[which(row(print.table)-col(print.table)<0)]=NA
 if(del.diag)diag(print.table)=NA
 if(is.null(conf.level)){
 result=list(cor=cors,p.val=p,sign=sign,print.table=print.table,conf.int=NULL)
-} else  if(!is.null(conf.level)){
+} else if(!is.null(conf.level)){
 result=list(cor=cors,p.val=p,sign=sign,print.table=print.table,conf.int=conf.int)
 }
 class(result) <- "cor.table"
@@ -5597,7 +5686,7 @@ return(result)
 print.cor.table <- function(x,quote=FALSE,na.print="", ...){
 print(x$print.table,quote=quote,na.print=na.print,...)
 }
-plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL, timeDummies=NULL, ...){
+if(FALSE) p1lm.within.between_DELETE <- function(data, index, Y, timeVariantX, timeInvariantX=NULL, timeDummies=NULL, ...){
 # This function calculates random, fixed, mundlak and within-between models for panel data.
 # see ANDREW BELL AND KELVYN JONES (2015): Explaining Fixed Effects: Random Effects Modeling of Time-Series Cross-Sectional and Panel Data. p. 141, eq. 11 & 12.
 #
@@ -5610,7 +5699,7 @@ plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL
 # timeDummies =    Colname(s) of the time dummies. Can be NULL.
 #
 # Value
-# A list with class "plm.within.between".
+# A list with class "p1lm.within.between".
 # ...[["overview"]] The overview of all models in one table.
 # ...[["summary"]] The summaries for all models. List places are named: rand, fix, mund, wibe.
 # ...[["model"]] The models. List places are named: rand, fix, mund, wibe.
@@ -5622,37 +5711,60 @@ plm.within.between <- function(data, index, Y, timeVariantX, timeInvariantX=NULL
 # Tutorial (not useful): http://www.econ.uiuc.edu/~econ472/tutorial13.html [at bottom of page]
 # And plm::pht()
 
-# Require the plm package
+if(FALSE){
+warning("Argument einfuegen: randomEffect. z.B. c('ID','Jahr'). Dann fuer alle diese Variablen den 'level-mean' berechnen. m1_..., m2_..., etc. Dann in die lmer Funktion einfuegen wie folgt.")
+formula <- "Y ~ A + B"
+warning("lmer erkennt nested effects selbstaendig, d.h., dass man sie nicht explizit angeben muss.")
+randomEffect <- c("ID", "Region")
+as.formula(paste0(formula, " + ", paste0(paste0("(1 | ",randomEffect,")"),collapse=" + ") ))
+lmer(form,data=data)
+warning("Gewichtung fuer jeden Betrieb machen: weights <- 1 / AnzahlVorkomnisseBetrieb")
+warning("P-Werte mit Package von Martina berechnen.")
+}
 require.package(plm)
-if(!is.data.frame(data) || is.matrix(data)) stop("data must be a data.frame/matrix. The conversion to pdata.frame is done automatically within the function.")
-if(length(Y)>1) stop("Y must be of length 1.")
+if(!is.data.frame(data)||is.matrix(data))
+stop("data must be a data.frame/matrix. The conversion to pdata.frame is done automatically within the function.")
+if(length(Y)>1)
+stop("Y must be of length 1.")
 timeNotFound=timeDummies[!timeDummies%in%colnames(data)]
-if(length(timeNotFound)>0) stop(paste0("Time dummies not found: ",paste0(timeNotFound,collapse=", ")))
+if(length(timeNotFound)>0)
+stop(paste0("Time dummies not found: ",paste0(timeNotFound,collapse=", ")))
 if(!is.data.frame(data))data=as.data.frame(data)
 indexNotAvail=index[!index%in%colnames(data)]
 if(length(indexNotAvail)>0)
 stop(paste0("Some index columns are not available in the data: ", paste0(indexNotAvail,collapse=", ")))
 tabId=table(data[,index[1]])
-if(all(tabId==1)) stop("For all individuums only 1 observation was given. This is not a panel.")
+tabEq1=sum(tabId==1)
+if(tabEq1==length(tabId))
+stop("For all individuums only 1 observation was given. This is not a panel.")
+if(tabEq1>0)
+warning(paste0("There are ", tabEq1, " indidividuums in the dataset that only occur 1 time. You should probably restrict the dataset to include only individuums with multiple observations."))
 checkVars=c(timeVariantX,timeInvariantX,timeDummies)
 duplVars=unique(checkVars[duplicated(checkVars)])
-if(length(duplVars)>0) stop(paste0("There must be no duplicated variables in timeVariantX, timeInvariantX or timeDummies.\n",paste0(duplVars,collapse=", ")))
+if(length(duplVars)>0)
+stop(paste0("There must be no duplicated variables in timeVariantX, timeInvariantX or timeDummies.\n",paste0(duplVars,collapse=", ")))
+# Assure that time dummies don't sum up to 1.
+timeSum=rowSums(data[,timeDummies])
+if(all(timeSum>0))
+stop("The time dummies must not include all years of the dataset. E.g. if you have three years in binary columns Y2003, Y2004, Y2005, then you must only include two of these columns (because the 3rd year dummy is a linear combination of the other two dummies).")
 pre.plm.data.transformation <- function(data, timeVariantX){
 # Define names of columns to be calculated
 varName=timeVariantX
 mVarName <- paste0("m_",varName)
 dVarName <- paste0("d_",varName)
 fobidden=colnames(data)[colnames(data)%in%c(mVarName,dVarName)]
-if(length(fobidden)>0) stop(paste0("Data columns that are named as follows are forbidden: ", paste0(fobidden,collapse=", ") ))
+if(length(fobidden)>0)
+stop(paste0("Data columns that are named as follows are forbidden: ", paste0(fobidden,collapse=", ") ))
 allVars=c(Y,timeVariantX,timeInvariantX)
 newVars=allVars[!allVars%in%colnames(data)]
 data[,newVars]=NA
 data=calc.I.cols(data)
 alwaysNA=sapply(data[,allVars,drop=FALSE],function(x)all(is.na(x)))
-if(any(alwaysNA)) stop(paste0("The following variables are always NA and can't be used in the model: ", paste0(names(alwaysNA[alwaysNA]),collapse=", ") ))
+if(any(alwaysNA))
+stop(paste0("The following variables are always NA and can't be used in the model: ", paste0(names(alwaysNA[alwaysNA]),collapse=", ") ))
 # Create "mean" and "deMean" columns. Select time invariant value
 data <- by.add.df.cols(data, relevantColnames=varName, INDICES=data[,index[1]], FUN=function(x){
-x[,mVarName]=as.list(colMeans(x[,varName]))
+x[,mVarName]=as.list(colMeans(x[,varName,drop=FALSE]))
 return(x)
 })
 data[,dVarName]=data[,varName]-data[,mVarName]
@@ -5711,7 +5823,9 @@ data[,timeVariantX]=data[,d$dVarName]
 tryCatch({
 mod1[[i]] <- plm(formula=input[[i]][["formula"]], data=data, index=index, effect="individual", model=input[[i]][["model"]], ...)
 },error=function(e){
-print(cor.table(data[,input[[i]][["variables"]]]))
+cat("There was an error computing the model ", i, "\n\n", sep="")
+warning("Hier auch korrelation mit Y anzeigen.")
+print(cor.table(data[, c(Y, input[[i]][["variables"]]) ]))
 browser()
 stop(e$message)
 })
@@ -5758,6 +5872,231 @@ rm(data,suRes,su1,mod1);
 invisible(gc())
 return(res)
 }
+plm.within.between <- function(data, index=NULL, randomEffects=NULL, Y, timeVariantX, timeInvariantX=NULL, timeDummies=NULL, weights=NULL, summaryType=c("Satterthwaite","Kenward-Roger"), ...){
+# This function calculates random, fixed, mundlak and within-between models for panel data.
+# see ANDREW BELL AND KELVYN JONES (2015): Explaining Fixed Effects: Random Effects Modeling of Time-Series Cross-Sectional and Panel Data. p. 141, eq. 11 & 12.
+#
+# Arguments
+# data =           The data.frame/matrix containing all relevant variables.
+# index =          The colnames of the index columns in data. length(index)==2 is required. First: individual, second: time. E.g. c("id","year"). Can be NULL. But then 'randomEffects' must be specified.
+# randomEffects =  The colnames of the random effects. Can be used to model multiple (nested effects). Nested effects are detected automatically by the lmer function, so just give a charcter vector containing the colnum names. Can be NULL. But then 'index' must be specified.
+# Y =              Colname of the dependent (y) variable.
+# timeVariantX =   Colname(s) of the indepentent variables that vary over time within each observation.
+# timeInvariantX = Colname(s) of the indepentent variables that don't vary over time within each observation. Can be NULL.
+# timeDummies =    Colname(s) of the time dummies. Can be NULL.
+# weights =        The weights for each obervation. If NULL, then it is calculated as the inverse occurence rate of each observation in each 'randomEffect'. If this should be prevented, then specify weighst=rep(1,nrow(data)).
+# summaryType =    Either Satterthwaite or Kenward-Roger. See help(lmerTest::summary.lmerModLmerTest) for more information.
+#
+# Value
+# A list with class "plm.within.between".
+# ...[["overview"]] The overview of all models in one table.
+# ...[["summary"]] The summaries for all models. List places are named: rand, fix, mund, wibe.
+# ...[["model"]] The models. List places are named: rand, fix, mund, wibe.
+# ...[["colnames"]] This information can be used to restore the original I() colnames in the model coefficients. E.g.
+#                    rownames(mod$summary$fix$coefficients) <- replace.values(mod$colnames$adapted, mod$colnames$original, rownames(mod$summary$fix$coefficients))
+#
+# For Hausman-Taylor Check also
+# Source: http://www.econ.uiuc.edu/~econ472/panel.R.txt
+# Tutorial (not useful): http://www.econ.uiuc.edu/~econ472/tutorial13.html [at bottom of page]
+# And plm::pht()
+
+# Require packages
+require.package(lme4)
+require.package(plm)
+require.package(lmerTest)
+if(!is.data.frame(data)||is.matrix(data))
+stop("data must be a data.frame/matrix. The conversion to pdata.frame is done automatically within the function.")
+if(length(Y)>1)
+stop("Y must be of length 1.")
+timeNotFound=timeDummies[!timeDummies%in%colnames(data)]
+if(length(timeNotFound)>0)
+stop(paste0("Time dummies not found: ",paste0(timeNotFound,collapse=", ")))
+if(is.null(index)&&is.null(randomEffects))
+stop("Either index or randomEffects must be defined.")
+if(!is.null(index)){
+if(!is.null(randomEffects))
+stop("Either specify index or randomEffects but not both arguments.")
+if(length(index)!=2)
+stop("index must be a character vector of length 2 describing the columns to identify the individuum (index[1]) and year (index[2]) in data.")
+randomEffects=index[1]
+} else {
+cat("Because index was not specified (is NULL) the fixed effects model will not be calculated.\n")
+}
+if(!is.data.frame(data))
+data=as.data.frame(data)
+indexNotAvail=randomEffects[!randomEffects%in%colnames(data)]
+if(length(indexNotAvail)>0)
+stop(paste0("Some index/randomEffects columns are not available in the data: ", paste0(indexNotAvail,collapse=", ")))
+for(i in 1:length(randomEffects)) {
+tabId=table(data[,randomEffects[i]])
+tabEq1=sum(tabId==1)
+if(tabEq1==length(tabId))
+stop(paste0("Effect: ",randomEffects[i], ". For all individuums only 1 observation was given. This is not a panel."))
+if(tabEq1>0)
+warning(paste0("Effect: ",randomEffects[i], ". There are ", tabEq1, " levels in the dataset that only occur 1 time. You should probably restrict the dataset to include only individuums with multiple observations."))
+}
+checkVars=c(timeVariantX,timeInvariantX,timeDummies)
+duplVars=unique(checkVars[duplicated(checkVars)])
+if(length(duplVars)>0)
+stop(paste0("There must be no duplicated variables in timeVariantX, timeInvariantX or timeDummies.\n",paste0(duplVars,collapse=", ")))
+# Assure that time dummies don't sum up to 1.
+timeSum=rowSums(data[,timeDummies])
+if(all(timeSum>0))
+stop("The time dummies must not include all years of the dataset. E.g. if you have three years in binary columns Y2003, Y2004, Y2005, then you must only include two of these columns (because the 3rd year dummy is a linear combination of the other two dummies).")
+if(is.null(weights)){
+weights=rep(1000,nrow(data))
+for (i in 1:length(randomEffects)) {
+chEff=as.character(data[,randomEffects[i]])
+tabEff=table(chEff)
+m1=match.multiple.id.left(chEff,names(tabEff))
+weights[m1[,"left"]] <- weights[m1[,"left"]] / tabEff[m1[,"right"]]
+}
+cat("*** Important information: The weights were set inversely proportional to the occurences of observations in each level (cumulative). If you want to prevent this behaviour, then specify weights as rep(1,nrow(data)).")
+}
+pre.plm.data.transformation <- function(data, timeVariantX, effects){
+# Prepare some things before the loop over effects.
+varName=varNameOut=timeVariantX
+dPrefix <- c("d","_") # Must be of length 2!! For different effects, it will become "m1_", "m2_", etc.
+mPrefix <- c("m","_")
+i_ <- "" # This will be between the prefix. If there are more then 1 level, then it will be overwritten with 1, 2, etc.
+mVarNameOut=dVarNameOut=niceNamesOut=NULL
+for(i in 1:length(effects)) {
+if(length(effects)>1)
+i_=i
+mVarName=paste0(mPrefix[1],i_,mPrefix[2],varName)
+dVarName=paste0(dPrefix[1],i_,dPrefix[2],varName)
+fobidden=colnames(data)[colnames(data)%in%c(mVarName,dVarName)]
+if(length(fobidden)>0)
+stop(paste0("Data columns that are named as follows are forbidden: ", paste0(fobidden,collapse=", ") ))
+allVars=c(Y,timeVariantX,timeInvariantX)
+newVars=allVars[!allVars%in%colnames(data)]
+data[,newVars]=NA
+data=calc.I.cols(data)
+alwaysNA=sapply(data[,allVars,drop=FALSE],function(x)all(is.na(x)))
+if(any(alwaysNA))
+stop(paste0("The following variables are always NA and can't be used in the model: ", paste0(names(alwaysNA[alwaysNA]),collapse=", ") ))
+# Create "mean" and "deMean" columns. Select time invariant value
+data <- by.add.df.cols(data, relevantColnames=varName, INDICES=data[,effects[i]], FUN=function(x){
+x[,mVarName]=as.list(colMeans(x[,varName,drop=FALSE]))
+return(x)
+})
+data[,dVarName]=data[,varName]-data[,mVarName]
+idVarName <- dVarName[grepl(paste0("^",dPrefix[1],i_,dPrefix[2],"I\\("),dVarName)]
+imVarName <- mVarName[grepl(paste0("^",mPrefix[1],i_,mPrefix[2],"I\\("),mVarName)]
+idVarName_new <- gsub("\\(|\\)|\\-|/|\\*|\\+|\\^|,|=| ",".",idVarName)
+imVarName_new <- gsub("\\(|\\)|\\-|/|\\*|\\+|\\^|,|=| ",".",imVarName)
+niceNames=list(original=c(idVarName,imVarName),
+adapted=c(idVarName_new,imVarName_new))
+dVarName <- replace.values(niceNames[["original"]], niceNames[["adapted"]], dVarName) #replace.values(idVarName, idVarName_new, dVarName)
+mVarName <- replace.values(niceNames[["original"]], niceNames[["adapted"]], mVarName) #replace.values(imVarName, imVarName_new, mVarName)
+colnames(data) <- replace.values(niceNames[["original"]], niceNames[["adapted"]], colnames(data)) #replace.values(c(idVarName,imVarName), c(idVarName_new,imVarName_new), colnames(data))
+notVaryingVars=sapply(data[,dVarName,drop=FALSE],function(x)length(which(x!=0)))
+notVaryingVars=names(notVaryingVars)[notVaryingVars/nrow(data)<0.05]
+if(length(notVaryingVars)>0){
+notVaryingVars <- replace.values(niceNames[["adapted"]], niceNames[["original"]], notVaryingVars)
+notVaryingVars <- sub("^d_","",notVaryingVars)
+warning(paste0("Some variables hardly differ within observations. You should reconsider defining them as timeVariantX variables. timeInvariantX would be more appropriate:\n",paste0(notVaryingVars,collapse=", ")))
+}
+mVarNameOut=c(mVarNameOut,mVarName)
+dVarNameOut=c(dVarNameOut,dVarName)
+niceNamesOut=c(niceNamesOut,niceNames)
+}
+return(list(data=data,varName=varNameOut,mVarName=mVarNameOut,dVarName=dVarNameOut,colnames=niceNamesOut))
+}
+d=pre.plm.data.transformation(data=data,timeVariantX=timeVariantX,effects=randomEffects)
+data <- d[["data"]]; d[["data"]] <- NULL; invisible(gc())
+input=list()
+# summaryModels will be put into the summary table ...[["summary"]] of the result. wibe* is especially for this porpuse.
+summaryModels <- c("fix","rand","mund","wibe*")
+input[["fix"]] <-    list(model="within", variables=c(timeVariantX,                                         timeDummies))
+input[["rand"]] <-   list(model="random", variables=c(timeVariantX,                         timeInvariantX, timeDummies))
+input[["mund"]] <-   list(model="random", variables=c(timeVariantX,             d$mVarName, timeInvariantX, timeDummies))
+input[["wibe*"]] <-  list(model="random", variables=c(              d$dVarName, d$mVarName, timeInvariantX, timeDummies))
+#input[["wibe*"]] <- list(model="random", variables=c(timeVariantX,             d$mVarName, timeInvariantX, timeDummies))
+#if(names(input)[length(input)]!="wibe*") stop("Last model must be within between. Otherwise the calculation won't be correct. Because before the last step all d$varName-columns are replaced with d$dVarName-columns!")
+for(i in names(input)){
+if (input[[i]][["model"]]=="within") {
+input[[i]][["formula"]] <- formula(paste(Y,"~",paste0(input[[i]][["variables"]],collapse=" + ")))
+} else if (input[[i]][["model"]]=="random") {
+input[[i]][["formula"]] <- formula(paste(Y,"~",paste0(input[[i]][["variables"]],collapse=" + "), "+", paste0(paste0("(1 | ",randomEffects,")"),collapse=" + ")))
+} else stop("Internal error. Wrong model.")
+}
+allVars <- unique(unlist(lapply(input,function(x)x[["variables"]])))
+allVars=unique(c(allVars,if(FALSE)d$dVarName))
+allVars=unique(c(index,randomEffects,extract.I.vars(Y,keep.original=TRUE),extract.I.vars(allVars,keep.original=TRUE),timeDummies))
+isna=sapply(data[,allVars],function(x)any(!is.finite(x)))
+isna=names(isna[isna])
+if(length(isna)>0)
+stop(paste0("Some variables contain NA/NaN/Inf values. This is not allowed. See list below.\n",paste0(isna,collapse=", ")))
+if(!is.null(index)){
+pdata=pdata.frame(data[,allVars],index=index)
+if(ncol(pdata)!=length(allVars)||colnames(pdata)!=c(allVars)){
+stop(paste0("Some variables where automatically dropped from pdata.frame because they don't show any variance. Something seems wrong with your data!\n",
+"Kicked variables are:\n", paste0(allVars[!allVars%in%colnames(pdata)],collapse=", ")))
+}
+}
+mod1 <- vector("list",length(input)); names(mod1) <- names(input)
+for(i in names(input)){
+tryCatch({
+if (input[[i]][["model"]]=="within") {
+if(!is.null(index))
+mod1[[i]] <- plm(formula=input[[i]][["formula"]], data=pdata, index=index, effect="individual", model=input[[i]][["model"]], ...)
+} else if (input[[i]][["model"]]=="random") {
+mod1[[i]] <- lmer(formula=input[[i]][["formula"]], data=data, weights=weights, ...)
+} else stop("Internal error. Wrong model.")
+},error=function(e){
+print(cor.table(data[, c(Y, input[[i]][["variables"]]) ]))
+cat("\nThere was an error computing the model ", i, "\n", sep="")
+cat("Error message is: ", e$message, "\n", sep="")
+stop(e$message)
+})
+invisible(gc())
+}
+su1 <- lapply(mod1, function(x)if(is.null(x)) x else summary(x))
+allVarsFin <- c("(Intercept)", timeVariantX, d$mVarName, timeInvariantX, timeDummies)
+suRes=as.data.frame(matrix(NA_integer_,nrow=length(allVarsFin)+3,ncol=length(summaryModels)*2))
+rRows <- c("R-Squared","Adj. R-Squared","P-Value")
+rownames(suRes)=c(allVarsFin,rRows)
+pCols=(1:ncol(suRes))%%2==0
+colnames(suRes)[!pCols]=summaryModels
+colnames(suRes)[ pCols] <- paste0(substring(summaryModels,1,1),"_P")
+for(i in summaryModels){ # i <- names(su1)[1]
+if(!is.null(su1[[i]])){
+toRows=match(
+replace.values(d$dVarName, d$varName, rownames(su1[[i]][["coefficients"]])),
+rownames(suRes))
+if(any(is.na(toRows)))
+stop(paste0("After formatting the I() colnames, they do not fit to the original ones. Please adapt the original ones like this:", paste0(rownames(su1[[i]][["coefficients"]])[is.na(toRows)],collapse=", ")))
+toCols=which(colnames(suRes)==i)
+if ("summary.plm"%in%class(su1[[i]]))
+suRes[rRows,toCols+1]=unname(round(c(su1[[i]]$r.squared,su1[[i]]$fstatistic$p.value),3))
+toCols=toCols:(toCols+1)
+if (!"Pr(>|t|)"%in%colnames(su1[[i]][["coefficients"]])){
+stop("The summary calculated for the lmer models is erroreous. Please detach lme4, plm and lmerTest and run the function again, i.e. execute this code:\n",
+'detach("package:lmerTest"); detach("package:lme4"); detach("package:plm")')
+}
+suRes[toRows,toCols] <- su1[[i]][["coefficients"]][,c("Estimate","Pr(>|t|)")]
+}
+}
+okRows=!rownames(suRes)%in%rRows
+suRes[okRows,pCols]=lapply(suRes[okRows,pCols],function(x){
+p=character(length(x))
+p[x<=0.1 ] <- ".";    p[x<=0.05] <- "*";    p[x<=0.01] <- "**";    p[x<=0.001] <- "***"
+return(p)
+})
+rownames(suRes) <- replace.values(d$colnames[["adapted"]], d$colnames[["original"]], rownames(suRes))
+su1=lapply(su1,function(x){
+if(!is.null(x)){
+rownames(x[["coefficients"]]) <- replace.values(d$colnames[["adapted"]], d$colnames[["original"]], rownames(x[["coefficients"]]))
+}
+return(x)
+})
+res=list(overview=suRes,summary=su1,model=mod1,colnames=d$colnames,pre.plm.data.transformation.function=pre.plm.data.transformation)
+class(res) <- "plm.within.between"
+rm(data,suRes,su1,mod1);
+invisible(gc())
+return(res)
+}
 summary.plm.within.between <- function(x, digits=2, signif=FALSE){
 ov <- x[["overview"]]
 if(!is.null(digits)){
@@ -5769,7 +6108,7 @@ return(as.matrix(ov))
 print.plm.within.between <- function(x, quote=FALSE, na.print="", digits=2, signif=FALSE, ...){
 ov=summary(x,digits=digits,signif=signif)
 print(ov,quote=quote,na.print=na.print,...)
-cat("\n* The timeVariantX_d coefficients of the 'wibe*' model specification are not shown in separate rows. However, they have been calculated differently!")
+cat("\n* The timeVariantX coefficients (starting with d_) of the 'wibe*' model specification are not shown in separate rows. However, they have been calculated differently! For more information see $summary of the model output.")
 }
 predict.plm <- function(model, newdata=NULL){
 if(is.matrix(newdata)) newdata <- as.data.frame(newdata) else if(!is.null(newdata) & !is.data.frame(newdata)) stop("newdata must be NULL, matrix or data.frame!")
@@ -6175,6 +6514,55 @@ col.names[col.names%in%old_vars[i]]=new_vars[i]
 col.names=toupper(col.names)
 return(col.names)
 }
+wilcox.or.chisq <- function(y, trt, digits=3, pValuesOnly=TRUE, verbose=TRUE) {
+# This function calculates the Wilcoxon rank sum statistics for continuous variables and the chi-squared statistics for binary variables (automatically).
+#
+# Arguments
+# y       = A numeric vector or data.frame
+# trt     = The binary treatment vector
+# digits  = The number of digits to round the p.value for the formatted output.
+# pValuesOnly = Default: TRUE. Logical indicating if only the p value or also signs like ., *, **, *** should be returned as result.
+# verbose = Default: TRUE. Logical indicating if the detection of binary variables (and the application of the chisq test) should be commented during calculations.
+# Value
+# A numeric vector if pValuesOnly==TRUE.
+# Otherwise a list containing the p.values "p.value", signs "sign", and both of them put together "formatted".
+
+if(length(unique(trt))!=2)
+stop("trt must contain exactly two different values.")
+if(!is.data.frame(y)){
+if(!is.numeric(y))
+stop("y must be a numeric vector or a data.frame.")
+y=as.data.frame(y,stringsAsFactors=FALSE)
+}
+# Debugging: y <- y[,"I(Verkauf_kg_Ti/Groesse*0.004)"]
+kruskres=sapply(y,function(y){
+notNA=!is.na(y)
+if(length(unique(y[notNA]))>1 && length(unique(trt[notNA]))>1 ) kruskal.test(y, g=as.factor(trt))$p.value else NaN
+})
+#y <- as.data.frame(matrix(c(0,1,1,1,2,3),ncol=2)); colnames(y) <- c("a","b")
+chisqVars=sapply(y,function(x)length(unique(x))==2)
+chisqVars=names(chisqVars)[chisqVars]
+if(length(chisqVars)>0){
+chisqRes=sapply(y[,chisqVars,drop=FALSE],function(x){
+notNA=!is.na(x)
+if(length(unique(x[notNA]))>1 && length(unique(trt[notNA]))>1 ) chisq.test.2groups(y=x, trt=trt)$p.value else NaN
+})
+if(verbose)
+cat( paste0("Chi-Sqared test was performed for the following variable(s): ", paste0(chisqVars,collapse=", "), "\n") )
+kruskres[chisqVars]=chisqRes[chisqVars]
+}
+if(pValuesOnly)
+return(kruskres)
+kruskres_add <- rep("", length(kruskres))
+kruskres_add[which(kruskres<0.05)] <- "* "
+kruskres_add[which(kruskres<0.01)] <- "** "
+kruskres_add[which(kruskres<0.001)] <- "*** "
+nameskruskres=names(kruskres)
+comb=paste0(kruskres_add,equal.n.decimals(kruskres,digits=digits))
+comb <- gsub("NaN|NA","",comb)
+names(comb)=nameskruskres
+return(list("p.value"=kruskres, "sign"=kruskres_add, "formatted"=comb))
+}
 kruskal.multiple <- function(data, grouping, sig.level=0.05, p.adj="holm", group=TRUE,...){   #, filtered=FALSE
 require.package(agricolae)
 result <- vector("list",ncol(data))
@@ -6432,9 +6820,9 @@ UCL=dif+Tprob*sdtdif
 sig<-rep(" ",nn)
 for (k in 1:nn) {
 if (pvalue[k] <= 0.001) sig[k]<-"***"
-else  if (pvalue[k] <= 0.01) sig[k]<-"**"
-else  if (pvalue[k] <= 0.05) sig[k]<-"*"
-else  if (pvalue[k] <= 0.1) sig[k]<-"."
+else if (pvalue[k] <= 0.01) sig[k]<-"**"
+else if (pvalue[k] <= 0.05) sig[k]<-"*"
+else if (pvalue[k] <= 0.1) sig[k]<-"."
 }
 tr.i=means[comb[1,],1]
 tr.j=means[comb[2,],1]
