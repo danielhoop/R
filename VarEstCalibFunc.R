@@ -9,7 +9,7 @@
 # The functions depend on other functions you also need to source from the following URL.
 # In your scripts, do it like this:
 # if(!exists("mean.weight")) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")
-# if(!exists("variance.estimate")) loadVarEstCalibUtils()
+# if(!exists("variance.estimate")) loadVarEstCalibFunc()
 # Then your done. All functions loaded.
 
 
