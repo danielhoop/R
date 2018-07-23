@@ -53,8 +53,8 @@ options(help.try.all.packages=TRUE)
 #options(prompt="    ")
 options(stringsAsFactors=FALSE)
 #options(na="")
-cat("**********************************************************************\n")
-cat("Options set.\n")
+message("**********************************************************************")
+message("Options set.")
 }
 # from <- c("C:\\asdf", "D:\\23/ccc"); to <- "E:\\a"
 file.copy.readOnly <- function(from, to, overwrite=TRUE, ...){
@@ -94,12 +94,12 @@ for(toPath1 in toPath){
 if( grepl("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1",toPath1) ){
 files <- list.files(fromPath, pattern="R$")
 file.copy(paste0(fromPath,"/",files), toPath1, overwrite=TRUE)
-cat(paste0(files,collapse=", "), " copied.\n", sep="")
+message(paste0(files,collapse=", "), " copied.", sep="")
 } else {
 files <- list.files(fromPath, pattern="R$")
 files <- files[!grepl(paste0(zaFiles,collapse="|"),files)]
 file.copy(paste0(fromPath,"/",files), toPath1, overwrite=TRUE)
-cat(paste0(files,collapse=", "), " copied.\n", sep="")
+message(paste0(files,collapse=", "), " copied.", sep="")
 }
 }
 }
@@ -114,19 +114,21 @@ oslwParent <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/"
 oslwCheck <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4276/alldata"
 if(dir.exists(zamain)&&dir.exists(oslwCheck)){
 if(!dir.exists(datFold)){
-cat("Creating folder ", datFold, "\n", sep="")
+message("Creating folder ", datFold, sep="")
 dir.create(datFold,recursive=TRUE)
 }
 if(!dir.exists(paste0(datFold,"AGIS/"))){
-cat("Creating folder ", paste0(datFold,"AGIS/"), "\n", sep="")
+message("Creating folder ", paste0(datFold,"AGIS/"), sep="")
 dir.create(paste0(datFold,"AGIS/"), recursive=TRUE)
 }
 files=matrix(c(
 paste0(datFold,"AGIS/AGIS_BFS_2014.RData"),paste0(zamain, "AGIS/2014/AGIS_BFS_2014.RData"),
 paste0(datFold,"AGIS/AGIS_BFS_2015.RData"),paste0(zamain, "AGIS/2015/AGIS_BFS_2015.RData"),
 paste0(datFold,"AGIS/AGIS_BFS_2016.RData"),paste0(zamain, "AGIS/2016/AGIS_BFS_2016.RData"),
+paste0(datFold,"AGIS/AGIS_BFS_2017.RData"),paste0(zamain, "AGIS/2017/AGIS_BFS_2017.RData"),
 paste0(datFold,"GB.RData"),paste0(oslwParent,"4273/GB/GB.RData"),
 paste0(datFold,"SpE.RData"),paste0(oslwParent,"4276/alldata/SpE.RData"),
+paste0(datFold,"SpE_GB_Einzel.RData"),paste0(oslwParent,"4276/GB_Einzel/SpE_GB_Einzel.RData"),
 #paste0(datFold,"Personen_Indexiert.RData"),paste0(oslwParent,"4276/Personen/Personen_Indexiert.RData"),
 paste0(datFold,"SpB.RData"),paste0(oslwParent,"4275/alldata/SpB.RData")
 ),ncol=2,byrow=TRUE)
@@ -139,9 +141,8 @@ file.remove(paste0(datFold,"Personen_Indexiert.csv"))
 invisible(apply(files,1,function(x){
 if(file.exists(x[2])){
 if(!file.exists(x[1])||file.info(x[1])$mtime<file.info(x[2])$mtime){
-cat("Copying file '",x[2], "' to '", x[1], "'. Success=", sep="")
-cat(file.copy(x[2],x[1],overwrite=TRUE))
-cat("\n")
+message("Copying file '",x[2], "' to '", x[1], "'. Success=", sep="")
+message(file.copy(x[2],x[1],overwrite=TRUE))
 }
 }
 }))
@@ -190,7 +191,12 @@ warning (paste0("More than 10% of the code was classified as tutorial. Please ch
 # dcs <- gsub("x","","DxONT_COMPRESS_SOURCE_STARxT")
 # dce <- gsub("x","","DxONT_COMPRESS_SOURCE_ENxD")
 #   for(i in 2:length(x)) # i <- 4
-isCom <- grepl("(<\\-|=) *function\\(",x) | isTutorial #| isDc
+# First regex is for function description. Second/third is for if/else without curly brackets.
+rgx <- paste0(c("(<\\-|=) *function\\(",
+"[a-zA-Z0-9] +else",
+"else +[a-zA-Z0-9]"),
+collapse="|")
+isCom=grepl(rgx,x)|isTutorial
 hasHash <- grepl(" *#", x)
 for (i in 2:length(x)) { # i <- 3
 isCom[i]=isCom[i]||
@@ -205,19 +211,19 @@ compressedPath <- paste0(origPath,"/compressedForExport")
 if(.onHpdaPc() && file.exists(paste0(origPath,"/func.R"))) {
 pathFilesize <- paste0(compressedPath, "/funcSize.txt")
 filesize0=scan(pathFilesize,quiet=TRUE)
-filesize1 <- sum( file.info(c(paste0(origPath, c("/func.R","/SqlUtilities.R","/GbUtilities.R")),
+filesize1 <- sum( file.info(c(paste0(origPath, c("/func.R","/SqlUtilities.R","/GbUtilities.R","/VarEstCalibFunc.R")),
 paste0(vokoPath,c("/other_func_Vollk.R"))))$size )
 if(filesize0!=filesize1){
-compressFiles <- c("/func.R","/GbUtilities.R")
+compressFiles <- c("/func.R")
 .compressSource(paste0(origPath,compressFiles),paste0(compressedPath,compressFiles))
-file.copy(paste0(origPath,c("/Rhelp.R", "/SqlUtilities.R")), compressedPath, overwrite=TRUE)
+file.copy(paste0(origPath,c("/Rhelp.R", "/SqlUtilities.R", "/GbUtilities.R", "/VarEstCalibFunc.R")), compressedPath, overwrite=TRUE)
 .copyFuncs(fromPath=compressedPath,
 toPath=c("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/", "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/2/3583/Resultate/00-00-00_Zusatzdaten/R_func/"))
 .copyFuncs(fromPath=vokoPath,
 toPath=c("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/2/3583/Resultate/00-00-00_Zusatzdaten/R_func/"))
 write(filesize1,file=pathFilesize)
 } else {
-cat("func.R did not change. Files not copied from P to W\n")
+message("func.R did not change. Files not copied from P to W")
 }
 }
 .copyZaData()
@@ -426,7 +432,7 @@ if(ovrl.median)abline(a=mean(data[,j],na.rm=TRUE),b=0)
 }
 }
 }
-if(info) cat("If the notches of different groups do not overlap this is 'strong evidence' that the two medians differ (Chambers et al., 1983, p. 62). From help(boxplot)\n")
+if(info) message("If the notches of different groups do not overlap this is 'strong evidence' that the two medians differ (Chambers et al., 1983, p. 62). From help(boxplot)")
 }
 boxplot.probabilities <- function(y=NULL, grouping=NULL, list=NULL, probs=c(0.025,0.25,0.5,0.75,0.975), outline=FALSE, ...) {
 # Boxplot with probability quantiles (not the original whisker definition).
@@ -528,6 +534,7 @@ if(length(xlab)==1)xlab=rep(xlab,ncol(data.orig))
 if(newwin)windows()
 nvariables=ncol(data)
 par(mar=mar, mfrow=c(plotrows,if(nvariables%%plotrows==0) nvariables/plotrows else floor(nvariables/plotrows)+1 ))   # %% gibt Rest wieder
+
 h=breaks=mids=counts=list()
 for(i in 1:ncol(data)){
 for(j in grp){
@@ -580,6 +587,7 @@ if(length(xlab)==1)xlab=rep(xlab,ncol(data.orig))
 if(newwin)windows()
 nvariables=ncol(data)
 par(mar=mar, mfrow=c(plotrows,if(nvariables%%plotrows==0) nvariables/plotrows else floor(nvariables/plotrows)+1 ))   # %% gibt Rest wieder
+
 dens=densx=densy=list()
 for(i in 1:ncol(data)) {
 for(j in grp) {
@@ -630,12 +638,24 @@ return(colorRampPalette(colors)(colsteps)[findInterval(x,seq(min(x),max(x),lengt
 loadSqlUtils <- function(){
 # This function loads the SQL Utility functions to access the ZA database.
 # Because these functions contain confidential login information for the database, they are not part of this file (func.R).
-source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/SqlUtilities.R")
+file <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/SqlUtilities.R"
+if (file.exists(file)) source(file) else stop("You don't have permission to load this functions.")
 }
 loadGbUtils <- function(){
 # This function loads functions to create the Grundlagenbericht (gb).
-source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/GbUtilities.R")
+file <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/GbUtilities.R"
+if (file.exists(file)) source(file) else stop("You don't have permission to load this functions.")
 }
+loadVarEstCalibFunc <- function(){
+# The functions being sourced are outsourced from this script because they use a lot of lines of code.
+file <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/VarEstCalibFunc.R"
+if(file.exists(file)){
+source(file)
+} else {
+source("https://raw.githubusercontent.com/danielhoop/R/master/VarEstCalibFunc.R")
+}
+}
+loadVarEstCalibUtils=loadVarEstCalibFunc
 slash <- function(reverse=FALSE){
 # This function changes \ to / in paths (or vice versa if reverse=TRUE)
 
@@ -646,7 +666,29 @@ txt <- gsub("\\\\","/",cb)
 } else {
 txt <- gsub("/","\\\\",cb) # Like this: "/{1,10}" you would replace several / with only one \
 }
-write.table(txt,'clipboard',quote=FALSE,col.names=FALSE,row.names=FALSE,eol=""); cat("Converted string is in clipboard. Use Ctrl+V:\n",txt,"\n",sep="")
+write.table(txt,'clipboard',quote=FALSE,col.names=FALSE,row.names=FALSE,eol=""); message("Converted string is in clipboard. Use Ctrl+V:\n",txt,sep="")
+}
+msgBox <- function (lines, width=1, sign="*") { # messageBox
+if (any(nchar(lines) - nchar(gsub("\n","",lines,fixed=TRUE)) != 0))
+stop ("Newlines \\n are not allowed in the messsage. Use a new vector place for each line in argument 'lines'.")
+centerMsg <- function(lines) {
+# if (length(lines) == 1)
+#   return (lines)
+nSpacesAdd=floor((max(nchar(lines))-nchar(lines))/2)
+for (i in 1:length(lines)) { # i <- 1
+spacesAdd <- paste0(rep(" ",nSpacesAdd[i]), collapse="")
+lines[i]=paste0(spacesAdd,lines[i],spacesAdd)
+}
+return(lines)
+}
+leftRight=rep(sign,width)
+bottomTop=as.list(rep(sign,width))
+msg <- do.call("merge.matrices",strsplit(centerMsg(lines),""))
+msg <- t(apply(msg,1,function(x){ x[x==""] <- " "; return (x); }))
+msg <- t(apply(msg,1,function(x)c(leftRight, " ", x, " ", leftRight)))
+msgSemiFinal=merge.matrices(c(bottomTop,list(msg),bottomTop),fill=sign)
+msgFinal <- paste(c(apply(msgSemiFinal, 1, paste, collapse=""),""), collapse="\n") # "" at the end for new line.
+return(msgFinal)
 }
 # a=1, b="A,B", d=c(1,1)
 arg <- function(){
@@ -663,7 +705,7 @@ if(qc==0 && bc==0 && substr(txt,i,i)==",") {
 substr(txt,i,i) <- ";"
 }
 }
-write.table(txt,'clipboard',quote=FALSE,col.names=FALSE,row.names=FALSE,eol=""); cat("Converted string is in clipboard. Use Ctrl+V:\n",txt,"\n",sep="")
+write.table(txt,'clipboard',quote=FALSE,col.names=FALSE,row.names=FALSE,eol=""); message("Converted string is in clipboard. Use Ctrl+V:\n",txt,sep="")
 }
 save.packages <- function(){
 # This function saves all installed R-Packages to a file.
@@ -676,7 +718,7 @@ recover.R.installation <- function(){
 # Afterwards the Rprofile.site is edited, such that my own functions are loaded automatically when starting R.
 load(paste0(Sys.getenv("TMP"),"/R_Migration_Package_List.Rdata"))
 install.packages(pkg_list)
-cat("Packages installed!\n")
+message("Packages installed!")
 #txt <- scan(paste0(R.home("etc"),"/Rprofile.site"), what=character())
 if(.onHpdaPc()){
 txt <- readLines(paste0(R.home("etc"),"/Rprofile.site"))
@@ -684,14 +726,14 @@ txt <- txt[txt!=""]
 addtxt <- "fortunes::fortune(); source('//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/R/func/func.R')"
 if(txt[length(txt)]!=addtxt){
 write.table(c(txt,addtxt), paste0(R.home("etc"),"/Rprofile.site"), quote=FALSE, col.names=FALSE, row.names=FALSE, append=TRUE)
-cat("Rprofile.site updated!\n")
+message("Rprofile.site updated!")
 } else {
-cat("Rprofile.site was already up to date!\n")
+message("Rprofile.site was already up to date!")
 }
 } else {
-cat("Rprofile.site *NOT* updated because not Daniel's computer!\n")
+message("Rprofile.site *NOT* updated because not Daniel's computer!")
 }
-cat(paste0("Information: If you use RStudio and encounter a warning message like\n***\nIn dir.create(tempPath, recursive = TRUE) :\ncannot create dir '\\\\evdad.admin.ch\\AGROSCOPE_OS', reason 'Permission denied'\n***",
+message(paste0("Information: If you use RStudio and encounter a warning message like\n***\nIn dir.create(tempPath, recursive = TRUE) :\ncannot create dir '\\\\evdad.admin.ch\\AGROSCOPE_OS', reason 'Permission denied'\n***",
 "\nat every start of RStudio then you must edit the file  .../RStudio/R/modules/SessionProfiler.R  and delete delete the according line."))
 }
 list.all.package.functions <- function(package, all.names = FALSE, pattern) {
@@ -1024,6 +1066,7 @@ if(FALSE){
 x <- array(0, dim=c(5,5,2), dimnames=list(c("asdf1","asdf2","asdf3","asdf4","asdf5"),c("asdf1","asdf2","asdf3","asdf4","asdf5"),c("dim3.1", "dim3.2")))
 sep.sign=NA;sep.line=FALSE;keep.colnames=FALSE;keep.dim3names=FALSE
 d1im3.to.mat(x,sep.line=TRUE,sep.sign=NA,keep.colnames=TRUE,keep.dim3names=TRUE)
+d1im3.to.mat(list(a=matrix(1:10,ncol=2),b=matrix(11:20,ncol=2),NULL,c=matrix(21:30,ncol=2),NULL,a=matrix(31:40,ncol=2)))
 }
 dim3.to.mat <- function(x, sep.line=TRUE, sep.sign=NA, keep.colnames=TRUE, keep.dim3names=TRUE){
 # This function converts an array with 3 dimension to a matrix (with 2 dimensions).
@@ -1036,7 +1079,30 @@ dim3.to.mat <- function(x, sep.line=TRUE, sep.sign=NA, keep.colnames=TRUE, keep.
 # keep.colnames = Should the colnames be written into the result matrix as pseudo colnames above each sub-matrix? (logical)
 # keep.dim3names = Should the dimnames of the 3rd dimension be written into the rownames of the result matrix? (logical)
 
-if(length(dim(x))!=3) stop("x must be an array with 3 dimensions.")
+if(length(dim(x))!=3&!is.list(x))
+stop("x must be an array with 3 dimensions or a list.")
+if(is.list(x)){
+allDims <- do.call("rbind",lapply(x, function(x) {
+if(is.null(x))
+return(NULL)
+di=dim(x)
+if(is.null(di))
+stop ("There must be no list places with is.null(dim(x)).")
+return(di)
+}))
+apply(allDims, 2, function(x) if (any(x!=x[1])) stop("All list places must have the same dimensions."))
+xNew=array(NA,dim=c(allDims[1,],nrow(allDims)),dimnames=list(rownames(x[[1]]),colnames(x[[2]]),rownames(allDims)))
+nNull=0
+for (i in 1:length(x)) {
+if(is.null(x[[i]])){
+nNull=nNull+1
+next
+}
+xNew[,,i-nNull]=as.matrix(x[[i]])
+}
+x=xNew
+rm(xNew)
+}
 di=dim(x)
 cnx=colnames(x)
 ncx=ncol(x)
@@ -1208,6 +1274,7 @@ for(ii in 1:length(where)){
 if(where[[ii]]==1){
 inobject=c(what,inobject[1:length(inobject)])
 #} else if(where[[ii]]==length(inobject)) {
+#  inobject <- c(      inobject[1:length(inobject)], what)
 } else {
 inobject=c(inobject[1:(where[[ii]]-1)],what,inobject[where[[ii]]:length(inobject)])
 }
@@ -1225,8 +1292,14 @@ newlist[[1]]=what
 for(i in 1:length(inobject)) newlist[[i+1]] <- inobject[[i]]
 inobject=newlist
 #} else if(where[[ii]]==length(inobject)){
+#newlist <- inobject
+##if(is.list(what)) {
 ##  for(i in 1:length(what)) newlist[[i+length(inobject)]] <- what[[i]]
 ##} else {
+#newlist[[length(inobject)+1]] <- what
+##}
+#inobject <- newlist
+
 } else {
 for(i in 1:(where[ii]-1)) newlist[[i]] <- inobject[[i]]
 #  for(i in     1:length(what)    ) newlist[[i+(where[ii]-1)]]    <- what[[i]]
@@ -1244,6 +1317,7 @@ if(where[[ii]]==1){
 inobject=rbind(what,inobject[1:nrow(inobject),,drop=FALSE])
 rownames(inobject)[1] <- ""
 #} else if (where[[ii]]==nrow(inobject)) {
+#  inobject <- rbind(       inobject[1:nrow(inobject),,drop=FALSE], what )
 } else {
 inobject=rbind(inobject[1:(where[ii]-1),,drop=FALSE],what,inobject[where[ii]:nrow(inobject),,drop=FALSE])
 rownames(inobject)[where[[ii]]] <- ""
@@ -1256,6 +1330,7 @@ if(where[[ii]]==1){
 inobject=cbind(what,inobject[,1:nrow(inobject),drop=FALSE])
 colnames(inobject)[1] <- ""
 #} else if (where[[ii]]==ncol(inobject)) {
+#  inobject <- cbind(       inobject[,1:nrow(inobject),drop=FALSE], what  )
 } else {
 inobject=cbind(inobject[,1:(where[ii]-1),drop=FALSE],what,inobject[,where[ii]:ncol(inobject),drop=FALSE])
 colnames(inobject)[where[[ii]]] <- ""
@@ -1406,7 +1481,7 @@ rawResult[]=NA
 return(rawResult)
 }
 #data <- as.data.frame(matrix(1:15, ncol=3)); colnames(data) <- c("I(a+b)","a","b"); weights <- 1:5; index <- as.data.frame(matrix(c(2014,2014,2014,2015,2016,   1,2,2,1,1,   11,11,12,13,13),ncol=3)); calc.sum=FALSE; digits=NULL; na.rm=TRUE; edit.I.colnames=TRUE; del.I.help.columns=FALSE; I.help.columns=NULL; fixed.index=TRUE; index.of.result=c("2014_2_11","2014_1_11","0000_0_00"); index.sep="_"
-mean.weight <- function(data, weights=NULL, index=NULL, fixed.index=FALSE, index.of.result=NULL, index.sep="_", calc.sum=FALSE, digits=NULL, na.rm=TRUE, edit.I.colnames=TRUE, del.I.help.columns=FALSE, I.help.columns=NULL){
+mean.weight <- function(data, weights=NULL, index=NULL, cols=NULL, fixed.index=FALSE, index.of.result=NULL, index.sep="_", calc.sum=FALSE, digits=NULL, na.rm=TRUE, edit.I.colnames=FALSE, del.I.help.columns=FALSE, I.help.columns=NULL){
 # This function calculates the weighted mean of all variables in a possibly indexed data.frame or matrix.
 
 # Arguments
@@ -1436,21 +1511,33 @@ index <- .paste.elements(index, sep="_", errorMsg="All indices must have same le
 }
 isNullIndex=is.null(index)
 if(!is.list(index))index=list(index)
+if(!is.null(cols)){
+cols_add=extract.I.vars(cols,keep.only.necessary=TRUE)
+cols_mis=cols_add[!cols_add%in%colnames(data)]
+if(length(cols_mis)>0)
+stop(paste0("Some columns used in formulas like 'I(a/b)' are missing in data: ", paste0(cols_mis,sep=", ")))
+data=create.cols(data,cols)
+cols_all=c(cols,cols_add)
+data=data[,cols_all,drop=FALSE]
+} else {
+cols=colnames(data)
+cols_all=colnames(data)
+}
 if(!is.null(dim(data))){
 if(is.null(index)||length(index)==1){
 if(is.matrix(data)){
 if(nrow(data)==0) stop("nrow of data is 0.")
-result=apply(data,2,function(x)mean.weight(data=x,weights=weights,index=index,fixed.index=FALSE,index.of.result=index.of.result,index.sep=index.sep,calc.sum=calc.sum,digits=digits,na.rm=na.rm,edit.I.colnames=edit.I.colnames,del.I.help.columns=del.I.help.columns,I.help.columns=I.help.columns))
+result=apply(data[,cols_all,drop=FALSE],2,function(x)mean.weight(data=x,weights=weights,index=index,fixed.index=FALSE,index.of.result=index.of.result,index.sep=index.sep,calc.sum=calc.sum,digits=digits,na.rm=na.rm,edit.I.colnames=edit.I.colnames,del.I.help.columns=del.I.help.columns,I.help.columns=I.help.columns))
 } else if(is.data.frame(data)) {
 if(nrow(data)==0) stop("nrow of data is 0.")
-result=as.matrix(as.data.frame(lapply(data,function(x)mean.weight(data=x,weights=weights,index=index,fixed.index=FALSE,index.of.result=index.of.result,index.sep=index.sep,calc.sum=calc.sum,digits=digits,na.rm=na.rm,edit.I.colnames=edit.I.colnames,del.I.help.columns=del.I.help.columns,I.help.columns=I.help.columns)),stringsAsFactors=FALSE))
+result=as.matrix(as.data.frame(lapply(data[,cols_all,drop=FALSE],function(x)mean.weight(data=x,weights=weights,index=index,fixed.index=FALSE,index.of.result=index.of.result,index.sep=index.sep,calc.sum=calc.sum,digits=digits,na.rm=na.rm,edit.I.colnames=edit.I.colnames,del.I.help.columns=del.I.help.columns,I.help.columns=I.help.columns)),stringsAsFactors=FALSE))
 }
 if(is.null(dim(result))){
 result=t(as.matrix(result))
 if(!isNullIndex&&length(index)==1&&length(unique(index[[1]]))==1)
 rownames(result)=index[[1]][1]
 }
-colnames(result)=colnames(data)
+colnames(result)=cols_all
 # Konkret wird statt "weighted mean of ratio" das "ratio of weighted means" berechnet.
 cn.res=colnames(result)
 icols <- substr(cn.res,1,2)=="I("
@@ -1463,10 +1550,19 @@ result=result[rownames(result)%in%rownames(rawResult),,drop=FALSE]
 rawResult[match(rownames(result),rownames(rawResult)),]=result
 result=rawResult
 }
-if(nrow(result)==1&&isNullIndex)result=result[1,]
-return(result)
+if(edit.I.colnames){
+cols=.rm.I.from.names(cols)
+}
+if(nrow(result)==1&&isNullIndex){
+return(result[1,cols])
+} else {
+return(result[,cols,drop=FALSE])
+}
 } else if(length(index)==2) {
-res.prov=apply(data,2,function(x)mean.weight(data=x,weights=weights,index=index,calc.sum=calc.sum,digits=digits,na.rm=na.rm))
+# res1 <- mean.weight(data=data[,1], weights=weights, index=index, calc.sum=calc.sum, digits=digits, na.rm=na.rm)
+
+# Hier keine Fallunterscheidung zwischen matrix und data.frame einfuegen, sonst funktioniert es nicht!!
+res.prov=apply(data[,cols_all,drop=FALSE],2,function(x)mean.weight(data=x,weights=weights,index=index,calc.sum=calc.sum,digits=digits,na.rm=na.rm))
 if(class(res.prov)!="matrix") res.prov <- t(as.matrix(res.prov))
 res.list=list()
 su.index1=sort(unique(index[[1]]))
@@ -1475,7 +1571,7 @@ for(i in 1:ncol(res.prov)){
 res.list[[i]]=matrix(res.prov[,i],nrow=length(su.index1),ncol=length(su.index2))
 dimnames(res.list[[i]])=list(su.index1,su.index2)
 }
-names(res.list)=colnames(data)
+names(res.list)=cols_all
 # Konkret wird statt "weighted mean of ratio" das "ratio of weighted means" berechnet.
 cn.res=names(res.list)
 icols <- grepl("I\\(", cn.res)
@@ -1483,8 +1579,11 @@ if(any(icols)){
 if(!is.null(digits)) stop("When rounding (digts!=NULL) and using I() columns, the results might not be accurate")
 #if(any(cn.res%in%c("_","."))) stop("When using I() colnames _ and . are not allowed.")
 res.list=calc.I.cols(res.list,edit.I.colnames=edit.I.colnames,del.I.help.columns=del.I.help.columns,I.help.columns=I.help.columns)
+if(edit.I.colnames){
+cols=.rm.I.from.names(cols)
 }
-return(res.list)
+}
+return(res.list[cols])
 } else if(length(index)>2) {
 stop("more than 2 indexes not possible if data is a matrix/data.frame. Please enter data as vector.")
 }
@@ -1518,270 +1617,13 @@ result=rawResult
 if(!is.null(digits))result=round(result,digits)
 return(result)
 }
-#index="Reg"; inclusProbs="pik_w0"; weights="Gew_Calib"; dat=db[filtX(),]; Xs=Xs[filtX(),]
-#data=spa[filt_all,unique_form]; weights=spa[filt_all,"Gewicht"]; inclusProbs=spa[filt_all,"pik_w0"]; index=x[["vector"]][filt_all]; fixedIndex=TRUE; indexOfFixedResult=indexOfFixedResult; indexStrata=rep(1,sum(filt_all)); method="ht"; figure="halfLengthCI"; CIprob=0.975; na.rm=TRUE; edit.I.colnames=TRUE; CImultiplier=NULL; relativeToMean=TRUE
-#filt=spa[,"JAHR"]==2016; data=spa[filt,c("P430_0100_94000","P430_0100_94000")]; weights=spa[filt,"Gewicht"]; inclusProbs=spa[filt,"pik_w0"]; index=spa[filt,"ZATYP"]; fixedIndex=TRUE; indexOfFixedResult=c(11,12,21); indexStrata=rep(1,sum(filt)); method="ht"; figure="halfLengthCI"; CIprob=0.975; na.rm=TRUE; edit.I.colnames=TRUE; CImultiplier=NULL; relativeToMean=TRUE
-#filt=spa[,"JAHR"]==2016; variance.estimate(data=spa[filt,c("P430_0100_94000")], weights=spa[filt,"Gewicht"], inclusProbs=spa[filt,"pik_w0"], index=NULL, method="ht", figure="halfLengthCI", CIprob=0.975, na.rm=TRUE, edit.I.colnames=TRUE, CImultiplier=NULL, relativeToMean=TRUE) #spa[filt,"ZATYP"], fixedIndex=TRUE, indexOfFixedResult=c(11,12,21), indexStrata=rep(1,sum(filt)),
-variance.estimate_OLD <- function(data, weights, inclusProbs, index=NULL, indexStrata=NULL, fixedIndex=FALSE, indexOfFixedResult=NULL, indexSep="_",
-method=c("ht","calib"), figure=c("var","SE","halfLengthCI"), relativeToMean=FALSE, CIprob=NULL, CImultiplier=NULL, DFestimator=c("simple","satterthwaite"), Xs=NULL, na.rm=TRUE,
-edit.I.colnames=FALSE){
-# index =         the vector that contains the index for the aggregation level to be estimated. E.g. something like "region". If NULL, the calculation is done for the whole data.frame.
-#                 in this case you could specify: index=region, fixedIndex=TRUE, indexOfFixedResult=c("1","2","3"). Or if you want to display all permutations of region and type, also if they don't occur in the sample.
-# method =        "ht" for Horvith-Thompson method using VE.HT.Total.NHT{samplingVarEst}. "calib" for the calibration method using varest{sampling}
-# relativeToMean= if TRUE, then the calculated variance/SE/CI will be divided by the weighted mean. Use colnames like "I(a/b)" for ratio of mean figures. See also function mean.weight().
-# DFestimator =   the estimator to calculate the degrees of freedom if is.null(CImultiplier). CImultiplier is calculated from CIprob with assumed t-distribution. "simple" will use  df=n-(number of strata). "satterthwaite" will use the satterthwaite approximation
-# edit.I.colnames=if TRUE, then colnames like "I(a/b)" will be edited as "a/b" for the result. This is in accordance to the mean.weight() function.
-figure=match.arg(figure)
-method=match.arg(method)
-DFestimator=match.arg(DFestimator)
-if(is.list(data) && !is.data.frame(data)) stop("data must be matrix or data.frame but not a list.")
-isNullDimData=is.null(dim(data))
-if(isNullDimData||!is.data.frame(data)){
-namesOrig <- if(isNullDimData) names(data) else colnames(data)
-data=as.data.frame(data,stringsAsFactors=FALSE)
-} else {
-namesOrig=colnames(data)
-}
-stopifnot(length(inclusProbs)==nrow(data))
-stopifnot(length(weights)==nrow(data))
-if(!is.null(index)){
-if(!is.list(index)){
-stopifnot(length(index)==nrow(data))
-} else {
-lapply(index, function(x)if(length(x)!=nrow(data))stop("If index is a list, for all list entries must hold: length(index[[?]])==nrow(data)"))
-}
-}
-if(any(is.na(weights))) stop("There must be no NA values in weights.")
-if(any(is.na(inclusProbs))) stop("There must be no NA values in inclusProbs")
-if(figure=="halfLengthCI"){
-if( is.null(CImultiplier) &&  is.null(CIprob)) stop("Either CImultiplier or CIprob must be specified. E.g. CImultiplier=1.96 or CIprob=0.975")
-if(!is.null(CImultiplier) && !is.null(CIprob)) stop("Either specifiy CImultiplier or CIprob but not both.")
-if(!is.null(CImultiplier) && !is.null(index)) warning("If index is given, and some strata are small, the CImultiplier should be calculated for each iteration separately based on CIprob. Thus, CIprob should be specified, not CImultiplier.")
-if(!is.null(CIprob) && is.null(indexStrata)) stop("If CIprob is given, then indexStrata must be specified, such that the degrees of freedom can be calculated. If it isn't a stratified sample, then use indexStrata=rep(1,nrow(data)).")
-if(!is.null(CIprob)){
-if(CIprob < 0 || CIprob > 1) stop("CIprob must lie between 0 and 1. For both-sided 95% confidence, i.e. one-sided 97.5% confidence, choose 0.975.")
-}
-}
-calcCImultiplierFlag <- figure=="halfLengthCI" && !is.null(CIprob)
-isNullIndex=is.null(index)
-if(isNullIndex){
-index <- rep("", nrow(data))
-} else {
-if(any(is.na(index))) stop("There must be no NA values in index")
-}
-if(fixedIndex && is.null(indexOfFixedResult) && !is.list(index)) stop("fixedIndex & is.null(indexOfFixedResult) & !is.list(index)   -> fixedIndex doesn't have any effect this way. Give index as a list!")
-if(fixedIndex){
-rawResult=.prepare.fixed.index.result(data=data,index=index,names.result=indexOfFixedResult,index.sep=indexSep)
-index <- .paste.elements(index, sep=indexSep, errorMsg="All indices must have same length!")
-}
-if(method=="calib" && (is.null(dim(Xs)) || nrow(data)!=nrow(Xs))) stop("nrow(data) must be equal nrow(Xs)")
-levelBin <- apply( categ.to.bin(index, varname="var", sep="_"),2,function(x)as.logical(x) )
-var0=NULL
-for(i1 in 1:ncol(levelBin)) { # i1 <- 1
-if(sum(levelBin[,i1])<2){
-var1=rep(NA_integer_,ncol(data))
-names(var1)=colnames(data)
-} else {
-if(calcCImultiplierFlag && DFestimator=="simple")
-CImultiplier=.estStudentTmultiplier(prob=CIprob,indStr=indexStrata[levelBin[,i1]],y=NULL,w=NULL,simple=TRUE,na.rm=na.rm)
-var1=sapply(data,function(Ys){
-filt <- if(na.rm) which(levelBin[,i1] & !is.na(Ys)) else which(levelBin[,i1])
-if(length(filt)<2)return(NA_integer_)
-rawVar <- .varestSampling( Ys=Ys[filt], Xs=if(method=="calib") Xs[filt,,drop=FALSE] else NULL, pik=inclusProbs[filt], w=weights[filt] )
-if(calcCImultiplierFlag && DFestimator=="satterthwaite")
-CImultiplier=.estStudentTmultiplier(prob=CIprob,indStr=indexStrata[filt],y=Ys[filt],w=weights[filt],simple=FALSE,na.rm=na.rm)
-return(.calcVarStErrOrCI(rawVar=rawVar,w=weights[filt],figure=figure,CImultiplier=CImultiplier))
-})
-# Use mean.weight here, because then you can use column names like "I(a/b)" for mean of ratio variables.
-if(relativeToMean)var1=abs(var1/mean.weight(data=data[levelBin[,i1],,drop=FALSE],weights=weights[levelBin[,i1]],index=NULL,edit.I.colnames=FALSE,na.rm=na.rm))
-}
-var0=rbind(var0,var1)
-}
-if(is.null(dim(var0))){
-var0=t(as.matrix(var0))
-}
-rownames(var0) <- gsub("var_","",colnames(levelBin))
-if(fixedIndex){
-var0=var0[rownames(var0)%in%rownames(rawResult),,drop=FALSE]
-rawResult[match(rownames(var0),rownames(rawResult)),]=var0
-var0=rawResult
-}
-if(edit.I.colnames)namesOrig=.rm.I.from.names(namesOrig)
-if(isNullIndex&&!fixedIndex)rownames(var0)=NULL
-if(isNullDimData){
-rn1=rownames(var0)
-var0=var0[,1]
-names(var0)=rn1
-} else {
-colnames(var0)=namesOrig
-}
-return(var0)
-}
-.varestSampling <- function(Ys, Xs = NULL, pik, w = NULL) {
-# This function is a copy of the function sampling::varest(). It depends on the function MASS::ginv().
-# It is used inside the variance.estimate() function.
-
-if (any(is.na(pik)))  stop("there are missing values in pik")
-if (any(is.na(Ys)))  stop("there are missing values in Ys")
-if (length(Ys) != length(pik))  stop("Ys and pik have different sizes")
-if(!is.null(Xs)){
-if(is.data.frame(Xs))
-Xs=as.matrix(Xs)
-if (is.vector(Xs) & (length(Ys) != length(Xs)))  stop("Ys and Xs have different sizes")
-if (is.matrix(Xs) & (length(Ys) != nrow(Xs))) stop("Ys and Xs have different sizes")
-}
-a=(1-pik)/sum(1-pik)
-if(is.null(Xs)){
-A=sum(a*Ys/pik)
-var=sum((1-pik)*(Ys/pik-A)^2)/(1-sum(a^2))
-} else {
-B=t(Xs*w)
-beta=MASS::ginv(B%*%Xs)%*%B%*%Ys
-e=Ys-Xs%*%beta
-A=sum(a*e/pik)
-var=sum((1-pik)*(e/pik-A)^2)/(1-sum(a^2))
-}
-return(var)
-}
-.estStudentTmultiplier <- function(prob, indStr, y=NULL, w=NULL, simple=TRUE, na.rm=FALSE){
-# This function calculates the student t multiplier for a given probability. The degrees of freedom are calculated by simple method or satterthwaite approximation.
-# Arguments
-# prob =   probability
-# indStr = an index defining the strata
-# y =      variable of interest. Needed if !simple.
-# w =      weights. Needed if !simple.
-# simple = simple calculation or more sophisticated calculation using the satterthwaite approximation?
-
-df <- if(simple) length(indStr) - length(unique(indStr)) else .estSatterDf(y=y, w=w, indStr=indStr, na.rm=na.rm)
-#cat("df=",df, ", ", sep="")
-return(qt(prob,max(1,df)))
-}
-.estSatterDf <- function(y, w, indStr, na.rm=FALSE){
-# This function calculates the satterthwaite approximation of degrees of freedom.
-# Arguments
-# y =      variable of interest
-# w =      weights
-# indStr = an index defining the strata
-
-s2 <- tapply(y,indStr,var) # s^2 = var
-Nh=tapply(w,indStr,sum)
-nh=tapply(w,indStr,length)
-a=Nh*(Nh-nh)/nh
-if(length(Nh)==0) stop("indStr seems to contain only NA values.")
-if(any(is.na(s2))){
-if(na.rm){
-Nh=Nh[!is.na(s2)]
-nh=nh[!is.na(s2)]
-a=a[!is.na(s2)]
-s2=s2[!is.na(s2)]
-warning("There are strata with only 1 non-NA observation. In this case the satterthwaite approximation of degrees of freedom is impossible because var(Ys)==NA. Because na.rm==TRUE, these strata were dropped in order to estimate of the degrees of freedom.")
-} else {
-stop("There are strata with only 1 non-NA observation. In this case the satterthwaite approximation of degrees of freedom is impossible. If you specify na.rm==TRUE, then these stata will be ignored.")
-}
-}
-if(sum(a)==0) stop("If all(Nh==nh), in other words, If all(weights==1), then the satterthwaite approximation does not work.")
-return(sum(a*s2)^2/sum((a*s2)^2/(nh-1)))
-}
-.calcVarStErrOrCI <- function(rawVar, w, figure=c("var","SE","halfLengthCI"), CImultiplier){
-# Function to calculate variance, standard error or confidence interval on the level of the mean (not total population)
-# Arguments
-# rawVar =       the "raw" variance that should be further processed. rawVar can be calculated e.g. using sampling::varest().
-# w =            vector of weights
-# figure =       the figure to be calculated. Either "var"=variance, "SE"=standard error, "halfLengthCI"=half length of confidence interval.
-# CImultiplier = multiplier to calculate the confidence interval (CI)
-
-figure=match.arg(figure)
-if(figure=="halfLengthCI") { sqrt(rawVar)  /  sum(w) * CImultiplier
-} else if(figure=="SE")    { sqrt(rawVar)  /  sum(w)
-} else if(figure=="var")   {      rawVar   /  sum(w)^2 }
-}
-.calcVarStErrOrCI_NEW <- function(rawVar, w, figure=c("var","SE","halfLengthCI"), CImultiplier){
-# Function to calculate variance, standard error or confidence interval on the level of the mean (not total population)
-# Arguments
-# rawVar =       the "raw" variance that should be further processed. rawVar can be calculated e.g. using sampling::varest().
-# w =            vector of weights
-# figure =       the figure to be calculated. Either "var"=variance, "SE"=standard error, "halfLengthCI"=half length of confidence interval.
-# CImultiplier = multiplier to calculate the confidence interval (CI)
-
-figure=match.arg(figure)
-if(figure=="halfLengthCI") { sqrt(rawVar) * CImultiplier
-} else if(figure=="SE")    { sqrt(rawVar)
-} else if(figure=="var")   {      rawVar }
-}
-calcXsMultiLevel <- function(dat, optVarListMultiLevel){
-# This function calculates the Xs matrix that is needed for the calib{sampling} function if different variables should be calibrated for different aggregation levels.
-# E.g. you'd like to calibrate variable a on puplation level, but variable b only on regional level.
-# Arguments
-# dat =                  the data.frame/matrix that contains the variables that should be calibrated
-# optVarListMultiLevel = the variable list for different levels. The names of the list correspond to each level that should be calibrated.
-#                        inside each list place there must be a character vector that holds the variables to be calibrated. e.g. list(levelA=c("var1","var2"), levelB=c("var3"))
-
-if(!is.list(optVarListMultiLevel) || is.null(names(optVarListMultiLevel))) stop("optVarListMultiLevel must be a named list.")
-namesNotInColnames=names(optVarListMultiLevel)[!names(optVarListMultiLevel)%in%colnames(dat)]
-if(length(namesNotInColnames) > 0) stop(paste0("the names of optVarListMultiLevel must represent columns in dat. Some are not contained in colnames(dat):\n",paste0(namesNotInColnames,collapse=", ")))
-lapply(optVarListMultiLevel, function(x)if(!is.null(dim(x))) stop("In each list place of optVarListMultiLevel there must be a character vector."))
-varsNotInColnames=sort(unique(unlist(optVarListMultiLevel)[!unlist(optVarListMultiLevel)%in%colnames(dat)]))
-if(length(varsNotInColnames) > 0) stop(paste0("the values in each list place of optVarListMultiLevel must represent columns in dat. Some are not contained in colnames(dat):\n",paste0(varsNotInColnames,collapse=", ")))
-Xs=as.list(rep(0,length(optVarListMultiLevel)));names(Xs)=names(optVarListMultiLevel)
-specialCase=FALSE
-for(i in names(optVarListMultiLevel)){
-if(suppressWarnings(all(sort(unique(dat[,i]))==c(0,1)))){
-binInd=dat[,i,drop=FALSE]
-specialCase=TRUE
-} else {
-binInd=categ.to.bin(dat[,i])
-}
-# First multiplication is done "manually"
-indTimesVar=dat[,optVarListMultiLevel[[i]],drop=FALSE]*binInd[,1]
-if(ncol(binInd)>1) for(i2 in 2:ncol(binInd)) indTimesVar <- cbind(indTimesVar, dat[,optVarListMultiLevel[[i]],drop=FALSE]*binInd[,i2])
-Xs[[i]]=indTimesVar
-}
-if(specialCase) warning("Binary indexes (0,1) are directly multiplied with the calibration variables to calculate Xs. If you want to avoid this, use a categorial variable that starts with 1, not 0. -> E.g. use values 1 and 2.")
-return( as.matrix(do.call("cbind",Xs)) )
-}
-calibevE=function(Ys,Xs,total,pikl,d,g,q=rep(1,length(d)),with=FALSE,EPS=1e-06){
-if(any(is.na(g)))
-stop("There are missing values in g")
-stopifnot((ns=length(g))>=1)
-if(min(pikl)==0){
-ss=NULL
-warning("There are zero values in the 'pikl' matrix. The variance estimator can not be computed.\n")
-}
-piks=as.vector(diag(pikl))
-if(!checkcalibration(Xs,d,total,g,EPS)$result)
-stop("The calibration is not possible. The calibration estimator is not computed.\n")
-if(is.data.frame(Xs))
-Xs=as.matrix(Xs)
-if(!is.vector(Ys))
-Ys=as.vector(Ys)
-if(is.matrix(Xs))
-n=nrow(Xs)else
-n=length(Xs)
-if(ns!=length(Ys)|ns!=length(piks)|ns!=n|ns!=length(d))
-stop("The parameters have different sizes.\n")
-w=g*d
-wtilde=w*q
-B=t(Xs*wtilde)
-beta=ginv(B%*%Xs)%*%B%*%Ys
-e=Ys-Xs%*%beta
-if(!with)
-e=e*welse
-e=e*d
-ss=0
-for (k in 1:ns) {
-ss2=0
-for (l in 1:ns) ss2 = ss2 + (1 - piks[k] * piks[l]/pikl[k, l]) * e[l]
-ss=ss+e[k]*ss2
-}
-return(list(calest=sum(w*Ys),evar=as.numeric(ss),e=e))
-}
 #vars <- c("asd","efe+p", "c-1", "f*c", "a/ b", "A^B", "c,d", "a==b", "ifelse(a==b, 1, 2)")
 extract.I.vars <- function(vars, keep.original=FALSE, keep.only.necessary=TRUE){
 # This function extracts all Variables in a I(a+b*c) formula seperately. This is useful in combination with the function mean.weight()
 vars_all <- vars[grep("\\(|\\)|\\-|/|\\*|\\+|\\^|,|=|ifelse",vars)]
 vars_all <- unlist(strsplit(vars_all,"-|/|\\*|\\+|\\^|,|=|ifelse"))
 vars_all <- gsub("I\\(|\\(|\\)| ","",vars_all)
-vars_all <- unique(vars_all[!vars_all%in%c("")])
+vars_all <- unique(vars_all[vars_all!=""])
 vars_all=vars_all[is.na(suppressWarnings(as.numeric(vars_all)))]
 if(keep.only.necessary)vars_all=vars_all[!vars_all%in%vars]
 if(keep.original)vars_all=unique(c(vars,vars_all))
@@ -2190,12 +2032,18 @@ if(!is.null(dim(INDICES)))INDICES=paste.cols(INDICES,colnames(INDICES))
 if(length(INDICES)!=nrow(data)) stop("INDICES must have the same number of elements as data has rows. Do not enter colnames here, but vectors instead.")
 # An additional function has to be definded that add will add the "order column" with content=1:nrow(x) and col number=ncol(x) to the result.
 res=by(data[,relevantColnames,drop=FALSE],INDICES,FUN)
-if(!is.null(dim(res[[1]]))) res <- do.call("rbind",res) else {
+if(!is.null(dim(res[[1]]))){
+res <- do.call("rbind",res)
+} else if (is.list(res)) {
 res <- matrix(do.call("c",res)); colnames(res) <- "byResult"
-if(showWarnings) cat("The resulting column was named 'byResult' because FUN returned a vector without dimensions.\n")
+if(showWarnings) message("The resulting column was named 'byResult' because FUN returned a vector without dimensions.")
+} else {
+res <- matrix(res); colnames(res) <- "byResult"
+print(res)
+if(showWarnings) message("The resulting column was named 'byResult' because FUN returned a vector without dimensions.")
 }
 tapplyOrder=unname(unlist(tapply(1:length(INDICES),INDICES,function(x)return(x))))
-if(length(tapplyOrder)!=nrow(res)) stop("The result given by FUN does not containt all rows of the initial data.frame. Please check FUN and correct it.")
+if(length(tapplyOrder)!=nrow(res)) stop("The result given by FUN does not contain all rows of the initial data.frame. Please check FUN and correct it.")
 res=res[order(tapplyOrder),
 !colnames(res)%in%relevantColnames,drop=FALSE]
 if(ncol(res)==0) stop("The colnames of the result must not be named like relevantColnames, otherwise they are deleted and not returned.")
@@ -2300,7 +2148,7 @@ transl.mm <- function(x, gsub=FALSE, excel.format=FALSE){
 # Wenn excel.forma=TRUE wird davor noch ein Abstand gemacht, falls am Anfang ein Rechenoperations-Zeichen steht.
 
 if(!exists("transmm_list", envir=globalenv())) {
-cat("Reading in translation...\n")
+message("Reading in translation...")
 transmm_list <<- as.matrix(read.table(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/4/3/4285/MML/Berechn_Uebersetz_in_R/Data/Data_out/MML_Namen_Nummern_full.txt"), sep="\t", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA")))
 if(any(duplicated(transmm_list[,"number"]))){
 transmm_list_dupl <- transmm_list[ duplicated( transmm_list[,"number"] ) | duplicated( transmm_list[,"number"], fromLast=TRUE ) ,];
@@ -2676,8 +2524,8 @@ if(length(opt_val_le)!=ncol(A)) stop("length(opt_val_le) != ncol(A)")
 }
 library(clpAPI)
 if(maximize) minmax <- (-1) else minmax <- 1
-lp=initProbCLP()
-setObjDirCLP(lp,minmax)
+lp <- initProbCLP() # Create LP object
+setObjDirCLP(lp, minmax) # 1 for minimization. -1 for maximization.
 nrows=nrow(A);ncols=ncol(A)
 rlower=LHS_ge
 rupper=LHS_le
@@ -3051,7 +2899,7 @@ if(length(worked.fil)>0){
 warning("Not all directories could be renamed. See function output.", call.=FALSE)
 return(worked.fil)
 } else {
-cat("All directories with occurencies successfully renamed.\n")
+message("All directories with occurencies successfully renamed.")
 }
 }
 }
@@ -3075,7 +2923,7 @@ if(length(worked.fil)>0){
 warning("Not all files could be renamed. See function output.", call.=FALSE)
 return(worked.fil)
 } else {
-cat("All files with occurencies successfully renamed.\n")
+message("All files with occurencies successfully renamed.")
 }
 }
 }
@@ -3266,6 +3114,8 @@ outliers=p.chisq>1-p.val
 if(make.plot) {plot(sort(p.chisq), main=paste0("Mahalanobis outliers,\nmethod=\"chisq\", p.val=",p.val) ); drawLegend(); abline(h=1-p.val)}
 warning("Attention! By choosing method='chisq' you assume that all variables follow a normal distribution.")
 } else if(method=="absMahaDistIncrease"){
+# Order data according to mahalanobis distance
+#Sort & resort works like this: maha1 <- c(1,3,2,10,5,0); om <- order(maha1); oMaha <- maha1[om]; dput(oMaha[order(om)])
 om=order(maha)
 oMaha=unname(maha[om])
 # Calculate the differences between ordered mahalanobis distances. Where the difference is larger than a certain quantile, it's a potential outlier.
@@ -3930,14 +3780,14 @@ if(any(id1.double)|any(id2.double)){
 prov.return=list()
 if(check.duplicated&any(id1.double)){
 stop("There are duplicated IDs in id1")
-cat("There are duplicated IDs in id1. See function output and return one of each pair.\n")
+message("There are duplicated IDs in id1. See function output and return one of each pair.")
 prov.return$which.id1.duplicated=which(id1%in%id1[id1.double])
 prov.return$id1=id1[prov.return$which.id1.duplicated]
 prov.return$df1=data.frame(id1=id1[prov.return$which.id1.duplicated],df1[prov.return$which.id1.duplicated,,drop=FALSE],stringsAsFactors=stringsAsFactors)
 }
 if(check.duplicated&any(id2.double)){
 stop("There are duplicated IDs in id2")
-cat("There are duplicated IDs in id2. See function output and return one of each pair.\n")
+message("There are duplicated IDs in id2. See function output and return one of each pair.")
 prov.return$which.id2.duplicated=which(id2%in%id2[id2.double])
 prov.return$id2=id2[prov.return$which.id2.duplicated]
 prov.return$df2=data.frame(id2=id2[prov.return$which.id2.duplicated],df2[prov.return$which.id2.duplicated,,drop=FALSE],stringsAsFactors=stringsAsFactors)
@@ -4280,7 +4130,7 @@ index=index/mean.year1
 index=index/index[names(index)==baseyear]
 }
 }
-if(any(is.na(index)) & geometric) cat("Note that the geometric mean can only be calculated if all numbers are positive.\n")
+if(any(is.na(index)) & geometric) message("Note that the geometric mean can only be calculated if all numbers are positive.")
 return(index)
 }
 #x <- rnorm(100); selection.levels <- 0.1; method=c("<= x <", "< x <=")[1]; include.min.max=TRUE; give.names=TRUE
@@ -4838,8 +4688,8 @@ load.spa <- function() {
 pfad1 <- paste0(.dataFolder(),"SpE.RData")
 pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4276/alldata/SpE.RData"
 pfad <- if(file.exists(pfad1)) pfad1 else pfad2
-cat("Daten werden aus folgendem Verzeichnis geladen:\n")
-cat(pfad, "\n", sep="")
+message("Daten werden aus folgendem Verzeichnis geladen:")
+message(pfad)
 spa=load2(pfad)
 if(TRUE){
 BHJ=2017
@@ -4852,7 +4702,13 @@ ausschlussList <- read.table(paste0("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/2/4
 id_ok <- as.numeric( plauslist[ plauslist[,"DB_einlesen"]=="Ja" & !plauslist[,"Betriebsnummer"]%in%ausschlussList[,"REK_ID"] ,"Betriebsnummer"] )
 id_not_in_DB <- sort(id_ok[ !id_ok%in%spa[spa[,"JAHR"]==BHJ,"REK_ID"] ])
 if(length(id_not_in_DB)>0){
-dat <- read.table(paste0("//art-settan-1000.evdad.admin.ch/ZAMAIN/ZADaten/SpE/ErhbogTxtExport/nichtVerkn/B",BHJ,"/ID_nVerkn_B",BHJ,".csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
+notVerknFile <- paste0("//art-settan-1000.evdad.admin.ch/ZAMAIN/ZADaten/SpE/ErhbogTxtExport/nichtVerkn/B",BHJ,"/ID_nVerkn_B",BHJ,".csv")
+if(!file.exists(notVerknFile))
+stop (paste0("Es scheinen Betriebe in der Datbenbank zu fehlen, aber laut dem Verknuepfungsprozess ist dieser Fehler nicht aufgetreten. Das folgende File fehlt:\n",
+notVerknFile, "\n",
+msgBox("BITTE R NEU STARTEN UND NOCHMAL VERSUCHEN"),
+"\nDie Daten muessen wahrscheinlich erst auf die lokale Festplatte kopiert werden!"))
+dat <- read.table(notVerknFile, sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
 id_not_verkn=sort(dat[dat[,1]%in%id_not_in_DB,1])
 if(length(id_not_in_DB)!=length(id_not_verkn)||any(id_not_in_DB!=id_not_verkn)){
 warning(paste0("Es gibt Betriebe, die laut OTRS-Liste eigentlich in die Datenbank gehoeren. Sie sind aber nicht im Datensatz drin! Anbei die REK_IDs:\n",
@@ -4865,7 +4721,7 @@ files <- list.files(paste0("//art-settan-1000.evdad.admin.ch/ZAMAIN/ZADaten/SpE/
 files <- unique(files[substr.rev(files,1,4)==".txt"])
 files <- lapply(strsplit(files,"/"),function(x)x[length(x)])
 files=substr(files,13,19)
-cat("Diese IDs kommen nicht in den Rohdaten-Files vor:\n")
+message("Diese IDs kommen nicht in den Rohdaten-Files vor:")
 print(id_not_in_DB[!id_not_in_DB%in%files])
 }
 }
@@ -4881,22 +4737,30 @@ return(spa)
 load.spe=load.spa
 load.spe.pers <- function(){
 pfad <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4276/Personen/SpE_Personen_Indexiert.RData"
-cat("Daten werden aus folgendem Verzeichnis geladen:\n")
-cat(pfad, "\n", sep="")
+message("Daten werden aus folgendem Verzeichnis geladen:")
+message(pfad)
+return(load2(pfad))
+}
+load.spe.gb <- function() {
+pfad1 <- paste0(.dataFolder(),"SpE_GB_Einzel.RData")
+pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4276/GB_Einzel/SpE_GB_Einzel.RData"
+pfad <- if(file.exists(pfad1)) pfad1 else pfad2
+message("Daten werden aus folgendem Verzeichnis geladen:")
+message(pfad)
 return(load2(pfad))
 }
 load.spb <- function() {
 pfad1 <- paste0(.dataFolder(),"SpB.RData")
 pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4275/alldata/SpB.RData"
 pfad <- if(file.exists(pfad1)) pfad1 else pfad2
-cat("Daten werden aus folgendem Verzeichnis geladen:\n")
-cat(pfad, "\n", sep="")
+message("Daten werden aus folgendem Verzeichnis geladen:")
+message(pfad)
 return(load2(pfad))
 }
 load.spb.pers <- function(){
 pfad <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4275/Personen/SpB_Personen_Indexiert.RData"
-cat("Daten werden aus folgendem Verzeichnis geladen:\n")
-cat(pfad, "\n", sep="")
+message("Daten werden aus folgendem Verzeichnis geladen:")
+message(pfad)
 return(load2(pfad))
 }
 load.gb <- function() {
@@ -4904,18 +4768,18 @@ pfad1 <- paste0(.dataFolder(),"GB.RData")
 pfad2 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4273/GB/GB.RData"
 pfad3 <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/2/3583/Resultate/00-00-00_Zusatzdaten/Grundlagenbericht_RefB/GB.RData"
 pfad <- if(file.exists(pfad1)) pfad1  else if(file.exists(pfad2)) pfad2 else if(file.exists(pfad3)) pfad3 else stop("You don't have permission to load this data set.")
-cat("Daten werden aus folgendem Verzeichnis geladen:\n")
-cat(pfad, "\n", sep="")
+message("Daten werden aus folgendem Verzeichnis geladen:")
+message(pfad)
 load(pfad)
-cat("**********\nGewichte in Jahr 2015 sind immer 1, da ab dann SpE die offizielle Stichprobe ist.\n**********\n")
+message("**********\nGewichte in Jahr 2015 sind immer 1, da ab dann SpE die offizielle Stichprobe ist.\n**********")
 return(gb)
 }
 load.agis <- function(year=2015){
 pfad1 <- paste0(.dataFolder(),"AGIS/AGIS_BFS_",year,".RData")
 pfad2 <- paste0("//art-settan-1000.evdad.admin.ch/ZAMAIN/ZADaten/AGIS/",year,"/AGIS_BFS_",year,".RData")
 pfad <- if(file.exists(pfad1)) pfad1 else pfad2
-cat("Daten werden aus folgendem Verzeichnis geladen:\n")
-cat(pfad, "\n", sep="")
+message("Daten werden aus folgendem Verzeichnis geladen:")
+message(pfad)
 return(load2(pfad))
 }
 load.cost <- function(years=2014, ignore_P_cols=TRUE, non_aggr=FALSE, filter_expression=NULL, parentDir=NULL){
@@ -4950,8 +4814,8 @@ for(i in 1:length(years)) {
 pfad1 <- paste0(parentDir,"/",years[i],fileName)
 if(!file.exists(pfad1)) stop(paste("The file does not exist. You might have chosen the wrong parentDir.",
 "The following folders/files are available:", paste0(list.files(parentDir,full.names=TRUE),collapse="\n") ,sep="\n"))
-if(is.null(cost1)) cat("Daten werden aus folgendem Verzeichnis geladen:\n")
-cat(pfad1, "\n", sep="")
+if(is.null(cost1)) message("Daten werden aus folgendem Verzeichnis geladen:")
+message(pfad1)
 cost=load2(pfad1)
 if(!is.null(filter_expression)){
 cost=eval(filter_expression)
@@ -5014,7 +4878,7 @@ return(res)
 #res <- dat[dat[,"ID"]%in%id,c("ID","ID_unverschluesselt")]
 }
 #folder <- "P:/_ZA/Ref/Data/Grundlagenbericht/"; filenames=NULL;extra_filename=NULL; update.files=FALSE; save.file=TRUE; save.name="GB"; filetype=c("csv"); NAto0=TRUE; header=TRUE; colnamesrow=1; skiprows=colnamesrow+1
-merge.gb <- function(folder, filenames=NULL,extra_filename=NULL, update.files=FALSE, save.file=TRUE, save.name="GB", filetype=c("csv"), NAto0=TRUE, header=TRUE, colnamesrow=1, skiprows=colnamesrow+1, ...){
+merge.gb <- function(folder, filenames=NULL, extra_filename=NULL, update.files=FALSE, save.file=TRUE, save.name="GB", filetype=c("csv"), NAto0=TRUE, header=TRUE, colnamesrow=1, skiprows=colnamesrow+1, idCol="ID", yearCol="Jahr", ...){
 # Grundlagenbericht importieren, indem die 6 csv Files nach der Vorlage der BO-Extraktionen "GB_A_Einzel, ..." eingelesen und aneinander gebunden werden.
 # F?r aus BO exportierte csv die Einstellung colnamesrow=5 und skiprows=6 beibehalten.
 # Wenn die csv-Datei schon mit colname ist, colnamesrow=1 und skiprows=1 einstellen.
@@ -5029,12 +4893,10 @@ cat("Reading in files...\n")
 for(i in 1:length(fullnames)) {
 if(header){
 gb <- read.csv(paste(fullnames[i],".csv",sep=""), sep=";", stringsAsFactors=FALSE, header=TRUE, na.strings=c("NA","","#DIV/0","#DIV/0!", "#WERT", "#WERT!"))
-xvector <- c("X",paste("X.",1:30,sep=""))
-na.cols=colnames(gb)%in%xvector
-gb=gb[,!na.cols]
-if(colnames(gb)[1]!="ID")
-if(colnames(gb)[1]=="X.ID") colnames(gb)[1] <- "ID" else stop("The first colname of the imported file is not ID or ?ID.")
+gb <- gb[,!grepl("^X(\\.[0-9]+)?$", colnames(gb))] # Kill NA columns like "X", "X.1", etc.
+if(colnames(gb)[1]=="X.ID") colnames(gb)[1] <- "ID"
 } else {
+stop ("2018-07-09, hpda: I think, the default argument skiprows=colnamesrow+1 is wront and should be identical to colnamesrow. -> skiprows=colnamesrow.")
 headers <- read.csv(paste(fullnames[i],".csv",sep=""), sep=";", nrows=colnamesrow, stringsAsFactors=FALSE, header=FALSE, na.strings=c("NA","","#DIV/0","#DIV/0!", "#WERT", "#WERT!"))
 headers=as.character(headers[colnamesrow,])
 na.cols <- headers=="NA"
@@ -5042,8 +4904,7 @@ headers=headers[!na.cols]
 gb <- read.csv(paste(fullnames[i],".csv",sep=""), sep=";", skip=skiprows, stringsAsFactors=FALSE, header=FALSE, na.strings=c("NA","","#DIV/0","#DIV/0!", "#WERT", "#WERT!"))
 gb=gb[,!na.cols]
 colnames(gb)=headers
-if(colnames(gb)[1]!="ID")
-if(colnames(gb)[1]=="X.ID") colnames(gb)[1] <- "ID" else stop("The first colname of the imported file is not ID or ?ID.")
+if(colnames(gb)[1]=="X.ID") colnames(gb)[1] <- "ID"
 }
 gb=gb[!is.na(gb[,1]),]
 char.cols=!sapply(gb,function(x)is.numeric(x))
@@ -5074,22 +4935,25 @@ cat(filenames[i], "complete\n")
 nrows <- do.call("c",lapply(gb.list,function(x)nrow(x)))
 if(any(nrows!=nrows[1]))  stop(paste0("Not the same year-filters were selected in the different csv files. You created an unbalanced panel.\n ",
 paste(paste(filenames, nrows, sep=": "),collapse="\n ")))
-gb.names <- do.call("rbind",lapply(gb.list,function(x)colnames(x)[1:2]))
-if(any(c(gb.names[,1]!="ID", gb.names[,2]!="Jahr"))) stop("The first two columns of each Excel file must contain the ID and the accounting year. Names must be 'ID' and 'Jahr'")
+#gb.names <- do.call("rbind",lapply(gb.list,function(x)colnames(x)[1:2]))
+#if(any(c(gb.names[,1]!=idCol, gb.names[,2]!=yearCol))) stop("The first two columns of each Excel file must contain the ID and the accounting year. Names must be 'ID' and 'Jahr'")
+lapply(gb.list,function(x){
+if(!all(c(idCol,yearCol)%in%colnames(x))) stop("All excel files must contain the columns called like the arguments 'idCol' and 'yearCol' (in order to merge them).")
+})
 orders=list()
 for(i in 1:length(gb.list)){
-orders[[i]] <- match(gb.list[[i]][,"ID"],gb.list[[1]][,"ID"])
+orders[[i]]=match(paste.cols(gb.list[[1]][,c(idCol,yearCol)]),
+paste.cols(gb.list[[i]][,c(idCol,yearCol)]))
 }
-orders <- do.call("rbind",orders)
-if(any(!apply(orders,2,function(x)all(x==x[i])))){
+orders <- do.call("rbind",orders) # orders[1:nrow(orders), 1:10]
 for(i in 1:length(gb.list)) {
-gb.list[[i]]=gb.list[[i]][orders[1,],]
-}
+gb.list[[i]]=gb.list[[i]][orders[i,],]
+if (!all(gb.list[[1]][,c(idCol,yearCol)] == gb.list[[i]][,c(idCol,yearCol)]))  # cbind( gb.list[[1]][,c("Betrieb","Jahr")], gb.list[[i]][orders[i,],c("Betrieb","Jahr")] )
+stop ("Internal matching error.")
 }
 cat("IDs checked...\n")
-# "ID" Spalte wird von allen, ausser der ersten Tabelle entfernt.
 for(i in 2:length(gb.list)) {
-gb.list[[i]] <- gb.list[[i]][,!colnames(gb.list[[i]])%in%c("ID","Jahr")]
+gb.list[[i]]=gb.list[[i]][,!colnames(gb.list[[i]])%in%c(idCol,yearCol)]
 }
 if(update.files){
 cat("Updating files (0 --> NA)...\n")
@@ -5136,7 +5000,7 @@ gb.list <- cbind(gb.list[, 1:which(colnames(gb.list)%in%"Kanton") ],
 "Kanton2"=kanton_names,
 gb.list[, (which(colnames(gb.list)%in%"Kanton")+1):ncol(gb.list) ], stringsAsFactors=FALSE)
 }
-uml0 <- c("?", "?", "?", "?", "?", "?")
+uml0 <- c("Ä", "Ö", "Ü", "ä", "ö", "ü")
 uml1 <- c("Ae","Oe","Ue","ae","oe","ue")
 for(i in 1:length(uml0)){
 colnames(gb.list)=gsub(uml0[i],uml1[i],colnames(gb.list))
@@ -5151,7 +5015,7 @@ if(any(filenames%in%save.name)) save.path <- paste(folder,save.name, "2.RData",s
 save(gb,file=save.path)
 }
 invisible(gb)
-cat("Job done!")
+cat("Job done!\n")
 }
 #filepath <- paste0(pfad,"Auswertung_Abschr_lang.csv")
 repair.csv <- function(filepath, header=TRUE, remove.middle.rows.cols=FALSE, save.file=TRUE, print.info=TRUE, ...){
@@ -5230,7 +5094,7 @@ if( tolower(substr.rev(path,1,6))==".rdata" ) path <- substr(path,1,nchar(path)-
 if(is.null(dat)){
 dat <- read.csv(paste0(path, ".csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("","NA","na","NULL","null","#DIV/0","#DIV/0!","#WERT","#WERT!"))
 } else {
-cat("Argument 'dat=' was given. Reading in no new data but directly using 'dat' from workspace!\n")
+message("Argument 'dat=' was given. Reading in no new data but directly using 'dat' from workspace!")
 }
 if(colnames(dat)[1]=="X.ID") colnames(dat)[1] <- "ID"
 if(clean.dat.columns)dat=clean.data.columns(dat,...)
@@ -5527,6 +5391,7 @@ if(file.exists(file)){
 timeAccuracy=match.arg(timeAccuracy)
 timeSubstr <- if(timeAccuracy=="s") 19 else if(timeAccuracy=="m") 16 else if(timeAccuracy=="h") 13 else if(timeAccuracy=="d") 10
 timeExt <- if(timeAccuracy=="s") "" else if(timeAccuracy=="m") "m" else if(timeAccuracy=="h") "h" else if(timeAccuracy=="d") ""
+# Split filename into Parts
 path=splitFileNameIntoParts(file)
 path[path[,"extension"]!="","extension"] <- paste0(".",path[path[,"extension"]!="","extension"])
 pathBak <- paste0(path[,"dir"],"/",backupSubFolder,"/")
@@ -5595,7 +5460,7 @@ sign[is.na(sign)& cors<0]   <-  "   "
 } else {
 sign[is.na(sign) & cors>=0] <- "????"
 sign[is.na(sign)& cors<0]   <-  "???"
-cat("Export the table as .csv to Excel, then replace ? by Alt+255\n")
+message("Export the table as .csv to Excel, then replace ? by Alt+255\n")
 }
 comb=paste(sign,cors)
 print.table=matrix(comb,nrow=ncol(data),ncol=ncol(data),dimnames=list(colnames(cors),rownames(cors)))
@@ -5904,6 +5769,7 @@ plm.within.between <- function(data, index=NULL, randomEffects=NULL, Y, timeVari
 require.package(lme4)
 require.package(plm)
 require.package(lmerTest)
+require.package(MuMIn)
 if(!is.data.frame(data)||is.matrix(data))
 stop("data must be a data.frame/matrix. The conversion to pdata.frame is done automatically within the function.")
 if(length(Y)>1)
@@ -5920,7 +5786,7 @@ if(length(index)!=2)
 stop("index must be a character vector of length 2 describing the columns to identify the individuum (index[1]) and year (index[2]) in data.")
 randomEffects=index[1]
 } else {
-cat("Because index was not specified (is NULL) the fixed effects model will not be calculated.\n")
+message("Because index was not specified (is NULL) the fixed effects model will not be calculated.")
 }
 if(!is.data.frame(data))
 data=as.data.frame(data)
@@ -5951,7 +5817,7 @@ tabEff=table(chEff)
 m1=match.multiple.id.left(chEff,names(tabEff))
 weights[m1[,"left"]] <- weights[m1[,"left"]] / tabEff[m1[,"right"]]
 }
-cat("*** Important information: The weights were set inversely proportional to the occurences of observations in each level (cumulative). If you want to prevent this behaviour, then specify weights as rep(1,nrow(data)).")
+message("*** Important information: The weights were set inversely proportional to the occurences of observations in each level (cumulative). If you want to prevent this behaviour, then specify weights as rep(1,nrow(data)).")
 }
 pre.plm.data.transformation <- function(data, timeVariantX, effects){
 # Prepare some things before the loop over effects.
@@ -6068,11 +5934,14 @@ rownames(suRes))
 if(any(is.na(toRows)))
 stop(paste0("After formatting the I() colnames, they do not fit to the original ones. Please adapt the original ones like this:", paste0(rownames(su1[[i]][["coefficients"]])[is.na(toRows)],collapse=", ")))
 toCols=which(colnames(suRes)==i)
-if ("summary.plm"%in%class(su1[[i]]))
+if ("summary.plm"%in%class(su1[[i]])) {
 suRes[rRows,toCols+1]=unname(round(c(su1[[i]]$r.squared,su1[[i]]$fstatistic$p.value),3))
+} else if ("lmerMod"%in%class(mod1[[i]])) {
+suRes[rRows[1],toCols+1] <- unname(r.squaredGLMM(mod1[[i]])["R2m"])
+}
 toCols=toCols:(toCols+1)
 if (!"Pr(>|t|)"%in%colnames(su1[[i]][["coefficients"]])){
-stop("The summary calculated for the lmer models is erroreous. Please detach lme4, plm and lmerTest and run the function again, i.e. execute this code:\n",
+stop("The summary calculated for the lmer models is erroreous. Please detach lme4, plm and lmerTest and run the function again, i.e. execute this code (before running the function again):\n",
 'detach("package:lmerTest"); detach("package:lme4"); detach("package:plm")')
 }
 suRes[toRows,toCols] <- su1[[i]][["coefficients"]][,c("Estimate","Pr(>|t|)")]
@@ -6099,11 +5968,14 @@ return(res)
 }
 summary.plm.within.between <- function(x, digits=2, signif=FALSE){
 ov <- x[["overview"]]
-if(!is.null(digits)){
-roundFunc <- if(signif) match.fun("signif") else match.fun("round")
-ov[,(1:ncol(ov))%%2==1]=apply(ov[,(1:ncol(ov))%%2==1],2,function(x)roundFunc(x,2))
+signifC <- function(x, digits) {
+formatC(signif(x, digits=digits), digits=digits,format="fg", flag="#")
 }
-return(as.matrix(ov))
+if(!is.null(digits)){
+roundFunc <- if(signif) signifC else match.fun("round")
+ov[,(1:ncol(ov))%%2==1]=lapply(ov[,(1:ncol(ov))%%2==1],function(x)roundFunc(x,2))
+}
+return(ov)
 }
 print.plm.within.between <- function(x, quote=FALSE, na.print="", digits=2, signif=FALSE, ...){
 ov=summary(x,digits=digits,signif=signif)
@@ -6689,8 +6561,10 @@ look=looki&lookj
 ok=look&sig.true
 # Wenn die gew?hlte Kombination signifikant ist, wird ein " " gesetzt, sonst der Buchstabe
 if(any(ok)) mat[j,i-count.auslassen] <- " " else mat[j,i-count.auslassen] <- char[i-count.auslassen]
+# Zur Kontrolle:
 # cat("###\ni= ",i,"\ngrouping= ",ranking[i],"\n")
 # cat("j= ",j,"\n")
+# print(mat)
 }
 mat[ranking[i],i-count.auslassen]=char[i-count.auslassen]
 if(i>1) mat[ranking[1:(i-1)],i-count.auslassen] <- " "
@@ -6909,8 +6783,10 @@ look=looki&lookj
 ok=look&sig.true
 # Wenn die gew?hlte Kombination signifikant ist, wird ein " " gesetzt, sonst der Buchstabe
 if(any(ok)) mat[j,i-count.auslassen] <- " " else mat[j,i-count.auslassen] <- char[i-count.auslassen]
+# Zur Kontrolle:
 # cat("###\ni= ",i,"\ngrouping= ",ranking[i],"\n")
 # cat("j= ",j,"\n")
+# print(mat)
 }
 mat[ranking[i],i-count.auslassen]=char[i-count.auslassen]
 if(i>1) mat[ranking[1:(i-1)],i-count.auslassen] <- " "
@@ -7016,8 +6892,10 @@ look=looki&lookj
 ok=look&sig.true
 # Wenn die gew?hlte Kombination signifikant ist, wird ein " " gesetzt, sonst der Buchstabe
 if(any(ok)) mat[j,i-count.auslassen] <- " " else mat[j,i-count.auslassen] <- char[i-count.auslassen]
+# Zur Kontrolle:
 # cat("###\ni= ",i,"\ngrouping= ",ranking[i],"\n")
 # cat("j= ",j,"\n")
+# print(mat)
 }
 mat[ranking[i],i-count.auslassen]=char[i-count.auslassen]
 if(i>1) mat[ranking[1:(i-1)],i-count.auslassen] <- " "
@@ -7385,4 +7263,4 @@ qqnorm(dat,pch=20,main=paste0(variables[i], "  ->  use:", mt[i]))
 qqline(dat)
 }
 }
-cat("**********************************************************************\nFunctions loaded\n**********************************************************************\n")
+message("**********************************************************************\nFunctions loaded\n**********************************************************************")
