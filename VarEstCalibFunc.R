@@ -1,7 +1,7 @@
 # ***************************************
 # Title:   Functions to estimate the variance (imprecision) of estimators based on random samples
 # Authors: Daniel Hoop, Swetlana Renner
-# Version: 2018-07-21
+# Version: 2018-07-23
 # ***************************************
 
 # Description of package
@@ -40,7 +40,7 @@ variance.estimate <- function(data, cols=NULL, weights, inclusProbs, index=NULL,
   #                   in this case you could specify: index=region, fixedIndex=TRUE, indexOfFixedResult=c("1","2","3"). Or if you want to display all permutations of region and type, also if they don't occur in the sample.
   #                   then specify something like fixedIndex=TRUE, index=list(region, type)
   # method =          "ht" for Horvith-Thompson method. "calib" for the calibration method using varest{sampling}
-  # figure =          the figure to be calculated. var=variance, stErr=standard error, CI=confidence interval
+  # figure =          the figure to be calculated. var=variance, SE=standard error, halfLengthCI=half length of confidence interval, pValue=probability value, cor=correlation
   # relativeToMean =  if TRUE, then the calculated variance/SE/CI will be divided by the weighted mean. Use colnames like "I(a/b)" for ratio of mean figures. See also function mean.weight().
   # CIprob =          the relative accuracy of the one-sided confidence interval (CI). The default value 0.975 will yield CImultiplier =~ 1.96 for a large sample (student distribution). 0.975 means 97.5% certainty for one side i.e. 95% certainty, for both sides.
   # CImultiplier =    the factor to calculate the confidence interval (CI). The default value 1.96 is equivalent to CIprob=0.975, i.e. 95% CI in a large sample (student distribution).
@@ -155,7 +155,7 @@ variance.estimate <- function(data, cols=NULL, weights, inclusProbs, index=NULL,
     cols_add <- extract.I.vars(cols, keep.only.necessary=TRUE)
     cols_mis <- cols_add[!cols_add%in%colnames(data)]
     if (length(cols_mis)>0)
-      stop (paste0("Some columns used in formulas like 'I(a/b)' are missing in data: ", paste0(cols_mis,sep=", ")))
+      stop (paste0("Some columns used in formulas like 'I(a/b)' are missing in data: ", paste0(cols_mis, collapse=", ")))
     data <- create.cols(data, cols)
     cols_all <- c(cols, cols_add)
     data <- data[,cols_all,drop=FALSE]
@@ -207,12 +207,14 @@ variance.estimate <- function(data, cols=NULL, weights, inclusProbs, index=NULL,
           # Case I() column
           if (startsWith(col,"I(") && endsWith(col,")") && grepl("/",col)) {
             col1 <- substr(col,3,nchar(col)-1) # Remove I()
-            op <- .getOperands(col1, innerOperator="/", outerOperator="*")
-            if (!op$hasInner)
-              stop (paste0("A formula contains a quitient but parsing does not work. Check the syntax of your expression. Combined with division, only a multiplication by a fixed scalar is allowed.",
-                           "OK: '(a/b)*100'. NOT OK: '(a/b)*c' or '(a/b)+100'.  Errorneous column: ", paste0(col1, collapse=", ")))
+            # Descructure the expression into parts
+            for (outerOperator in c("*", "/")) {
+              op <- .getOperands(col1, innerOperator="/", outerOperator=outerOperator)
+              if (op$hasOuter) break
+            }
+            # Create columns in case they dont exist, e.g. if '(a+b)/c' is given, create '(a+b)' in the data set.
             divCols <- op$innerVal
-            if (length(divCols) != 2)
+            if (op$hasInner && length(divCols) != 2)
               stop (paste0("In quotients like 'I(x/y)' only two columns are allowed. Errorneous expression: ", paste0(col1, collapse=", ")))
             divColsNotAvail <- divCols[!divCols%in%colnames(data)]
             if (length(divColsNotAvail)>0)
@@ -223,9 +225,14 @@ variance.estimate <- function(data, cols=NULL, weights, inclusProbs, index=NULL,
               }, error=function(e){
                 stop (paste0("Some columns specified in quotiens like 'I(x/y)' are not available in data or the calculation syntax is erroneous: ",paste0(calcDivCol, collapse=", "))) # divColsNotAvail
               })
+            # Define Yc and Yd.
             Yc <- data[,divCols[1]]
-            Yd <- data[,divCols[2]]
+            Yd <- if (op$hasInner) data[,divCols[2]] else numeric(length(Yc))
             filt <- if (na.rm) which(levelBin[,i1] & !is.na(Yc) &!is.na(Yd)) else which(levelBin[,i1])
+            # This can happen when something like 'a/100' is given. Then 100 is the outer operator and there is no inner operator.
+            if (!op$hasInner) {
+              Yd <- NULL
+            }
             # Case not I() column
           } else {
             Yc <- data[,col]
@@ -240,16 +247,7 @@ variance.estimate <- function(data, cols=NULL, weights, inclusProbs, index=NULL,
             # If there was a multiplication by a fix factor in the formula, apply it now.
             # E.g. I(a/b*100)
             if (op$hasOuter) {
-              #warning("resw, meinst du, man kann hier einfach A und e mit einem Faktor multiplizieren? Anhand der Berechnungsformeln denke ich, schon. 2018-07-23")
-              if (op$outerAtStart) {
-                rawVar$v <- eval(parse(text=paste0(op$outerVal, op$outerOp, "rawVar$v")))
-                rawVar$A <- eval(parse(text=paste0(op$outerVal, op$outerOp, "rawVar$A")))
-                rawVar$e <- eval(parse(text=paste0(op$outerVal, op$outerOp, "rawVar$e")))
-              } else {
-                rawVar$v <- eval(parse(text=paste0(                         "rawVar$v", op$outerOp, op$outerVal)))
-                rawVar$A <- eval(parse(text=paste0(                         "rawVar$A", op$outerOp, op$outerVal)))
-                rawVar$e <- eval(parse(text=paste0(                         "rawVar$e", op$outerOp, op$outerVal)))
-              }
+              rawVar <- .correctRawVarianceByOuterValue(rawVar, op)
             }
             # Calculate CI factor, with satterthwaite
             if (calcCImultiplierFlag && DFestimator=="satterthwaite")
@@ -692,12 +690,21 @@ if (TRUE) {
   .getOperands <- function (txt, innerOperator, outerOperator=NULL) {
     if (missing(innerOperator))
       stop ('argument "innerOperator" is missing, with no default')
+    txtOrig <- txt
     outerVal <- NULL
     outerAtStart <- NULL
+    # If innerOperator==outerOperator and there is only one occurence of the innerOperator, then skip outerOperator.
+    if (!is.null(outerOperator)) {
+      if (innerOperator == outerOperator) {
+        if (nchar(txt) - nchar(gsub(.unRegex(innerOperator), "", txt)) == 1) {
+          outerOperator <- NULL
+        }
+      }
+    }
     if (!is.null(outerOperator)) {
       txt <- .splitByChar(.rmOuterBrackets(txt), outerOperator)
       if (length(txt) > 2)
-        stop ("Only one outerOperator is allowed.")
+        stop ("Only one outerOperator is allowed.")# ("In case innerOperator==outerOperator, try using brakets to avoid this error. OK: '(a/b)/100',  NOT OK: 'a/b/100'")
       if (length(txt) == 2) {
         numbInd <- grepl("^[0-9]+$", txt)
         if (!any(numbInd))
@@ -705,11 +712,17 @@ if (TRUE) {
         outerAtStart <- numbInd[1]
         outerVal <- txt[numbInd]
         txt <- txt[!numbInd]
-        if (outerOperator%in%c("-", "/") && !grepl("^\\(|\\)$", txt))
-          stop ("If an outerOperator '-' or '/' is used, then the inner operation has to be surrounded by brackets. OK: (a+b)/c,  NOT OK: a+b/c")
+        if (outerOperator%in%c("-", "/") && grepl("[\\+\\/\\*\\-]", txt) && !grepl("^\\(|\\)$", txt))
+          stop ("If an outerOperator '-' or '/' is used, then the inner operation has to be surrounded by brackets. OK: '(a+b)/c',  NOT OK: 'a+b/c'")
       }
     }
     innerVal <- .splitByChar(.rmOuterBrackets(txt), innerOperator)
+    # If one inner value is a number, then run the function again with innerOperator==define it as outer value and give the correspondend outerOperator
+    if (length(innerVal) == 2 && any(grepl("^[0-9]+$", innerVal))) {
+      res <- .getOperands(txt=txtOrig, innerOperator="?", outerOperator=innerOperator)
+      res[["innerOp"]] <- innerOperator
+      return (res)
+    }
     return (list("hasInner"=length(innerVal)>1, "innerVal"=innerVal, "innerOp"=innerOperator,
                  "hasOuter"=!is.null(outerVal), "outerVal"=outerVal, "outerOp"=outerOperator, "outerAtStart"=outerAtStart))
   }
@@ -718,6 +731,8 @@ if (TRUE) {
       return ("\\+")
     if (x == "*")
       return ("\\*")
+    if (x == "?")
+      return ("\\?")
     return (x)
   }
   .splitByChar <- function (txt, char) {
@@ -744,8 +759,9 @@ if (TRUE) {
       }
     }
     if (!is.null(res)) {
-      if (length(res) == 1)
+      if (length(res) == 1) {
         stop ("The operator was not between two operands. OK: 'a/b'.  NOT OK: 'ab/'")
+      }
       return (res)
     }
     return (txt)
@@ -776,6 +792,26 @@ if (TRUE) {
       return (.rmOuterBrackets(txt))
     }
     return (txt)
+  }
+  # This function corrects the variance figures by a fixed scalar muliplier/divisor.
+  .correctRawVarianceByOuterValue <- function (vObj, oObj) {
+    #warning("resw, meinst du, man kann hier einfach A und e mit einem Faktor multiplizieren? Anhand der Berechnungsformeln denke ich, schon. 2018-07-23")
+    if (!oObj$hasOuter)
+      return (vObj)
+    if (length(vObj)!=4 || any(sort(names(vObj)) != c("A","e","mean","var")))
+      stop ("Internal error. If oObj$hasOuter, the result places in vObj will be adapter afterwards. The names don't match to the orgininal ones.")
+    if (oObj$outerAtStart) {
+      vObj$var <-  eval(parse(text=paste0("(", oObj$outerVal,"^2)", oObj$outerOp, "vObj$var")))
+      vObj$A <-    eval(parse(text=paste0(     oObj$outerVal,       oObj$outerOp, "vObj$A")))
+      vObj$e <-    eval(parse(text=paste0(     oObj$outerVal,       oObj$outerOp, "vObj$e")))
+      vObj$mean <- eval(parse(text=paste0(     oObj$outerVal,       oObj$outerOp, "vObj$mean")))
+    } else {
+      vObj$var <-  eval(parse(text=paste0("vObj$var",  oObj$outerOp, "(", oObj$outerVal, "^2)")))
+      vObj$A <-    eval(parse(text=paste0("vObj$A",    oObj$outerOp,      oObj$outerVal)))
+      vObj$e <-    eval(parse(text=paste0("vObj$e",    oObj$outerOp,      oObj$outerVal)))
+      vObj$mean <- eval(parse(text=paste0("vObj$mean", oObj$outerOp,      oObj$outerVal)))
+    }
+    return (vObj)
   }
 }
 
@@ -813,13 +849,46 @@ if (FALSE) .varestSampling_DELETE <- function(Ys, Xs = NULL, pik, w = NULL) {
 #filt=spa[,"JAHR"]==2016; data=spa[filt,c("P430_0100_94000","P430_0100_94000")]; weights=spa[filt,"Gewicht"]; inclusProbs=spa[filt,"pik_w0"]; index=spa[filt,"ZATYP"]; fixedIndex=TRUE; indexOfFixedResult=c(11,12,21); indexStrata=rep(1,sum(filt)); method="ht"; figure="halfLengthCI"; CIprob=0.975; na.rm=TRUE; edit.I.colnames=TRUE; CImultiplier=NULL; relativeToMean=TRUE
 #filt=spa[,"JAHR"]==2016; variance.estimate(data=spa[filt,c("P430_0100_94000")], weights=spa[filt,"Gewicht"], inclusProbs=spa[filt,"pik_w0"], index=NULL, method="ht", figure="halfLengthCI", CIprob=0.975, na.rm=TRUE, edit.I.colnames=TRUE, CImultiplier=NULL, relativeToMean=TRUE) #spa[filt,"ZATYP"], fixedIndex=TRUE, indexOfFixedResult=c(11,12,21), indexStrata=rep(1,sum(filt)),
 if (FALSE) {
+  # Load data for testing.
   spe <- load.spe.gb()
+  spe <- spe[ spe[,"Gewicht"]>0 ,]
+  spe <- within(spe, {
+    LNmal100 <- ha_LN * 100
+    LNdurch100 <- ha_LN / 100
+  })
   
-  filt <- spe[,"Jahr"]%in%c(2015,2016) & spe[,"Region"]==3 & spe[,"TypS3"]==1512 & spe[,"Gewicht"]>0 & spe[,"GEWICHT_VGLTYP1516"] > 0
-  sort(spe[filt,"ha_LN"])
-  sort(spe[filt,"Gewicht"])
-  sort(spe[filt,"GEWICHT_VGLTYP1516"])
   
-  variance.estimate(data=spe[filt,], cols=c("I(Arbeitsverdienst/JAE_FamAK)", "ha_LN", "ha_uebriges_Brotgetreide","hh_ErfolgLiegensEff_davon"), weights=spe[filt,"Gewicht"], inclusProbs=1/spe[filt,"Gewicht"], index=spe[filt,c("Region","TypS3")], deltaBetweenYears = TRUE, Nmin=0, NminBalNonZero=3,
-                    calcDeltaForNonZeroOnly=TRUE, year0=2015, year1=2016, id=spe[filt,"ID"], year=spe[filt,"Jahr"], weightsBalanced=spe[filt,"GEWICHT_VGLTYP1516"], inclusProbsBalanced = 1/spe[filt,"GEWICHT_VGLTYP1516"], figure="pValue")
+  # Prepare function for testing.
+  .testAgainstAndReport <- function (testRes, testVal, testNo) {
+    if (assertthat::are_equal(x=testRes, y=testVal)) {
+      message(paste0("Test no. ", testNo, " passed successfully!"))
+    } else {
+      cat("Right result:\n"); print(testRes)
+      cat("Wrong result:\n"); print(testVal)
+      stop (paste0("Test no. ", testNo, " failed!"))
+    }
+  }
+  if (TRUE) {
+    # Check if strata with few observations become NA.
+    # Also check that some values are correct.
+    # sort(spe[filt,"ha_LN"]); sort(spe[filt,"Gewicht"]); sort(spe[filt,"GEWICHT_VGLTYP1516"])
+    testNo <- 1.0
+    filt <- spe[,"Jahr"]%in%c(2015,2016) & spe[,"Region"]%in%c(1,3) & spe[,"TypS3"]==1512 & spe[,"Gewicht"]>0 & spe[,"GEWICHT_VGLTYP1516"] > 0
+    testRes <- structure(list(`I(Arbeitsverdienst/JAE_FamAK)` = c(4.50442744955501e-05, 0.267595736478571), ha_LN = c(0.0368016188299232, 0.113196686341274), ha_uebriges_Brotgetreide = c(NaN, NaN),
+                              hh_ErfolgLiegensEff_davon = c(0.190714328109815, 0.399176312018169), LNmal100 = c(0.0368016188299236, 0.113196686341274), `I(ha_LN*100)` = c(0.0368016188299236, 0.113196686341274)),
+                         .Names = c("I(Arbeitsverdienst/JAE_FamAK)", "ha_LN", "ha_uebriges_Brotgetreide", "hh_ErfolgLiegensEff_davon", "LNmal100", "I(ha_LN*100)"), class = "data.frame", row.names = c("1_1512", "3_1512"))
+    testVal <- variance.estimate(data=spe[filt,], cols=c("I(Arbeitsverdienst/JAE_FamAK)", "ha_LN", "ha_uebriges_Brotgetreide","hh_ErfolgLiegensEff_davon","LNmal100","I(ha_LN*100)"), weights=spe[filt,"Gewicht"], inclusProbs=1/spe[filt,"Gewicht"], index=spe[filt,c("Region","TypS3")], deltaBetweenYears = TRUE, Nmin=0, NminBalNonZero=3,
+                                 calcDeltaForNonZeroOnly=TRUE, year0=2015, year1=2016, id=spe[filt,"ID"], year=spe[filt,"Jahr"], weightsBalanced=spe[filt,"GEWICHT_VGLTYP1516"], inclusProbsBalanced = 1/spe[filt,"GEWICHT_VGLTYP1516"], figure="pValue")
+    .testAgainstAndReport(testRes, testVal, testNo)
+  }
+  if (TRUE) {
+    # Check if the multiplication and division by a scalar works inside I()
+    testNo <- 2.0
+    filt <- spe[,"Jahr"] == 2016
+    testRes <- structure(c(0.18983671199032, 1898.3671199032, 1898.3671199032, 1.8983671199032e-05, 1.8983671199032e-05), .Names = c("ha_LN", "LNmal100", "I(ha_LN*100)", "LNdurch100", "I(ha_LN/100)"))
+    testVal <- variance.estimate(spe[filt,], cols=c("ha_LN", "LNmal100", "I(ha_LN*100)", "LNdurch100", "I(ha_LN/100)"), weights=spe[filt,"Gewicht"], inclusProbs=1/spe[filt,"Gewicht"], figure="var")
+    .testAgainstAndReport(testRes, testVal, testNo)
+  }
+  # If everything went smoothly, give final success message.
+  message("All tests passed successfully!")
 }
