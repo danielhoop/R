@@ -154,12 +154,10 @@ variance.estimate <- function(data, cols=NULL, weights, inclusProbs, index=NULL,
   if (is.null(cols)) {
     cols <- colnames(data)
   }
-  colsMissing <- extract.I.vars(cols, keep.original=TRUE, keep.only.necessary=FALSE, original.single.vars.only=TRUE)
-  colsMissing <- colsMissing[!colsMissing%in%colnames(data)]
-  if (length(colsMissing)>0) {
-    addTxt <- if (any(startsWith(cols, "I("))) ". They might be located in a formula like 'I(a+b)'" else ""
-    stop (paste0("Some columns don't exist in data", addTxt, ":\n", paste0(colsMissing, collapse=", ")))
-  }
+  # Check if some cols (possibly in I(a+b) columns) are missing. If yes, throw an error.
+  .checkMissingICols(cols, colnames(data))
+  
+  # Prepare the data - create new cols if necessary.
   newDataAndCols <- .getYcAndYd(data=data, col=cols, rowFilt=rep(TRUE, nrow(data)), na.rm=FALSE, prepareDataOnly=TRUE)
   cols_add <- c(extract.I.vars(cols, keep.original=FALSE, keep.only.necessary=TRUE), newDataAndCols$newCols) # can be NULL
   cols_all <- unique(c(cols, cols_add))
@@ -206,7 +204,7 @@ variance.estimate <- function(data, cols=NULL, weights, inclusProbs, index=NULL,
           op <- yObj$op
           
           if (length(filt) < 2) {
-            var1[col] <- mean1[col] <- NA
+            var1[col] <- mean1[col] <- NA_real_
           } else {
             # Calculate variance
             rawVar <- varEstZaBh(Yc=Yc[filt], Yd=Yd[filt], Xs=if (method=="calib") Xs[filt,,drop=FALSE] else NULL, pik=inclusProbs[filt], w=weights[filt], calcMean=relativeToMean, Nmin=Nmin)
@@ -299,17 +297,24 @@ varEstZaBh <- function(Yc, Yd=NULL, Xs=NULL, pik, w=NULL, calcMean=FALSE, Nmin=0
   }
   # If the number of observations is too small, then return NA values.
   if (length(Yc)<Nmin)
-    return (list(var=NA, A=NA, e=rep(NA_real_, length(Yc)), mean=NA))
+    return (list(var=NA_real_, A=NA_real_, e=rep(NA_real_, length(Yc)), mean=NA_real_))
   
-  #pik=1/w # inclusion probabilities
-  if (is.null(Yd)) { # Mean or ration of means
-    m <- if (calcMean) weighted.mean(Yc,w) else NA # Mean can only be calculated if w is given.
-    z <- Yc 
-    N <- round(sum(1/pik)) # Population size (used in variance formula of mean)
+  # Chose the right denomitator, depending on w / pik
+  if (is.null(w)) {
+    div <- pik
   } else {
-    m <- if (calcMean) weighted.mean(Yc,w)/weighted.mean(Yd,w) else NA # Mean can only be calculated if w is given.
-    Ychat <- sum(Yc/pik)
-    Ydhat <- sum(Yd/pik)
+    div <- 1/w
+  }
+  
+  # Denomitators are either pik or w (in the following lines)
+  if (is.null(Yd)) { # Mean or ration of means
+    m <- if (calcMean) weighted.mean(Yc,w) else NA_real_ # Mean can only be calculated if w is given.
+    z <- Yc 
+    N <- round(sum(1/div)) # Population size (used in variance formula of mean)
+  } else {
+    m <- if (calcMean) weighted.mean(Yc,w)/weighted.mean(Yd,w) else NA_real_ # Mean can only be calculated if w is given.
+    Ychat <- sum(Yc/div)
+    Ydhat <- sum(Yd/div)
     r <- Ychat/Ydhat 
     z <- (Yc - r * Yd)/Ydhat 
     N <- 1
@@ -323,6 +328,7 @@ varEstZaBh <- function(Yc, Yd=NULL, Xs=NULL, pik, w=NULL, calcMean=FALSE, Nmin=0
     e <- unname((z-Xs%*%beta)[,1]) # Result is a matrix. Convert to vector.
   }
   
+  # Denominator is pik! Not div!
   a <-(1-pik)/sum(1-pik)
   A <- sum(a*e/pik)
   v <- sum((1-pik)*(e/pik-A)^2)/(1-sum(a^2)) / N^2
@@ -422,15 +428,15 @@ varEstDelta <- function(dat, Ycols=NULL, YcCol=NULL, YdCol=NULL, Xs=NULL, pikCol
     if (calcDeltaForNonZeroOnly) {
       if (!na.rm && any(colSumsNotOkDatBal > 0))
         stop ("If calcDeltaForNonZeroOnly==TRUE, then na.rm must be TRUE, otherwise the function does not work. Unfortunately, it cannot be programmed in another way.")
-      datBal[datBal[,yearCol]==year0,setNaCols][ notOkDatBal ] <- NA
-      datBal[datBal[,yearCol]==year1,setNaCols][ notOkDatBal ] <- NA
+      datBal[datBal[,yearCol]==year0,setNaCols][ notOkDatBal ] <- NA_real_
+      datBal[datBal[,yearCol]==year1,setNaCols][ notOkDatBal ] <- NA_real_
     }
     if (NminBalNonZero > 0) {
       setNaCols <- (nrow(notOkDatBal)-colSumsNotOkDatBal) < NminBalNonZero
       setNaCols <- names(setNaCols)[setNaCols]
       if (!na.rm && length(setNaCols) > 0)
         stop ("If NminBalNonZero > 0, then na.rm must be TRUE, otherwise the function does not work. Unfortunately, it cannot be programmed in another way.")
-      datBal[,setNaCols] <- NA
+      datBal[,setNaCols] <- NA_real_
     }
   }
   
@@ -540,7 +546,7 @@ calcXsMultiLevel <- function(dat, optVarListMultiLevel) {
   
   if (any(is.na(s2))) {
     if (!na.rm)
-      return (NA)
+      return (NA_real_)
     if (excludeEmptyStrata) {
       Nh <- Nh[!is.na(s2)]
       nh <- nh[!is.na(s2)]
@@ -554,7 +560,7 @@ calcXsMultiLevel <- function(dat, optVarListMultiLevel) {
   
   if (sum(a)==0) {
     warning("If all(Nh==nh), in other words, if all(weights==1), then the satterthwaite approximation does not work. Returning NA.")
-    return (NA)
+    return (NA_real_)
   }
   return (sum(a*s2)^2 / sum((a*s2)^2 / (nh-1)))
 }
@@ -586,14 +592,16 @@ calcXsMultiLevel <- function(dat, optVarListMultiLevel) {
                                                    yObj$op)
     bal[[col]] <- .correctRawVarianceByOuterValue(varEstZaBh(Yc=yObjBal$Yc[notNaBal], Yd=yObjBal$Yd[notNaBal], pik=pikBal[notNaBal], w=wBal[notNaBal], Xs=NULL, calcMean=TRUE, Nmin=Nmin),
                                                   yObjBal$op)
-    vBal[[col]] <- bal[[col]]$e * wBal[notNaBal] - bal[[col]]$A
+    vBal[[col]] <- bal[[col]]$e * (1/pikBal[notNaBal]) - bal[[col]]$A
+    # resw, Achtung, korrigieren
+    bal[[col]]$Y <- datBal[notNaBal,col]
   }
   if (!is.null(I.help.columns)) {
     full <- full[!names(full)%in%I.help.columns]
     bal <- bal[!names(bal)%in%I.help.columns]
   }
   #warning("resw, muesste man hier nicht pik und pikBal mitgeben, damit es spaeter verwendet werden kann.")
-  return (list(vary=full, varyBal=bal, vBal=vBal, wBal=wBal, notNaBal=notNaBalList, n=nrow(dat))) # w=w
+  return (list(vary=full, varyBal=bal, vBal=vBal, pikBal=pikBal, notNaBal=notNaBalList, n=sum(notNa), nBal=sum(notNaBal))) # w=w
 }
 
 .varEstDeltaInnerFinalForEachCol <- function (t0, t1) {
@@ -603,30 +611,66 @@ calcXsMultiLevel <- function(dat, optVarListMultiLevel) {
     if (is.null(t0$vary[[i]]$mean) || is.null(t1$vary[[i]]$mean))
       stop ("t0$mean and/or t1$mean must not be NULL. Be sure to set the argument 'calcMean' in the upstream functions to TRUE.")
     # Remove NA values from the weights.
-    notNaBal <- rep(TRUE, length(t0$wBal))
+    notNaBal <- rep(TRUE, length(t0$pikBal))
     if (i %in% c(names(t0$notNaBal))) notNaBal <- notNaBal & t0$notNaBal[[i]]
     if (i %in% c(names(t1$notNaBal))) notNaBal <- notNaBal & t1$notNaBal[[i]]
-    t0wBal <- t0$wBal[notNaBal]
-    t1wBal <- t1$wBal[notNaBal]
+    t0pikBal <- t1$pikBal[notNaBal]
+    t1pikBal <- t0$pikBal[notNaBal]
     # Calculate the figures.
     delta <- t1$vary[[i]]$mean - t0$vary[[i]]$mean
     deltaBal <- t1$varyBal[[i]]$mean - t0$varyBal[[i]]$mean
     Rdelta <- 100*delta / t0$vary[[i]]$mean
     RdeltaBal <- 100*delta / t0$varyBal[[i]]$mean
-    #if (i==names(t0$vary)[1])
-    #  warning("resw, muesste man hier nicht   1-t1$pikBal  rechnen statt  1-1/t1wBal")
-    corBal <- sum((1-1/t1wBal) * t1$vBal[[i]] * t0$vBal[[i]]) /  # Korrelationskoeffizent berechnen
-      sqrt( sum((1-1/t0wBal) * t0$vBal[[i]]^2) * sum((1-1/t1wBal) * t1$vBal[[i]]^2) )
+    corBal <- sum((1-t1pikBal) * t1$vBal[[i]] * t0$vBal[[i]]) /  # Korrelationskoeffizent berechnen
+      sqrt( sum((1-t0pikBal) * t0$vBal[[i]]^2) * sum((1-t1pikBal) * t1$vBal[[i]]^2) )
+    # resw, Achtung, korrigieren (unten)
+    corBal <- cor(t0$varyBal[[i]]$Y, t1$varyBal[[i]]$Y)
     cov. <- corBal * sqrt(t0$vary[[i]]$var * t1$vary[[i]]$var)    # Kovarianz Berechnen
-    se <- sqrt(t0$vary[[i]]$var + t1$vary[[i]]$var - 2*cov.) # Standard-Fehler berechnen
+    tryCatch({
+      se <- sqrt(t0$vary[[i]]$var + t1$vary[[i]]$var - 2*cov.) # Standard-Fehler berechnen  
+    }, warning=function(w){
+      warning("The sum of variances in the samples of t0 and t1 is smaller than 2*covariance. In this case the calculation of the standard error is impossible.")
+    })
     
+    # Version resw
     t.value <- delta / se # T-Test berechnen
-    p.value <- pt(-abs(t.value),  sum(t0$n) + sum(t1$n)-2); # Einseitiger Test
+    df <- .pValuePartiallyOverlappingNew2(delta=delta, s1=sqrt(t0$vary[[i]]$var), s2=sqrt(t1$vary[[i]]$var), n1=t0$n, n2=t1$n, nc=length(t0pikBal), r=corBal)$df
+    # df <- sum(t0$n) + sum(t1$n)-2 # This is wrong. Old version of resw, before 2018-07-26.
+    p.value <- pt(-abs(t.value), df); # Einseitiger Test
+    # Calculate p value, something is wrong with this apporach. Checked on 2018-07-26.
+    # p.value <- .pValuePartiallyOverlappingNew2(delta=delta, s1=sqrt(t0$vary[[i]]$var), s2=sqrt(t1$vary[[i]]$var), n1=t0$n, n2=t1$n, nc=length(t0pikBal), r=corBal)$p.value
     
     res[[i]] <- c("delta"=delta, "deltaBal"=deltaBal, "Rdelta"=Rdelta, "RdeltaBal"=RdeltaBal , "cor"=corBal, "se"=se, "p.value"=p.value)
   }
-  res <- as.data.frame(do.call("cbind",res))
+  res <- as.data.frame(do.call("cbind", res))
   return (res)
+}
+
+.pValuePartiallyOverlappingNew2 <- function (delta, s1, s2, n1, n2, nc, r) {
+  # Ben Derrick, 2017, Test Statistics for the Comparison of Means for Two Samples That Include Both Paired and Independent Observations, Journal of Modern Applied Statistical Methods
+  # p. 144, T_new2, v_new2, gamma
+  # Calculating the t-value, degrees of freedom and eventually, p-value.
+  # delta = mean1 - mean2
+  # s1, s2 = standard deviations in samples t1 and t2
+  # n1, n2 = number of observations in samples t1 and t2
+  # nc = number of obs. in balanced / constant sample
+  # r = correlation coefficient between values in t1 and t2 (balanced sample)
+  
+  # t.value
+  t.value <- NULL
+  #t.value <- (delta /
+  #              (sqrt(s1^2/n1 + s2^2/n2 - 2*r*(s1*s2*nc/(n1*n2)))))
+  # degrees of freedom
+  na <- n1 - nc
+  nb <- n2 - nc
+  gamma <- ( (s1^2/n1 + s2^2/n2)^2 /
+               ((s1^2/n1)^2 / (n1-1)   +   (s2^2/n2)^2 / (n2-1)) )
+  df <- ((nc-1) + ((gamma-nc-1)/(na+nb+2*nc)) * (na+nb))
+  #cat("df=", df, " gamma=", gamma, " n1=", n1, " n2=", n2, " nc=", nc, "\n", sep="")
+  # p.value
+  p.value <- NULL
+  #p.value <- pt(-abs(t.value))
+  return (list(p.value=p.value, t.value=t.value, df=df))
 }
 
 .calcVarStErrOrCI <- function(rawVar, w, figure=c("var","SE","halfLengthCI"), CImultiplier) {
