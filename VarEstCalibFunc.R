@@ -158,10 +158,16 @@ variance.estimate <- function(data, cols=NULL, weights, inclusProbs, index=NULL,
   .checkMissingICols(cols, colnames(data))
   
   # Prepare the data - create new cols if necessary.
-  newDataAndCols <- .getYcAndYd(data=data, col=cols, rowFilt=rep(TRUE, nrow(data)), na.rm=FALSE, prepareDataOnly=TRUE)
+  newDataAndCols <- .getYnAndYd(data=data, col=cols, rowFilt=rep(TRUE, nrow(data)), na.rm=FALSE, prepareDataOnly=TRUE)
   cols_add <- c(extract.I.vars(cols, keep.original=FALSE, keep.only.necessary=TRUE), newDataAndCols$newCols) # can be NULL
   cols_all <- unique(c(cols, cols_add))
   data <- newDataAndCols$data[,cols_all]
+  
+  # Assure that all columns are numeric/complex
+  notNumeric <- sapply(data[,cols,drop=FALSE], function(x)!mode(x)%in%c("numeric","complex"))
+  if (any(notNumeric))
+    stop (paste0("All columns need to be numeric. The following columns are not: ", paste0(names(notNumeric[notNumeric]), collapse=", ")))
+  rm(notNumeric)
   
   # Indices der Aggregationslevel mit den zugehoerigen Variablen multiplizieren.
   # Davon die Varianz-Total-Population berechnen
@@ -197,8 +203,8 @@ variance.estimate <- function(data, cols=NULL, weights, inclusProbs, index=NULL,
         names(var1) <- colnames(data)
         mean1 <- var1
         for(col in colnames(data)) {
-          yObj <- .getYcAndYd(data=data, col=col, rowFilt=levelBin[,i1], na.rm=na.rm)
-          Yc <- yObj$Yc
+          yObj <- .getYnAndYd(data=data, col=col, rowFilt=levelBin[,i1], na.rm=na.rm)
+          Yn <- yObj$Yn
           Yd <- yObj$Yd
           filt <- yObj$notNa
           op <- yObj$op
@@ -207,7 +213,7 @@ variance.estimate <- function(data, cols=NULL, weights, inclusProbs, index=NULL,
             var1[col] <- mean1[col] <- NA_real_
           } else {
             # Calculate variance
-            rawVar <- varEstZaBh(Yc=Yc[filt], Yd=Yd[filt], Xs=if (method=="calib") Xs[filt,,drop=FALSE] else NULL, pik=inclusProbs[filt], w=weights[filt], calcMean=relativeToMean, Nmin=Nmin)
+            rawVar <- varEstZaBh(Yn=Yn[filt], Yd=Yd[filt], Xs=if (method=="calib") Xs[filt,,drop=FALSE] else NULL, pik=inclusProbs[filt], w=weights[filt], calcMean=relativeToMean, Nmin=Nmin)
             # If there was a multiplication by a fix factor in the formula, apply it now. E.g. I(a/b*100)
             rawVar <- .correctRawVarianceByOuterValue(rawVar, op)
             # Calculate CI factor, with satterthwaite
@@ -219,7 +225,7 @@ variance.estimate <- function(data, cols=NULL, weights, inclusProbs, index=NULL,
           }
         }
         # Calculate the variance relative to mean. Absoulte value, in case the mean is negative.
-        # Info: mean1 from varEstZaBh is ratio of means: mean(Yc)/mean(Yd)
+        # Info: mean1 from varEstZaBh is ratio of means: mean(Yn)/mean(Yd)
         if (relativeToMean) var1 <- abs(var1/mean1)
       }
     }
@@ -235,9 +241,11 @@ variance.estimate <- function(data, cols=NULL, weights, inclusProbs, index=NULL,
   
   # Ergebnis in fixierte Ergebnisstrutkur einfuegen.
   if (fixedIndex) {
-    var0 <- var0[rownames(var0)%in%rownames(rawResult),,drop=FALSE]
-    rawResult[match(rownames(var0),rownames(rawResult)),] <- var0
+    var0 <- var0[rownames(var0)%in%rownames(rawResult), colnames(var0)%in%colnames(rawResult),drop=FALSE]
+    rawResult[match(rownames(var0),rownames(rawResult)), match(colnames(var0),colnames(rawResult))] <- var0
     var0 <- rawResult
+    cols_all <- colnames(var0)
+    cols <- colnames(var0)
   }
   
   # Urspruengliche Namen wiederherstellen. Diese wurden durch data.frame zerstoert.
@@ -260,18 +268,18 @@ variance.estimate <- function(data, cols=NULL, weights, inclusProbs, index=NULL,
   }
 }
 
-# .v1arEstZaBh(Yc=spe[spe[,"JAHR"]==2016, "LE"], w=spe[spe[,"JAHR"]==2016,"GEWICHT_PS"], Xs=NULL)
-# .v1arEstZaBh(Yc=spe[spe[,"JAHR"]==2016, "AV"],Yd=spe[spe[,"JAHR"]==2016, "FJAE"],w<-spe[spe[,"JAHR"]==2016,"GEWICHT_PS"], Xs=NULL)
-# .v1arEstZaBh(Yc=spe[spe[,"JAHR"]==2016, "LE"],w=spe[spe[,"JAHR"]==2016,"GEWICHT"], Xs=Xs)
-# .v1arEstZaBh(Yc=spe[spe[,"JAHR"]==2016, "AV"], Yd=spe[spe[,"JAHR"]==2016, "FJAE"],w=spe[spe[,"JAHR"]==2016,"GEWICHT"], Xs=Xs)
+# .v1arEstZaBh(Yn=spe[spe[,"JAHR"]==2016, "LE"], w=spe[spe[,"JAHR"]==2016,"GEWICHT_PS"], Xs=NULL)
+# .v1arEstZaBh(Yn=spe[spe[,"JAHR"]==2016, "AV"],Yd=spe[spe[,"JAHR"]==2016, "FJAE"],w<-spe[spe[,"JAHR"]==2016,"GEWICHT_PS"], Xs=NULL)
+# .v1arEstZaBh(Yn=spe[spe[,"JAHR"]==2016, "LE"],w=spe[spe[,"JAHR"]==2016,"GEWICHT"], Xs=Xs)
+# .v1arEstZaBh(Yn=spe[spe[,"JAHR"]==2016, "AV"], Yd=spe[spe[,"JAHR"]==2016, "FJAE"],w=spe[spe[,"JAHR"]==2016,"GEWICHT"], Xs=Xs)
 
-varEstZaBh <- function(Yc, Yd=NULL, Xs=NULL, pik, w=NULL, calcMean=FALSE, Nmin=0) {
+varEstZaBh <- function(Yn, Yd=NULL, Xs=NULL, pik, w=NULL, calcMean=FALSE, Nmin=0) {
   # This function is an extention of the function sampling::varest(). It depends on the function MASS::ginv().
   # It can be used to calculate mean using HT and Calib approach as well es the corresponding ration of means (quotient)
   # It is used inside the variance.estimate() and .varEstDelta function.
   #
   # Arguments
-  # Yc:   Numeric vector giving the values of interest for which the variance should be caluclated. In case the variance of a quotent should be calculated: Yc (c for counter) is the counter.
+  # Yn:   Numeric vector giving the values of interest for which the variance should be caluclated. In case the variance of a quotent should be calculated: Yn (c for counter) is the counter.
   # Yd:   In case the variance of a quotient should be calculated: Yd (d for divisor) contains the values of the divisor.
   # Xs:   The calibration matrix (numeric).
   # pik:  The inclusion probabilities (numeric).
@@ -281,23 +289,23 @@ varEstZaBh <- function(Yc, Yd=NULL, Xs=NULL, pik, w=NULL, calcMean=FALSE, Nmin=0
   # A list containing the variance (var), the mean (mean), the residuals (e) and A.
   
   if (any(is.na(pik))) stop ("There must be no missing values in pik.")
-  if (any(is.na(Yc))) stop ("There must be no missing values in Yc.")
-  if (calcMean && length(Yc) != length(w)) stop ("length(Yc) must be euqla ot length(w).")
+  if (any(is.na(Yn))) stop ("There must be no missing values in Yn.")
+  if (calcMean && length(Yn) != length(w)) stop ("length(Yn) must be euqla ot length(w).")
   if (!is.null(Xs)) {
     if (is.data.frame(Xs))
       Xs <- as.matrix(Xs)
     if (is.vector(Xs)){
-      if (length(Yc) != length(Xs)) stop ("length(Yc) must be equal to length(Xs).")
+      if (length(Yn) != length(Xs)) stop ("length(Yn) must be equal to length(Xs).")
       if (length(w)  != length(Xs)) stop ("length(w) must be equal to length(Xs).")
     }
     if (is.matrix(Xs)) {
-      if (length(Yc) != nrow(Xs)) stop ("length(Yc) must be equal to nrow(Xs).")
+      if (length(Yn) != nrow(Xs)) stop ("length(Yn) must be equal to nrow(Xs).")
       if (length(w)  != nrow(Xs)) stop ("length(w) must be equal to nrow(Xs).")
     }
   }
   # If the number of observations is too small, then return NA values.
-  if (length(Yc)<Nmin)
-    return (list(var=NA_real_, A=NA_real_, e=rep(NA_real_, length(Yc)), mean=NA_real_))
+  if (length(Yn)<Nmin)
+    return (list(var=NA_real_, A=NA_real_, e=rep(NA_real_, length(Yn)), mean=NA_real_))
   
   # Chose the right denomitator, depending on w / pik
   if (is.null(w)) {
@@ -306,17 +314,22 @@ varEstZaBh <- function(Yc, Yd=NULL, Xs=NULL, pik, w=NULL, calcMean=FALSE, Nmin=0
     div <- 1/w
   }
   
+  
   # Denomitators are either pik or w (in the following lines)
+  if (!mode(Yn) %in% c("numeric","complex"))
+    stop ("Yn must be numeric")
   if (is.null(Yd)) { # Mean or ration of means
-    m <- if (calcMean) weighted.mean(Yc,w) else NA_real_ # Mean can only be calculated if w is given.
-    z <- Yc 
+    m <- if (calcMean) weighted.mean(Yn,w) else NA_real_ # Mean can only be calculated if w is given.
+    z <- Yn 
     N <- round(sum(1/div)) # Population size (used in variance formula of mean)
   } else {
-    m <- if (calcMean) weighted.mean(Yc,w)/weighted.mean(Yd,w) else NA_real_ # Mean can only be calculated if w is given.
-    Ychat <- sum(Yc/div)
+    if (!mode(Yd) %in% c("numeric","complex"))
+      stop ("Yd must be numeric")
+    m <- if (calcMean) weighted.mean(Yn,w)/weighted.mean(Yd,w) else NA_real_ # Mean can only be calculated if w is given.
+    Ynhat <- sum(Yn/div)
     Ydhat <- sum(Yd/div)
-    r <- Ychat/Ydhat 
-    z <- (Yc - r * Yd)/Ydhat 
+    r <- Ynhat/Ydhat 
+    z <- (Yn - r * Yd)/Ydhat 
     N <- 1
   }
   
@@ -324,7 +337,9 @@ varEstZaBh <- function(Yc, Yd=NULL, Xs=NULL, pik, w=NULL, calcMean=FALSE, Nmin=0
     e <- z
   } else {
     B <- t(Xs*w)
-    beta <- MASS::ginv(B%*%Xs)%*%B%*%z
+    tryCatch({
+      beta <- MASS::ginv(B %*% Xs) %*% B %*% z
+    }, error=function(e)browser())
     e <- unname((z-Xs%*%beta)[,1]) # Result is a matrix. Convert to vector.
   }
   
@@ -337,16 +352,16 @@ varEstZaBh <- function(Yc, Yd=NULL, Xs=NULL, pik, w=NULL, calcMean=FALSE, Nmin=0
 }
 
 # dat <- data.frame(a=1:10, b=10:1, "I(a/b)"=NA); colnames(dat)[3] <- col <- "I(a/b)"
-varEstDelta <- function(dat, Ycols=NULL, YcCol=NULL, YdCol=NULL, Xs=NULL, pikCol, pikBalCol, wCol, wBalCol, idCol, yearCol, year0, year1,
+varEstDelta <- function(dat, Ycols=NULL, YnCol=NULL, YdCol=NULL, Xs=NULL, pikCol, pikBalCol, wCol, wBalCol, idCol, yearCol, year0, year1,
                         Nmin=0, NminBalNonZero=0, calcDeltaForNonZeroOnly=FALSE,
                         na.rm=FALSE) {
   # This function calculates the variance for the difference between years.
   # Arguments
-  # dat:     The data.frame containing all necessary columns to do the calculations: YcCol, YdCol (if not NULL), wCol, wBalCol, idCol, yearCol
+  # dat:     The data.frame containing all necessary columns to do the calculations: YnCol, YdCol (if not NULL), wCol, wBalCol, idCol, yearCol
   # Ycols:   The name of all columns in dat for which the variance should be calculated.
   #          If Ycols contains variables that look like I(a/b), then for these variables, the quotient calculation is applied (special methodology).
-  # YcCol:   The name of the column in dat for which the variance should be calculated (character). See also argument Yc of function varEstZaBh.
-  # YdCol:   The name of the column containing the divisor variable (character). See also argument Yc of function varEstZaBh.
+  # YnCol:   The name of the column in dat for which the variance should be calculated (character). See also argument Yn of function varEstZaBh.
+  # YdCol:   The name of the column containing the divisor variable (character). See also argument Yn of function varEstZaBh.
   # Xs:      The calibration matrix (numeric).
   # pikCol:  The name of the column in dat containing the probabilities (character). See also argument pik of function varEstZaBh.
   # wCol:    The name of the column in dat containing the weights (character). See also argument w of function varEstZaBh.
@@ -365,14 +380,14 @@ varEstDelta <- function(dat, Ycols=NULL, YcCol=NULL, YdCol=NULL, Xs=NULL, pikCol
   # delta, deltaBal, Rdelta, RdeltaBal, se, p.value
   
   # Error checks.
-  if (is.null(Ycols) && is.null(YcCol) && is.null(YdCol))
+  if (is.null(Ycols) && is.null(YnCol) && is.null(YdCol))
     Ycols <- colnames(dat)
-  if (!is.null(YcCol) && length(YcCol)!=1) stop ("YcCol must be a numeric vector of length 1.")
+  if (!is.null(YnCol) && length(YnCol)!=1) stop ("YnCol must be a numeric vector of length 1.")
   if (!is.null(YdCol) && length(YdCol)!=1) stop ("YdCol must be a numeric vector of length 1.")
   if (length(year0)!=1) stop ("year0 must be a numeric vector of length 1.")
   if (length(year1)!=1) stop ("year1 must be a numeric vector of length 1.")
   
-  allCols <- c(YcCol, YdCol, pikCol, pikBalCol, wCol, wBalCol, idCol, yearCol)
+  allCols <- c(YnCol, YdCol, pikCol, pikBalCol, wCol, wBalCol, idCol, yearCol)
   colsNotAvail <- allCols[!allCols%in%colnames(dat)]
   if (length(colsNotAvail)>0) stop (paste0("The following columns are not available in dat: ",paste0(colsNotAvail,collapse=", ")))
   
@@ -390,17 +405,17 @@ varEstDelta <- function(dat, Ycols=NULL, YcCol=NULL, YdCol=NULL, Xs=NULL, pikCol
   divCols <- NULL
   if (!is.null(Ycols)) {
     calcVersion <- "all_Ycols"
-    if (!is.null(YcCol) || !is.null(YdCol)) stop ("Either specify Ycols or YcCol/YdCol. Not all together.")
-    newDataAndCols <- .getYcAndYd(data=dat, col=Ycols, rowFilt=rep(TRUE, nrow(dat)), na.rm=FALSE, prepareDataOnly=TRUE)
+    if (!is.null(YnCol) || !is.null(YdCol)) stop ("Either specify Ycols or YnCol/YdCol. Not all together.")
+    newDataAndCols <- .getYnAndYd(data=dat, col=Ycols, rowFilt=rep(TRUE, nrow(dat)), na.rm=FALSE, prepareDataOnly=TRUE)
     divCols <- newDataAndCols$newCols
     dat <- newDataAndCols$data
   } else if (is.null(YdCol)) {
-    calcVersion <- "only_YcCol"
-    Ycols <- YcCol
+    calcVersion <- "only_YnCol"
+    Ycols <- YnCol
   } else {
     calcVersion <- "division"
-    divCols <- c(YcCol, YdCol)
-    Ycols <- c(YcCol, YdCol, paste0("I(",YcCol,"/",YdCol,")"))
+    divCols <- c(YnCol, YdCol)
+    Ycols <- c(YnCol, YdCol, paste0("I(",YnCol,"/",YdCol,")"))
     dat <- create.cols(dat, Ycols)
   }
   allCols <- unique(c(allCols, Ycols, divCols))
@@ -412,7 +427,7 @@ varEstDelta <- function(dat, Ycols=NULL, YcCol=NULL, YdCol=NULL, Xs=NULL, pikCol
   # Balancierten Datensatz bilden
   filtdatBal <- balanced.panel(id=dat[,idCol], year=dat[,yearCol], YEAR=c(year0, year1))
   if (!any(filtdatBal))
-    stop ("There are no observations that occur in both years. The variance estimation is impossible.")
+    stop (paste0("There are no observations that occur in both years. The variance estimation is impossible. Please be aware that you must not include the year into the index if you want to calculate differences between years. Available years are: ", sort(unique(dat[,yearCol]))))
   datBal <- dat[filtdatBal,allCols]
   
   # Set values in datBal to NA if there are wo few values other than 0.
@@ -475,10 +490,10 @@ calcXsMultiLevel <- function(dat, optVarListMultiLevel) {
   
   if (!is.list(optVarListMultiLevel) || is.null(names(optVarListMultiLevel))) stop ("optVarListMultiLevel must be a named list.")
   namesNotInColnames <- names(optVarListMultiLevel)[ !names(optVarListMultiLevel)%in%colnames(dat) ]
-  if (length(namesNotInColnames) > 0) stop (paste0("the names of optVarListMultiLevel must represent columns in dat. Some are not contained in colnames(dat):\n",paste0(namesNotInColnames,collapse=", ")))
+  if (length(namesNotInColnames) > 0) stop (paste0("The names of optVarListMultiLevel must represent columns in dat. Some are not contained in colnames(dat):\n",paste0(namesNotInColnames,collapse=", ")))
   lapply(optVarListMultiLevel, function(x)if (!is.null(dim(x))) stop ("In each list place of optVarListMultiLevel there must be a character vector."))
   varsNotInColnames <- sort(unique( unlist(optVarListMultiLevel)[ !unlist(optVarListMultiLevel)%in%colnames(dat) ] ))
-  if (length(varsNotInColnames) > 0) stop (paste0("the values in each list place of optVarListMultiLevel must represent columns in dat. Some are not contained in colnames(dat):\n",paste0(varsNotInColnames,collapse=", ")))
+  if (length(varsNotInColnames) > 0) stop (paste0("The values in each list place of optVarListMultiLevel must represent columns in dat. Some are not contained in colnames(dat):\n",paste0(varsNotInColnames,collapse=", ")))
   
   # Optimierungs-Zielvariablen in Xs ablegen.
   Xs <- as.list(rep(0, length(optVarListMultiLevel)))
@@ -571,14 +586,14 @@ calcXsMultiLevel <- function(dat, optVarListMultiLevel) {
   
   full <- bal <- vBal <- notNaBalList <- list()
   for (col in colnames(dat)) {
-    yObj <- .getYcAndYd(data=dat, col=col, rowFilt=rep(TRUE, nrow(dat)), na.rm=na.rm)
-    yObjBal <- .getYcAndYd(data=datBal, col=col, rowFilt=rep(TRUE, nrow(datBal)), na.rm=na.rm)
+    yObj <- .getYnAndYd(data=dat, col=col, rowFilt=rep(TRUE, nrow(dat)), na.rm=na.rm)
+    yObjBal <- .getYnAndYd(data=datBal, col=col, rowFilt=rep(TRUE, nrow(datBal)), na.rm=na.rm)
     notNa <- yObj$notNa
     notNaBal <- yObjBal$notNa
     # if (col %in% c("I(ha_Weizen+ha_Dinkel)","ha_WeizenUndDinkel")) {
     #   print(col)
-    #   s1 <- sum(yObj$Yc, na.rm=TRUE)
-    #   s2 <- sum(yObjBal$Yc, na.rm=TRUE)
+    #   s1 <- sum(yObj$Yn, na.rm=TRUE)
+    #   s2 <- sum(yObjBal$Yn, na.rm=TRUE)
     #   print(s1)
     #   print(s2)
     #   if (s1 != s2)
@@ -588,13 +603,12 @@ calcXsMultiLevel <- function(dat, optVarListMultiLevel) {
     if (na.rm && !all(notNaBal)) {
       notNaBalList[[col]] <- notNaBal
     }
-    full[[col]] <- .correctRawVarianceByOuterValue(varEstZaBh(Yc=yObj$Yc[notNa], Yd=yObj$Yd[notNa], pik=pik[notNa], w=w[notNa], Xs=Xs[notNa,,drop=FALSE], calcMean=TRUE, Nmin=Nmin),
+    full[[col]] <- .correctRawVarianceByOuterValue(varEstZaBh(Yn=yObj$Yn[notNa], Yd=yObj$Yd[notNa], pik=pik[notNa], w=w[notNa], Xs=Xs[notNa,,drop=FALSE], calcMean=TRUE, Nmin=Nmin),
                                                    yObj$op)
-    bal[[col]] <- .correctRawVarianceByOuterValue(varEstZaBh(Yc=yObjBal$Yc[notNaBal], Yd=yObjBal$Yd[notNaBal], pik=pikBal[notNaBal], w=wBal[notNaBal], Xs=NULL, calcMean=TRUE, Nmin=Nmin),
+    bal[[col]] <- .correctRawVarianceByOuterValue(varEstZaBh(Yn=yObjBal$Yn[notNaBal], Yd=yObjBal$Yd[notNaBal], pik=pikBal[notNaBal], w=wBal[notNaBal], Xs=NULL, calcMean=TRUE, Nmin=Nmin),
                                                   yObjBal$op)
     vBal[[col]] <- bal[[col]]$e * (1/pikBal[notNaBal]) - bal[[col]]$A
-    # resw, Achtung, korrigieren
-    bal[[col]]$Y <- datBal[notNaBal,col]
+    #bal[[col]]$Y <- datBal[notNaBal,col] # Only needed if cor(y1, y2) is called downstream
   }
   if (!is.null(I.help.columns)) {
     full <- full[!names(full)%in%I.help.columns]
@@ -616,6 +630,8 @@ calcXsMultiLevel <- function(dat, optVarListMultiLevel) {
     if (i %in% c(names(t1$notNaBal))) notNaBal <- notNaBal & t1$notNaBal[[i]]
     t0pikBal <- t1$pikBal[notNaBal]
     t1pikBal <- t0$pikBal[notNaBal]
+    if (length(t0$varyBal[[i]]) != length(t1$varyBal[[i]]))
+      stop ("Some observations have NA values in one year but non-NA values in the other year. In that case, na.rm=TRUE does not work. Please remove all NA values first, then call the function with na.rm=FALSE.")
     # Calculate the figures.
     delta <- t1$vary[[i]]$mean - t0$vary[[i]]$mean
     deltaBal <- t1$varyBal[[i]]$mean - t0$varyBal[[i]]$mean
@@ -623,8 +639,7 @@ calcXsMultiLevel <- function(dat, optVarListMultiLevel) {
     RdeltaBal <- 100*delta / t0$varyBal[[i]]$mean
     corBal <- sum((1-t1pikBal) * t1$vBal[[i]] * t0$vBal[[i]]) /  # Korrelationskoeffizent berechnen
       sqrt( sum((1-t0pikBal) * t0$vBal[[i]]^2) * sum((1-t1pikBal) * t1$vBal[[i]]^2) )
-    # resw, Achtung, korrigieren (unten)
-    corBal <- cor(t0$varyBal[[i]]$Y, t1$varyBal[[i]]$Y)
+    #corBal <- cor(t0$varyBal[[i]]$Y, t1$varyBal[[i]]$Y) # Alternative, proposed by Ben Derrick, 2017
     cov. <- corBal * sqrt(t0$vary[[i]]$var * t1$vary[[i]]$var)    # Kovarianz Berechnen
     tryCatch({
       se <- sqrt(t0$vary[[i]]$var + t1$vary[[i]]$var - 2*cov.) # Standard-Fehler berechnen  
@@ -710,16 +725,21 @@ if (TRUE) {
     if (!is.null(outerOperator)) {
       txt <- .splitByChar(.rmOuterBrackets(txt), outerOperator)
       if (length(txt) > 2)
-        stop ("Only one outerOperator is allowed.")# ("In case innerOperator==outerOperator, try using brakets to avoid this error. OK: '(a/b)/100',  NOT OK: 'a/b/100'")
+        stop (paste0("Only one outerOperator is allowed.\n",
+                     "Errorneous expression is: ", txtOrig, "\n",
+                     "outerOperators are: ", paste0(txt, collapse=", ")))# ("In case innerOperator==outerOperator, try using brakets to avoid this error. OK: '(a/b)/100',  NOT OK: 'a/b/100'")
       if (length(txt) == 2) {
         numbInd <- grepl("^[0-9]+$", txt)
         if (!any(numbInd))
-          stop ("The outerOperator must refer to a number, not variable. OK: (a/b)*100,  NOT OK: (a/b)*c")
+          stop (paste0("The outerOperator must refer to a number, not variable. OK: (a/b)*100,  NOT OK: (a/b)*c\n",
+                       "Errorneous expression is: ", txtOrig, "\n",
+                       "These are the extracted operators: ", paste0(txt[!numbInd], collapse=", ")))
         outerAtStart <- numbInd[1]
         outerVal <- txt[numbInd]
         txt <- txt[!numbInd]
         if (outerOperator%in%c("-", "/") && grepl("[\\+\\/\\*\\-]", txt) && !grepl("^\\(|\\)$", txt))
-          stop ("If an outerOperator '-' or '/' is used, then the inner operation has to be surrounded by brackets. OK: '(a+b)/c',  NOT OK: 'a+b/c'")
+          stop (paste0("If an outerOperator '-' or '/' is used, then the inner operation has to be surrounded by brackets. OK: '(a+b)/c',  NOT OK: 'a+b/c'\n",
+                       "Errorneous expression is: ", txtOrig, "\n"))
       }
     }
     innerVal <- .splitByChar(.rmOuterBrackets(txt), innerOperator)
@@ -819,86 +839,141 @@ if (TRUE) {
     }
     return (vObj)
   }
-  # This funcion extracts Yc and Yd from a division like I((a+b)/c)
-  .getYcAndYd <- function (data, col, rowFilt, na.rm, prepareDataOnly=FALSE) {
-    #cat("function was called: .getYcAndYd\n")
+  # This funcion extracts Yn and Yd from a division like I((a+b)/c)
+  .getYnAndYd <- function (data, col, rowFilt, na.rm, prepareDataOnly=FALSE) {
+    #cat("function was called: .getYnAndYd\n")
     if (!prepareDataOnly && length(col) > 1)
       stop("Internal error. 'col' must be a character of length 1 if !prepareDataOnly.")
     if (prepareDataOnly) {
       na.rm <- FALSE
     }
+    
     newCols <- NULL
     allCols <- col
+    catchedErrors <- .messageQueue$new()
+    
     for(col in allCols) {
-      #cat(paste0("col is:", col, "\n"))
-      # Prepare the result that the column has no outer operator like (a/b)*100, so that this information can be accessed, even if the colname was no formula.
-      op <- list("hasInner"=FALSE, "hasOuter"=FALSE)
-      # Case I() column
-      if (startsWith(col,"I(") && endsWith(col,")")) {
-        # In case of a division, separate counter and denominator.
-        # Remove I()
-        col1 <- NULL
-        if (grepl("/",col)) {
-          col1 <- substr(col,3,nchar(col)-1)
-          # Descructure the expression into parts
-          for (outerOperator in c("*", "/")) {
-            op <- .getOperands(col1, innerOperator="/", outerOperator=outerOperator)
-            if (op$hasOuter) break
+      tryCatch({
+        #cat(paste0("col is:", col, "\n"))
+        # Prepare the result that the column has no outer operator like (a/b)*100, so that this information can be accessed, even if the colname was no formula.
+        op <- list("hasInner"=FALSE, "hasOuter"=FALSE)
+        # Case I() column
+        if (startsWith(col,"I(") && endsWith(col,")")) {
+          # In case of a division, separate counter and denominator.
+          # Remove I()
+          col1 <- NULL
+          if (grepl("/",col)) {
+            col1 <- substr(col,3,nchar(col)-1)
+            # Descructure the expression into parts
+            for (outerOperator in c("*", "/")) {
+              op <- .getOperands(col1, innerOperator="/", outerOperator=outerOperator)
+              if (op$hasOuter) break
+            }
+            # Create columns in case they dont exist, e.g. if '(a+b)/c' is given, create '(a+b)' in the data set.
+            computeCols <- c(op$innerVal)
+            if (op$hasInner && length(computeCols) != 2)
+              stop (paste0("In quotients like 'I(x/y)' only two columns are allowed.\n",
+                           "Errorneous expression: ", paste0(col1, collapse=", ")))
+            # If there is a divisor col like I(a/b), then op$innerVal will only get 'a' and 'b', but not 'I(a/b)', which shall also be computed in case prepareDataOnly==TRUE.
+            if (prepareDataOnly) {
+              computeCols <- c(computeCols, col)
+            }
+            # If there is no division, just use the normal col.
+          } else {
+            computeCols <- col
           }
-          # Create columns in case they dont exist, e.g. if '(a+b)/c' is given, create '(a+b)' in the data set.
-          computeCols <- c(op$innerVal)
-          if (op$hasInner && length(computeCols) != 2)
-            stop (paste0("In quotients like 'I(x/y)' only two columns are allowed. Errorneous expression: ", paste0(col1, collapse=", ")))
-          # If there is a divisor col like I(a/b), then op$innerVal will only get 'a' and 'b', but not 'I(a/b)', which shall also be computed in case prepareDataOnly==TRUE.
-          if (prepareDataOnly) {
-            computeCols <- c(computeCols, col)
+          # Create columns if they are missing.
+          computeColsNotAvail <- computeCols[!computeCols%in%colnames(data)]
+          if (length(computeColsNotAvail)>0) {
+            newCols <- c(newCols, computeColsNotAvail)
+            tryCatch({
+              for (calcCol in computeColsNotAvail) {
+                #cat(paste0("will create column: ", calcCol, "\n"))
+                data[,calcCol] <- as.vector(with(data, eval(parse(text=calcCol)))) # as.vector is neccessary because otherwise it will be of class "AsIs"
+              }
+            }, error=function(e){
+              if(grepl("unexpected", e$message)) {
+                stop (paste0("The calculation syntax in a column like 'I(a+b)' is errorneous. See the error message below.\n",
+                             gsub("<[^u]+: ","",e$message)), call.=FALSE)
+              } else {
+                stop (paste0("The calculation in a column like 'I(a+b)' is not possible, probably because a variable is missing. See the error message below.\n",
+                             calcCol, ", ", e$message), call.=FALSE)
+              }
+            })
           }
-          # If there is no division, just use the normal col.
+          # Define Yn and Yd.
+          Yn <- data[,computeCols[1]]
+          Yd <- if (op$hasInner) data[,computeCols[2]] else numeric(length(Yn))
+          filt <- if (na.rm) rowFilt & !is.na(Yn) &!is.na(Yd) else rowFilt
+          # This can happen when a) no division is given, like 'a+b' or b) something like 'a/100' is given. Then 100 is the outer operator and there is no inner operator.
+          if (!op$hasInner) {
+            Yd <- NULL
+          }
+          # Case NOT I() column
         } else {
-          computeCols <- col
-        }
-        # Create columns if they are missing.
-        computeColsNotAvail <- computeCols[!computeCols%in%colnames(data)]
-        if (length(computeColsNotAvail)>0) {
-          newCols <- c(newCols, computeColsNotAvail)
-          tryCatch({
-            for (calcCol in computeColsNotAvail) {
-              #cat(paste0("will create column: ", calcCol, "\n"))
-              data[,calcCol] <- as.vector(with(data, eval(parse(text=calcCol)))) # as.vector is neccessary because otherwise it will be of class "AsIs"
-            }
-          }, error=function(e){
-            if(grepl("unexpected", e$message)) {
-              stop (paste0("The calculation syntax in a column like 'I(a+b)' is errorneous. See the error message below.\n", gsub("<[^u]+: ","",e$message)), call.=FALSE)
-            } else {
-              stop (paste0("The calculation in a column like 'I(a+b)' is not possible, probably because a variable is missing. See the error message below.\n", calcCol, ", ", e$message), call.=FALSE)
-            }
-          })
-        }
-        # Define Yc and Yd.
-        Yc <- data[,computeCols[1]]
-        Yd <- if (op$hasInner) data[,computeCols[2]] else numeric(length(Yc))
-        filt <- if (na.rm) rowFilt & !is.na(Yc) &!is.na(Yd) else rowFilt
-        # This can happen when a) no division is given, like 'a+b' or b) something like 'a/100' is given. Then 100 is the outer operator and there is no inner operator.
-        if (!op$hasInner) {
+          Yn <- data[,col]
           Yd <- NULL
+          filt <- if (na.rm) rowFilt & !is.na(Yn) else rowFilt
         }
-        # Case NOT I() column
-      } else {
-        Yc <- data[,col]
-        Yd <- NULL
-        filt <- if (na.rm) rowFilt & !is.na(Yc) else rowFilt
-      }
-      if (na.rm) filt[is.na(filt)] <- FALSE
+        if (na.rm) filt[is.na(filt)] <- FALSE
+        
+      }, # try end, catch the error message and store it in the message queue called 'catchedErrors'.
+      error=function(e){
+        catchedErrors$add(e$message)
+      })
+    }
+    
+    # If there were errors, then display them now.
+    catchedErrors <- catchedErrors$flush()
+    if (length(catchedErrors) > 0) {
+      # Case of 1 error
+      if (length(catchedErrors) == 1)
+        stop (catchedErrors)
+      # Multiple errors
+      cat(paste0(c("", catchedErrors, ""), collapse="\n-------------------------------------------\n"), "\n", sep="")
+      stop ("Some columns like I(a/b) could not be computed. See the text output above this message to find out why.")
     }
     
     newCols <- unique(newCols[!grepl("^[0-9+]$", newCols)])
     if (prepareDataOnly) {
-      return (list(Yc=NULL, Yd=NULL, notNa=NULL, op=NULL, data=data, newCols=newCols))
+      return (list(Yn=NULL, Yd=NULL, notNa=NULL, op=NULL, data=data, newCols=newCols))
     } else {
-      return (list(Yc=Yc,   Yd=Yd,   notNa=filt, op=op,   data=NULL, newCols=newCols))
+      return (list(Yn=Yn,   Yd=Yd,   notNa=filt, op=op,   data=NULL, newCols=newCols))
     }
   }
 }
+
+# The method .messageQueue is used to catch errors in tryCatch 'by reference', without the '<<-' operator.
+.messageQueue <- setRefClass(
+  Class="messageQueue",
+  
+  fields=list(queue="character"),
+  
+  methods=list(
+    # Methods to override.
+    # Initialization of the class.
+    initialize = function(queue) {
+      if (missing(queue)) {
+        .self$queue <- character()
+      } else {
+        .self$queue <- queue
+      }
+    }
+    # print() method.
+    ,show = function() {
+      print(queue)
+    }
+    # own methods
+    ,add = function(message) {
+      .self$queue <- c(queue, message)
+    }
+    ,flush = function() {
+      res <- queue
+      .self$queue <- character()
+      return (res)
+    }
+  )
+)
 
 #### OLD functions to delete ####
 if (FALSE) .varestSampling_DELETE <- function(Ys, Xs = NULL, pik, w = NULL) {
@@ -927,3 +1002,26 @@ if (FALSE) .varestSampling_DELETE <- function(Ys, Xs = NULL, pik, w = NULL) {
   }
   return (var)
 }
+
+#### Tutorial ####
+# *** Tutorial ***  <- This comment must be here, otherwise the function compressor will cut this line out of the document!
+
+# Create the dataset.
+calibTutorial <- function(giveURL=FALSE){
+  tutorialURL <- "https://raw.githubusercontent.com/danielhoop/R/master/tutorials/calibration_tutorial_FADN_sample_multiple_levels.R"
+  if (giveURL)
+    return(tutorialURL)
+  tutorialTxt <- readLines(tutorialURL)
+  message(paste("#### Tutorial from gitbut ####", paste0("# ", tutorialURL), "", sep="\n"))
+  message(paste0(tutorialTxt, sep="\n"))
+}
+
+varEstTutorial <- function(){
+  tutorialTxt <- '
+
+
+
+'
+  message(paste0(tutorialTxt, sep="\n"))
+}
+varEstTutorial()
