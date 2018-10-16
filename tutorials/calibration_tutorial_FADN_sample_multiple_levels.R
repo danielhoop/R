@@ -127,3 +127,5 @@ m_all <- mean.weight(df[,optVarList[[levelToCheck]]], weights=NULL, index=df[,le
 m_resp <- mean.weight(df[,optVarList[[levelToCheck]]], weights=df[,"w_calib"], index=df[,levelToCheck]); m_resp
 # What is the difference? Should be zero!
 round( m_all - m_resp , 2)
+
+# *** End of tutorial ***
