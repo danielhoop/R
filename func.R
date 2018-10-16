@@ -1,5 +1,3 @@
-# x <- function()
-#
 # *****************************************************************
 # Common functions to make your life easier working with FADN data.
 #
@@ -340,7 +338,7 @@ message(file.copy(x[2],x[1],overwrite=TRUE))
 }))
 }
 }
-.compressSource=function(fileIn,fileOut){
+.compressSource=function(fileIn,fileOut,leaveStartingComments=TRUE){
 # This function reads source code in a file "fileIn", compresses it, and saves it to a file "fileOut".
 if(length(fileIn)!=length(fileOut))
 stop ("length(fileIn) must be equal length(fileOut).")
@@ -358,7 +356,7 @@ replAll=matrix(c(
 x=suppressWarnings(readLines(fileIn))
 x[gsub("^ ","",x)==""] <- ""
 x <- gsub("^ *","",x)
-code <- !.isFunctionDescription(x) & !(grepl("\"",x,fixed=TRUE) | grepl("'",x,fixed=TRUE) | grepl("for *\\(",x) | grepl(" else ",x,fixed=TRUE))
+code <- !.isFunctionDescription(x, leaveStartingComments=leaveStartingComments) & !(grepl("\"",x,fixed=TRUE) | grepl("'",x,fixed=TRUE) | grepl("for *\\(",x) | grepl(" else ",x,fixed=TRUE))
 for(i in 1:nrow(replCode))
 x[code] <- gsub(replCode[i,"s"], replCode[i,"r"], x[code])
 x <- x[!code | (code & x!="")]# & !startsWith(x,"#"))]
@@ -369,7 +367,9 @@ return(TRUE)
 }
 #x <- c("\\*\\*\\* Tutorial \\*\\*\\*","asdf","*x*x* Tutorial *x*x*", "adsf", "asdfwaef")
 #x <- c("a","b",gsub("x","","DxONT_COMPRESS_SOURCE_STARxT"), gsub("x","","DxONT_COMPRESS_SOURCE_STARxT"), "c", "d", gsub("x","","DxONT_COMPRESS_SOURCE_ENxD"), gsub("x","","DxONT_COMPRESS_SOURCE_ENxD"))
-.isFunctionDescription <- function(x) {
+#x <- c("# startcomment", "# another", "", "x <- function(){", "# func desc 1", "", "# func desc 2", "", "a <- 1", "# delete comment")
+#x[.isFunctionDescription(x, leaveStartingComments=TRUE)]
+.isFunctionDescription <- function(x, leaveStartingComments=TRUE, dontCompressStart="DONT_COMPRESS_SOURCE_START", dontCompressEnd="DONT_COMPRESS_SOURCE_END") {
 # This function tests if "#"-Commented lines in a function follow directly to the function description signature.
 # If so, then these lines are marked as function description comments. A logical vector is returned.
 
@@ -388,14 +388,16 @@ rgx <- paste0(c("(<\\-|=) *function\\(",
 "[a-zA-Z0-9] +else",
 "else +[a-zA-Z0-9]"),
 collapse="|")
-isCom=grepl(rgx,x)|isTutorial
+isDesc=grepl(rgx,x)|isTutorial
 hasHash <- grepl(" *#", x)
+if (leaveStartingComments && (grepl(" *#", x[1]) || grepl(" *\n?", x[1])))
+isDesc[1]=TRUE
 for (i in 2:length(x)) { # i <- 3
-isCom[i]=isCom[i]||
-(hasHash[i] && (isCom[i-1])) || # || grepl("function *\\(",x[i-1]))) ||
-(x[i]=="" && isCom[i-1] && hasHash[i-1])
+isDesc[i]=isDesc[i]||
+(hasHash[i] && (isDesc[i-1])) || # || grepl("function *\\(",x[i-1]))) ||
+(x[i]=="" && isDesc[i-1] && hasHash[i-1])
 }
-return(isCom)
+return(isDesc)
 }
 origPath <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/R/func"
 vokoPath <- paste0(origPath,"/vokoUtils")
