@@ -1,9 +1,18 @@
-### x <- function()
-### Author: Daniel Hoop
-###
-### Insert the command: source("location of this file") into your Rprofile.SITE. You find the Rprofile.SITE in some location like:  C:\Programme\R\R-2.15.0\etc\Rprofile.SITE
-### Or read it in via R console > source("filedirectory of this file")
-### Or simply copy it into your R console.
+# x <- function()
+#
+# *****************************************************************
+# Common functions to make your life easier working with FADN data.
+#
+# Copyright (c) Daniel Hoop, Agroscope, Switzerland.
+# Version: 2018-10-16
+# *****************************************************************
+#
+# How to load these functions?
+# source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")
+# Or:
+# Insert the command: source("location of this file") into your Rprofile.SITE. You find the Rprofile.SITE in some location like:  C:\Programme\R\R-2.15.0\etc\Rprofile.SITE
+# Or read it in via R console > source("filedirectory of this file")
+# Or simply copy it into your R console.
 #
 # Most useful functions
 # *************************
