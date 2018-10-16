@@ -37,43 +37,100 @@
 #
 # -- Source locally  --
 # if(!exists("mean.weight")) source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/func.R")
-# if(!exists("mean.weight")) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/func.R")), error=function(e) tryCatch( suppressWarnings(source("~/mnt/agroscope/Agroscope/OS/2/5/2/1/3/1/4269/B0000/func.R", encoding="ISO-8859-1")), error=function(e)source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")))
-# if(!exists("mean.weight")) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/func.R")), error=function(e) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/2/3583/Resultate/00-00-00_Zusatzdaten/R_func/func.R")), error=function(e) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")))
+# if(!exists("mean.weight")) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/func.R")), error=function(e) tryCatch( suppressWarnings(source("~/mnt/agroscope_os/2/5/2/1/3/1/4269/B0000/func.R", encoding="ISO-8859-1")), error=function(e) { message("Sourcing from github."); source("https://raw.githubusercontent.com/danielhoop/R/master/func.R") }))
+# if(!exists("mean.weight")) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/func.R")), error=function(e) tryCatch( suppressWarnings(source("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/2/3583/Resultate/00-00-00_Zusatzdaten/R_func/func.R")), error=function(e) { message("Sourcing from github."); source("https://raw.githubusercontent.com/danielhoop/R/master/func.R") }))
 #
 # -- GitHub --
 # if(!exists("mean.weight")) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")
 # browseURL("https://github.com/danielhoop/R/edit/master/func.R")
 # browseURL("https://github.com/danielhoop/R/edit/master/Rhelp.R")
 
+.KeyValueStore=setRefClass(
+# The only function of .KeyValueStore that should be called is "setAndGet". All other functions are helper functions.
+Class="valueStore",
+fields=list(store="list"),
+methods=list(
+initialize = function() {
+}
+,contains = function(key) {
+return(!is.null(.self$store[[key]]))
+}
+,setAndReturn = function(key, value) {
+.self$store[[key]]=value
+return(value)
+}
+,get = function(key) {
+return(.self$store[[key]])
+}
+,setAndGet = function(key, value) {
+if(.self$contains(key))
+return(.self$get(key))
+return(.self$setAndReturn(key,value))
+}
+)
+)
+.valueStoreInstance=.KeyValueStore$new()
+if(FALSE){
+.valueStoreInstance$contains("b") # FALSE
+.valueStoreInstance$setAndReturn("b", c(1, 2)) # c(1, 2)
+.valueStoreInstance$contains("b") # TRUE
+.valueStoreInstance$get("b") # c(1, 2)
+.valueStoreInstance$setAndGet("a", 1+1) # should return 2
+.valueStoreInstance$setAndGet("a", stop("error")) # should return 2. because of lazy evaluation -> no error.
+}
+# The method .messageQueue is used to catch errors in tryCatch 'by reference', without the '<<-' operator.
+if(FALSE).messageQueue=setRefClass(
+Class="messageQueue",
+fields=list(queue="character"),
+methods=list(
+initialize = function(queue) {
+if(missing(queue)){
+.self$queue=character()
+} else {
+.self$queue=queue
+}
+}
+,show = function() {
+print(queue)
+}
+,add = function(message) {
+.self$queue=c(queue,message)
+}
+,flush = function() {
+res=queue
+.self$queue=character()
+return(res)
+}
+)
+)
 .onHpdaPc <- function() {
 # On Linux this would be possible: path.expand("~") == "/home/evdad.admin.ch/a80823148"
-return (isTRUE(file.info("C:/Users/U80823148/")$isdir) || isTRUE(file.info("C:/Users/A80823148/")$isdir))
-}
-if(FALSE&&.onHpdaPc()){
-options(scipen=3)
-options(help.try.all.packages=TRUE)
-#options(prompt="    ")
-options(stringsAsFactors=FALSE)
-#options(na="")
-message("**********************************************************************")
-message("Options set.")
+return(.valueStoreInstance$setAndGet(
+".onHpdaPc",
+isTRUE(file.info("C:/Users/U80823148/")$isdir) || isTRUE(file.info("C:/Users/A80823148/")$isdir)
+))
 }
 .dataFolder <- function() {
+return(.valueStoreInstance$setAndGet(
+".dataFolder",
+(function(){
 os=.getOS()
 if (os == "Windows")
 return( paste0("C:/Users/",Sys.info()["user"],"/_/Data/") )
 if (os == "Linux")
 return( paste0("~/data/") )
 stop ("Data folder cannot be found because the system is neither Windows nor Linux.")
+})()
+))
 }
 agsPath=function(path){
 ma=.agsMachineType()
 if (ma[["rstudioserver"]]) {
-path <- gsub("//evdad.admin.ch/AGROSCOPE_OS", "~/mnt/agroscope/Agroscope/OS", path)
+path <- gsub("//evdad.admin.ch/AGROSCOPE_OS", "~/mnt/agroscope_os", path)
 path <- gsub("Y:/ZAMAIN|//art-settan-1000.evdad.admin.ch/ZAMAIN", "~/mnt/ZAMAIN", path)
 path=path.expand(path)
 } else {
-path <- gsub("~/mnt/agroscope/Agroscope/OS", "//evdad.admin.ch/AGROSCOPE_OS", path)
+path <- gsub("~/mnt/agroscope/agroscope_os", "//evdad.admin.ch/AGROSCOPE_OS", path)
 path <- gsub("~/mnt/ZAMAIN", "//art-settan-1000.evdad.admin.ch/ZAMAIN", path)
 }
 return(path)
@@ -100,7 +157,7 @@ make.readOnly <- function(file, reverse=FALSE) {
 if(length(file)>0){
 onWindows <- grepl("window",Sys.info()['sysname'], ignore.case=TRUE)
 if(onWindows){
-file=winSlashes(file,dontCheckOS=TRUE)
+file=winSlashes(file)
 sign <- if(reverse) "-" else "+"
 for (file1 in file)
 system(paste0("attrib ",sign,"R \"",file1,"\""), intern=FALSE)
@@ -110,7 +167,27 @@ system(paste0("attrib ",sign,"R \"",file1,"\""), intern=FALSE)
 if(!exists("dir.exists")){
 dir.exists <- function(x) isTRUE(file.info(x)$isdir)
 }
+# vec <- c("abc", "bcd", NA, ""); str <- "ab"; startsWith(vec, str)
+if (!exists("startsWith")) {
+startsWith=function(vec,str){
+res=substr(vec,1,nchar(str))==str
+res[is.na(res)]=FALSE
+return(res)
+}
+}
+# vec <- c("abc", "bcd", NA, ""); str <- "cd"; endsWith(vec, str)
+if (!exists("endsWith")) {
+endsWith=function(vec,str){
+nc=nchar(vec)
+res=substr(vec,nc-nchar(str)+1,nc)==str
+res[is.na(res)]=FALSE
+return(res)
+}
+}
 .getOS=function(){
+return(.valueStoreInstance$setAndGet(
+".getOS",
+(function(){
 os <- Sys.info()["sysname"] # Sys.getenv(c("OS", "R_PLATFORM"))
 onWin <- any(grepl("windows", os, ignore.case=TRUE))
 onLin <- any(grepl("linux", os, ignore.case=TRUE))
@@ -121,8 +198,13 @@ return ("Windows")
 if(onLin)
 return ("Linux")
 stop ("Neither Windows nor Linux detected.")
+})()
+))
 }
 .agsMachineType=function(){
+return(.valueStoreInstance$setAndGet(
+".agsMachineType",
+(function(){
 info=Sys.info()
 res=list(rstudioserver=FALSE,laborpc=FALSE,bitpc=FALSE,other=FALSE)
 if (grepl("^a", info["user"], ignore.case=TRUE)) {
@@ -139,21 +221,43 @@ if(sum(unlist(res))==0){
 res[["other"]] <- TRUE
 }
 return(res)
+})()
+))
 }
 .isZaMember <- function() {
-return (dir.exists(agsPath("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000")))
+return(.valueStoreInstance$setAndGet(
+".isZaMember",
+dir.exists(agsPath("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000"))
+))
 }
-.mountZaDrivesOnRStudioServer=function(){
-if (.agsMachineType()[["rstudioserver"]] && .isZaMember()) {
+.mountZaDrivesOnRStudioServer=function(testDir){
+if(!dir.exists(testDir)){
+message("Mounting ZA-BH specific network drives.")
 from <- "/home/evdad.admin.ch/a80823148/.pam_mount.conf.xml"
 to <- "~"
-if(!file.copy(from,to)){
-message("*** Success! ***\nPlease close your RStudio session and login again. Click the button called 'Sessions' (upper-right corner), then click on the red round 'power-off' symbol (right to the session name).")
+if(file.copy(from,to,overwrite=TRUE)){
+message("*** Success! *** PAM configuration file was copied.")
+stop ("*** Bitte RStudio-Server-Session neu starten. ***\nClick the button called 'Sessions' (upper-right corner), then click on the red round 'power-off' symbol (right to the session name).")
 } else {
-warning ("You seem to meet the requirements, but the configuration file could not be copied.")
+warning ("You seem to meet the ZA-BH requirements, but the configuration file could not be copied.")
 }
+}
+}
+.createLinkFolderAndLinks <- function() {
+rstudioLinkFolder <- "~/_links"
+if(!dir.exists(rstudioLinkFolder)){
+dir.create(rstudioLinkFolder)
+lines <- suppressWarnings(readLines("/home/evdad.admin.ch/a80823148/_links/createLinks.sh"))
+if(length(lines)>0){
+killNoOfLines=5
+killLines <- as.list(grep("/hpda/R", lines))
+killLines=unlist(lapply(killLines,function(x)x:(x+killNoOfLines-1)))
+rstudioLinkFile <- paste0(rstudioLinkFolder, "/createLinks.sh")
+write(lines[-killLines],rstudioLinkFile)
+system(paste0("sh ", rstudioLinkFile))
 } else {
-warning("To mount ZA network dirves you must be logged into the RStudio-Server and be a ZA member. You don't appear to meet these requirements.")
+message("The links on the RStudio server could not be created.")
+}
 }
 }
 .copyFuncs <- function(fromPath, toPath){
@@ -181,10 +285,8 @@ zamain <- agsPath("//art-settan-1000.evdad.admin.ch/ZAMAIN/ZADaten/")
 oslwParent <- agsPath("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/")
 oslwCheck <- agsPath("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/3/4276/alldata")
 if (.agsMachineType()[["rstudioserver"]] && .isZaMember()) {
-if(!dir.exists(zamain)){
-.mountZaDrivesOnRStudioServer()
-stop ("Bitte RStudio-Server-Session neu starten.")
-}
+.mountZaDrivesOnRStudioServer(zamain)
+.createLinkFolderAndLinks()
 }
 if(dir.exists(zamain)&&dir.exists(oslwCheck)){
 if(!dir.exists(datFold)){
@@ -289,7 +391,10 @@ return(isCom)
 origPath <- "//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/R/func"
 vokoPath <- paste0(origPath,"/vokoUtils")
 compressedPath <- paste0(origPath,"/compressedForExport")
-if(.onHpdaPc() && file.exists(paste0(origPath,"/func.R"))) {
+if (!exists(".copyHpdaFunctionsToZaNetworkShare")) {
+.copyHpdaFunctionsToZaNetworkShare=TRUE
+}
+if(.copyHpdaFunctionsToZaNetworkShare && .onHpdaPc() && file.exists(paste0(origPath,"/func.R"))) {
 pathFilesize <- paste0(compressedPath, "/funcSize.txt")
 filesize0=scan(pathFilesize,quiet=TRUE)
 filesize1 <- sum( file.info(c(paste0(origPath, c("/func.R","/SqlUtilities.R","/GbUtilities.R","/VarEstCalibFunc.R")),
@@ -308,10 +413,18 @@ message("func.R did not change. Files not copied from P to W")
 }
 }
 .copyZaData()
-unitTestBool_982h3fls=FALSE
 rm(origPath,compressedPath,vokoPath,
-.mountZaDrivesOnRStudioServer, # Don't remove these: .agsMachineType, .isZaMember, .getOS,
+.mountZaDrivesOnRStudioServer, .createLinkFolderAndLinks, # Don't remove these: .agsMachineType, .isZaMember, .getOS,
 .copyFuncs,.copyZaData,.compressSource,.isFunctionDescription)
+if(FALSE&&.onHpdaPc()){
+options(scipen=3)
+options(help.try.all.packages=TRUE)
+#options(prompt="    ")
+options(stringsAsFactors=FALSE)
+#options(na="")
+message("**********************************************************************")
+message("Options set.")
+}
 show.pch <- function(show=1:255,mfrow=c(5,5),mar=c(4,1,1,3)){
 # Show what the pch numbers mean (in a graph).
 mar.orig <- par()$mar; mfrow.orig <- par()$mfrow; #on.exit(par(mar=mar.orig, mfrow=mfrow.orig))
@@ -722,18 +835,18 @@ loadSqlUtils <- function(){
 # This function loads the SQL Utility functions to access the ZA database.
 # Because these functions contain confidential login information for the database, they are not part of this file (func.R).
 file <- agsPath("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/SqlUtilities.R")
-if (file.exists(file)) source(file) else stop("You don't have permission to load this functions.")
+if (file.exists(file)) source(file, local=parent.frame()) else stop("You don't have permission to load this functions.")
 }
 loadGbUtils <- function(){
 # This function loads functions to create the Grundlagenbericht (gb).
 file <- agsPath("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/GbUtilities.R" )
-if (file.exists(file)) source(file) else stop("You don't have permission to load this functions.")
+if (file.exists(file)) source(file, local=parent.frame()) else stop("You don't have permission to load this functions.")
 }
 loadVarEstCalibFunc <- function(){
 # The functions being sourced are outsourced from this script because they use a lot of lines of code.
 file <- agsPath("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/1/4269/B0000/VarEstCalibFunc.R")
 if(file.exists(file)){
-source(file)
+source(file,local=parent.frame())
 } else {
 source("https://raw.githubusercontent.com/danielhoop/R/master/VarEstCalibFunc.R")
 }
@@ -1014,14 +1127,14 @@ MKcol <- function(string) {if(is.null(dim(string))) substr(string,6,9) else subs
 nMKcol <- function(string){ x <- suppressWarnings(as.numeric(MKcol(string))); x[is.na(x)] <- -1; return(x) }
 MKrow <- function(string) {if(is.null(dim(string))) substr(string,11,15) else substr(colnames(string),11,15)}
 nMKrow <- function(string){ x <- suppressWarnings(as.numeric(MKrow(string))); x[is.na(x)] <- -1; return(x) }
-MKsort <- function(data, order=c("zeile","spalte")){
+MKsort <- function(data, order=c("row","col")){
 order=match.arg(order)
 cn.data=colnames(data)
 change_vec <- substr(cn.data,1,1)=="P" & nchar(cn.data)>=4 & !is.na(is.numeric(substr(cn.data,2,4)))
 data.keep=data[,!change_vec,drop=FALSE]
 data.change=data[,change_vec,drop=FALSE]
 cn.data.change=colnames(data.change)
-if(order=="zeile") {
+if(order=="row") {
 return(cbind(data.keep,data.change[,order(MKtab(cn.data.change),MKrow(cn.data.change),MKcol(cn.data.change))]))
 } else {
 return(cbind(data.keep,data.change[,order(MKtab(cn.data.change),MKcol(cn.data.change),MKrow(cn.data.change))]))
@@ -1593,7 +1706,7 @@ rawResult[]=NA
 return(rawResult)
 }
 #data <- as.data.frame(matrix(1:15, ncol=3)); colnames(data) <- c("I(a+b)","a","b"); weights <- 1:5; index <- as.data.frame(matrix(c(2014,2014,2014,2015,2016,   1,2,2,1,1,   11,11,12,13,13),ncol=3)); calc.sum=FALSE; digits=NULL; na.rm=TRUE; edit.I.colnames=TRUE; del.I.help.columns=FALSE; I.help.columns=NULL; fixed.index=TRUE; index.of.result=c("2014_2_11","2014_1_11","0000_0_00"); index.sep="_"
-mean.weight <- function(data, weights=NULL, index=NULL, cols=NULL, fixed.index=FALSE, index.of.result=NULL, index.sep="_", calc.sum=FALSE, digits=NULL, na.rm=TRUE, edit.I.colnames=FALSE, del.I.help.columns=FALSE, I.help.columns=NULL){
+mean.weight <- function(data, weights=NULL, index=NULL, cols=NULL, fixed.index=FALSE, index.of.result=NULL, index.sep="_", calc.sum=FALSE, digits=NULL, na.rm=TRUE, edit.I.colnames=FALSE, del.I.help.columns=FALSE, I.help.columns=NULL, called.internally=FALSE){
 # This function calculates the weighted mean of all variables in a possibly indexed data.frame or matrix.
 
 # Arguments
@@ -1616,13 +1729,6 @@ mean.weight <- function(data, weights=NULL, index=NULL, cols=NULL, fixed.index=F
 #}
 
 if(is.list(data) && !is.data.frame(data)) stop("data must be matrix or data.frame but not a list.")
-if(fixed.index && is.null(index.of.result) && !is.list(index)) stop("fixed.index & is.null(index.of.result) & !is.list(index)   -> fixed.index doesn't have any effect this way. Give index as a list!")
-if(fixed.index){
-rawResult=.prepare.fixed.index.result(data=data,index=index,names.result=index.of.result,edit.I.colnames=edit.I.colnames)
-index <- .paste.elements(index, sep="_", errorMsg="All indices must have same length!")
-}
-isNullIndex=is.null(index)
-if(!is.list(index))index=list(index)
 if(!is.null(cols)){
 .checkMissingICols(cols,colnames(data))
 # Extract all columns from I() cols and create I()-cols if they don't yet exist in data.
@@ -1634,14 +1740,29 @@ data=data[,cols_all,drop=FALSE]
 cols=colnames(data)
 cols_all=colnames(data)
 }
+if(fixed.index && is.null(index.of.result) && !is.list(index)) stop("fixed.index & is.null(index.of.result) & !is.list(index)   -> fixed.index doesn't have any effect this way. Give index as a list!")
+if(fixed.index){
+if(is.null(dim(data))){
+rawResult=.prepare.fixed.index.result(data=data,index=index,names.result=index.of.result,edit.I.colnames=edit.I.colnames)
+} else {
+rawResult=.prepare.fixed.index.result(data=data[,cols,drop=FALSE],index=index,names.result=index.of.result,edit.I.colnames=edit.I.colnames)
+}
+index <- .paste.elements(index, sep="_", errorMsg="All indices must have same length!")
+}
+isNullIndex=is.null(index)
+if(!is.list(index))index=list(index)
 if(!is.null(dim(data))){
+if(!isNullIndex){
+all.na.index=sapply(index,function(x)all(is.na(x)))
+if(any(all.na.index)) stop("The following indices contain only NA values. Please change to a different value (not NA): ",paste0(names(all.na.index)[all.na.index],collapse=","))
+}
 if(is.null(index)||length(index)==1){
 if(is.matrix(data)){
-if(nrow(data)==0) stop("nrow of data is 0.")
-result=apply(data[,cols_all,drop=FALSE],2,function(x)mean.weight(data=x,weights=weights,index=index,fixed.index=FALSE,index.of.result=index.of.result,index.sep=index.sep,calc.sum=calc.sum,digits=digits,na.rm=na.rm,edit.I.colnames=edit.I.colnames,del.I.help.columns=del.I.help.columns,I.help.columns=I.help.columns))
+if(nrow(data)==0) stop("nrow of data is 0")
+result=apply(data[,cols_all,drop=FALSE],2,function(x)mean.weight(data=x,weights=weights,index=index,fixed.index=FALSE,index.of.result=NULL,index.sep=index.sep,calc.sum=calc.sum,digits=digits,na.rm=na.rm,edit.I.colnames=edit.I.colnames,del.I.help.columns=del.I.help.columns,I.help.columns=I.help.columns))
 } else if(is.data.frame(data)) {
-if(nrow(data)==0) stop("nrow of data is 0.")
-result=as.matrix(as.data.frame(lapply(data[,cols_all,drop=FALSE],function(x)mean.weight(data=x,weights=weights,index=index,fixed.index=FALSE,index.of.result=index.of.result,index.sep=index.sep,calc.sum=calc.sum,digits=digits,na.rm=na.rm,edit.I.colnames=edit.I.colnames,del.I.help.columns=del.I.help.columns,I.help.columns=I.help.columns)),stringsAsFactors=FALSE))
+if(nrow(data)==0) stop("nrow of data is 0")
+result=as.matrix(as.data.frame(lapply(data[,cols_all,drop=FALSE],function(x)mean.weight(data=x,weights=weights,index=index,fixed.index=FALSE,index.of.result=NULL,index.sep=index.sep,calc.sum=calc.sum,digits=digits,na.rm=na.rm,edit.I.colnames=edit.I.colnames,del.I.help.columns=del.I.help.columns,I.help.columns=I.help.columns)),stringsAsFactors=FALSE))
 }
 if(is.null(dim(result))){
 result=t(as.matrix(result))
@@ -1656,13 +1777,13 @@ if(any(icols)){
 if(!is.null(digits)) stop("When rounding (digts!=NULL) and using I() columns, the results might not be accurate")
 result=calc.I.cols(result,edit.I.colnames=edit.I.colnames,del.I.help.columns=del.I.help.columns,I.help.columns=I.help.columns)
 }
-if(fixed.index){
-result=result[rownames(result)%in%rownames(rawResult),,drop=FALSE]
-rawResult[match(rownames(result),rownames(rawResult)),]=result
-result=rawResult
-}
 if(edit.I.colnames){
 cols=.rm.I.from.names(cols)
+}
+if(fixed.index){
+result=result[rownames(result)%in%rownames(rawResult),cols,drop=FALSE]
+rawResult[match(rownames(result),rownames(rawResult)),cols]=result
+result=rawResult
 }
 if(nrow(result)==1&&isNullIndex){
 return(result[1,cols])
@@ -1786,7 +1907,7 @@ if(length(i_cols)==0)return(data)
 if(length(data[[1]])>0){
 for(i in 1:length(i_cols)){
 tryCatch({
-data[[i_cols[i]]]=as.vector(with(data,eval(parse(text=i_cols[i]))))
+data[[i_cols[i]]][]=as.vector(with(data,eval(parse(text=i_cols[i]))))
 }, error=function(e){
 if(grepl("unexpected", e$message)) {
 stop (paste0("The calculation syntax in a column like 'I(a+b)' is errorneous. See the error message below.\n", gsub("<[^u]+: ","",e$message)), call.=FALSE)
@@ -2120,7 +2241,7 @@ res0=tapply(X,INDEX,FUN)
 if(!is.na(missing.value))res0[is.na(res0)]=missing.value
 if(warn)if(any(!names(res0)%in%names.result))
 warning(paste0("For some entries in X no corresponding entries in names.result were given. The resulting array is incomplete!\n", paste(names(res0)[ !names(res0)%in%names.result ], collapse=" ") ))
-if(length(res0)!=length(names.result)||names(res0)!=names.result){
+if(length(res0)!=length(names.result)||any(names(res0)!=names.result)){
 res1=rep(missing.value,length(names.result))
 names(res1)=names.result
 ind=match(names(res0),names(res1))
@@ -2156,7 +2277,7 @@ return(x[,c("Gewinn_tot"),drop=FALSE])
 }
 bxy.partially(data=data,relevantColnames=relevantColnames,INDICES=INDICES,FUN=FUN)
 }
-by.add.df.cols <- function(data, relevantColnames, INDICES, FUN, showWarnings=TRUE) {
+by.add.df.cols <- function(data, relevantColnames=NULL, INDICES, FUN, showWarnings=TRUE) {
 # This function uses by() over data[,relevantColnames] with INDICES and a defined function FUN. See also ?by
 # Is is designed to be faster than by() over the whole data.frame because is takes only these columns into by() that are really needed for the function.
 # After the calculation a data.frame is returned instead of the usual list that is returned by the by function().
@@ -2174,7 +2295,9 @@ if(is.list(INDICES)&!is.data.frame(INDICES))INDICES=as.data.frame(INDICES)
 if(!is.null(dim(INDICES)))INDICES=paste.cols(INDICES,colnames(INDICES))
 if(length(INDICES)!=nrow(data)) stop("INDICES must have the same number of elements as data has rows. Do not enter colnames here, but vectors instead.")
 # An additional function has to be definded that add will add the "order column" with content=1:nrow(x) and col number=ncol(x) to the result.
+if(is.null(relevantColnames))relevantColnames=colnames(data)
 res=by(data[,relevantColnames,drop=FALSE],INDICES,FUN)
+if(is.null(res[[1]])) stop("The specified function (in argument 'FUN') returns NULL.")
 if(!is.null(dim(res[[1]]))){
 res <- do.call("rbind",res)
 } else if (is.list(res)) {
@@ -2186,12 +2309,33 @@ print(res)
 if(showWarnings) message("The resulting column was named 'byResult' because FUN returned a vector without dimensions.")
 }
 tapplyOrder=unname(unlist(tapply(1:length(INDICES),INDICES,function(x)return(x))))
-if(length(tapplyOrder)!=nrow(res)) stop("The result given by FUN does not contain all rows of the initial data.frame. Please check FUN and correct it.")
+if(length(tapplyOrder)!=nrow(res)) stop("The result given by FUN does not contain all rows of the initial data.frame. Don't return a vector, but data.frame (e.g. using drop=FALSE). Please check FUN and correct it.")
 res=res[order(tapplyOrder),
 !colnames(res)%in%relevantColnames,drop=FALSE]
 if(ncol(res)==0) stop("The colnames of the result must not be named like relevantColnames, otherwise they are deleted and not returned.")
 rownames(res)=rownames(data)
 return(cbind(data,res))
+}
+# u1nregex(c("asdf.asdf", ".asdf", "\\.asdf", "asdf\\.asdf") )
+unregex <- function(x) {
+# This function "eliminates" regex characters by escaping them
+# Input and output is a character vector.
+
+if(!is.character(x))
+stop("x must be a character vector.")
+regChars <- c(".","|","(",")","[","]","{","}","^","$","*","+","?")
+res=apply(matrix(x),1,function(y){
+if(nchar(y)==1&&y%in%regChars)
+return (paste0("\\", y))
+for (i in nchar(y):2) {
+if ( substr(y, i-1, i-1) != "\\" && substr(y, i, i) %in% regChars )
+y <- paste0(substr(y, 1, i-1), "\\", substr(y, i, nchar(y)))
+}
+if(substring(y,1,1)%in%regChars)
+y <- paste0("\\", y)
+return(y)
+})
+return(res)
 }
 minmax <- function(x, na.rm=TRUE) {
 return(range(x,na.rm=na.rm))
@@ -2202,7 +2346,7 @@ if(any(is.na(file.info(todir)$isdir))||any(!file.info(todir)$isdir)){
 stop("The directory to which shall be copied does not exist.")
 dir.create(todir,recursive=TRUE)
 }
-if(length(to)==1&&length(from)>1&&isTRUE(file.info(to)$isdir)){
+if(length(to)==1&&lengt+h(from)>1&&isTRUE(file.info(to)$isdir)){
 to <- paste0(to,"/",basename(from))
 }
 success=file.rename(from=from,to=to)
@@ -2387,12 +2531,12 @@ t1=matrix(c(11110,11120,11130,11140,11180,11310,11320,11330,11340,11380,12100,12
 18400,19000,20000,20100,20200,21100,21200,21300,21400,30100,35000,41000,42100,42200,43000,43500,44000,44500,46000,48000,49000,61000,65000,70000,81000,85000))
 colnames(t1) <- "code"
 rownames(t1) <- c("Weizen (Brotgetreide)", "Roggen (Brotgetreide)", "Dinkel (Brotgetreide)", "Emmer, Einkorn", "Mischel Brotgetreide", "Gerste (Futtergetreide)", "Hafer (Futtergetreide)", "Triticale (Futtergetreide)", "Futterweizen",
-"Mischel Futtergetreide", "K?rnermais", "Silo- & Gr?nmais", "Saatmais", "Hirse", "Kartoffeln", "Zuckerr?ben", "Futterr?ben", "Raps zur Speise?lgewinnung", "Soja", "Sonnenblumen zur Speise?lgewinnung", "?brige ?lsaaten",
-"Ackerbohnen zu Futterzwecken", "Eiweisserbsen zu Futterzwecken", "?brige K?rnerleguminosen", "Tabak", "Einj?hrige g?rtnerische Freilandkulturen", "Einj?hrige nachwachsende Rohstoffe", "Freiland Frischgem?se",
-"Freiland Konservengem?se", "Einj?hrige Beeren (z.B Erdbeeren)", "Einj?hrige Gew?rz- & Medizinalpflanzen", "?brige Ackerkulturen", "Buntbrache", "Rotationsbrache", "Saum auf Ackerfl?che", "Ackerschonstreifen",
-"Futterbau (ohne Silomais, Futterr?ben und Samenproduktion)", "Samenproduktion Futterbau", "Reben", "Obst, Streuobst ohne Fl?che", "Obstanlagen", "Mehrj?hrige Beeren", "Mehrj?hrige nachwachsende Rohstoffe",
-"Hopfen", "Mehrj?hrige Gew?rz- & Medizinalpflanzen", "Gem?se-Dauerkulturen", "Christb?ume, Baumschulen und ?hnliches", "?brige Dauerkulturen", "Gew?chshaus- und Tunnel-Frischgem?se", "G?rtnerische Kulturen in gesch?tztem Anbau",
-"Weitere Fl?chen innerhalb der LN", "Wald", "Weitere Fl?chen ausserhalb der LN")
+"Mischel Futtergetreide", "Körnermais", "Silo- & Grünmais", "Saatmais", "Hirse", "Kartoffeln", "Zuckerrüben", "Futterrüben", "Raps zur Speiseölgewinnung", "Soja", "Sonnenblumen zur Speiseölgewinnung", "Übrige Ölsaaten",
+"Ackerbohnen zu Futterzwecken", "Eiweisserbsen zu Futterzwecken", "Übrige Körnerleguminosen", "Tabak", "Einjährige gärtnerische Freilandkulturen", "Einjährige nachwachsende Rohstoffe", "Freiland Frischgemüse",
+"Freiland Konservengemüse", "Einjährige Beeren (z.B Erdbeeren)", "Einjährige Gewürz- & Medizinalpflanzen", "Übrige Ackerkulturen", "Buntbrache", "Rotationsbrache", "Saum auf Ackerfläche", "Ackerschonstreifen",
+"Futterbau (ohne Silomais, Futterrüben und Samenproduktion)", "Samenproduktion Futterbau", "Reben", "Obst, Streuobst ohne Fläche", "Obstanlagen", "Mehrjährige Beeren", "Mehrjährige nachwachsende Rohstoffe",
+"Hopfen", "Mehrjährige Gewürz- & Medizinalpflanzen", "Gemüse-Dauerkulturen", "Christbäume, Baumschulen und ähnliches", "Übrige Dauerkulturen", "Gewächshaus- und Tunnel-Frischgemüse", "Gärtnerische Kulturen in geschütztem Anbau",
+"Weitere Flächen innerhalb der LN", "Wald", "Weitere Flächen ausserhalb der LN")
 if(give.tab){
 return(t1)
 } else {
@@ -2609,11 +2753,6 @@ res[smabig]=predict(mod,newdata=data.frame(x=xout[smabig],y=0))
 }
 }
 return(res)
-}
-if(unitTestBool_982h3fls){
-res=approx.own(x=c(100,101,102,103),y=c(0,1,10,20),xout=c(99,104),extrapolate=TRUE)
-if(!assertthat::are_equal(res,c(-1,31)))
-stop("approx.own: Unit test failed.")
 }
 lpsolve <- function(obj_coef, A, LHS_ge=NULL, LHS_le=NULL, opt_val_ge=NULL, opt_val_le=NULL,  maximize=FALSE) {
 # This function transforms a given optimization model in a not very intuitive and rather special form and solves with the
@@ -4880,7 +5019,7 @@ str <- paste0(system(paste0("wc -l \"",file,"\""), intern=TRUE), collapse="")
 stop("Linux version not yet fully implemented.")
 }
 }
-view <- function(x, names=c("col","rowcol","row","no"), nrows=-1, ncols=-1, fastViewOfSubset=TRUE, folder=NULL, quote=FALSE, na="NA", sep=";", openFolder=FALSE, ...){
+view <- function(x, names=c("col","rowcol","row","no"), nrows=-1, ncols=-1, fastViewOfSubset=TRUE, folder=NULL, quote=FALSE, na="NA", sep=";", decimal.mark=".", openFolder=FALSE, ...){
 # This function creates a CSV file from a data.frame/matrix and opens it with the default CSV-opening-program
 # of the computer.
 #
@@ -4959,6 +5098,21 @@ if(nchar(mxpl1)==1) mxpl1 <- paste0("0",mxpl1)
 pfad1=paste0(pfad0,name,mxpl1,csv)
 }
 }
+if (decimal.mark != ".") {
+if(is.matrix(x)){
+x[]=apply(x,2,function(y){
+y=trimws(format(y,decimal.mark=decimal.mark))
+y[y %in% c("NA","NaN")] <- NA
+return(y)
+})
+} else if (is.data.frame(x)) {
+x[]=lapply(x,function(y){
+y=trimws(format(y,decimal.mark=decimal.mark))
+y[y %in% c("NA","NaN")] <- NA
+return(y)
+})
+} else warning("decimal.mark can only be other an '.' if x is a matrix or data.frame.")
+}
 # Rownames und colnames, die mit +, - oder = anfangen, mit ' am Anfang versehen, dass es von Excel richtig dargestellt wird
 rn1=rownames(x)
 cn1=colnames(x)
@@ -5015,7 +5169,7 @@ pfad <- if(file.exists(pfad1)) pfad1 else pfad2
 message("Daten werden aus folgendem Verzeichnis geladen:")
 message(pfad)
 spa=load2(pfad)
-if(TRUE){
+if(FALSE){
 BHJ=2017
 if (Sys.time() > strptime("14.8.2018 15:00", "%d.%m.%Y %H:%M")) {
 warnStopFunc=stop
@@ -5190,16 +5344,21 @@ return(res)
 }
 id.entschluesseln <- function(...){
 pfad1 <- "C:/Users/U80823148/_/Data/"
-pfad2 <- agsPath("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/2/4278/hpda/_ZA/Ref/Data/Grundlagenbericht/")
-pfad3 <- "GB__allg_Einzel"
+pfad2 <- agsPath("//evdad.admin.ch/AGROSCOPE_OS/2/5/2/1/3/9/4278/hpda/_ZA/Ref/Data/Grundlagenbericht/")
+pfad3 <- "GB__allg_Einzel_inkl_BZG"
 if(any(file.exists(c(paste0(pfad1,pfad3,".csv"), paste0(pfad1,pfad3,".RData"))))) pfad <- pfad1 else pfad <- pfad2
 if(!file.exists(paste0(pfad,pfad3,".RData"))) {
 dat <- read.csv(paste0(pfad,pfad3,".csv"), sep=";", header=TRUE, stringsAsFactors=FALSE, quote = "\"", na.strings=c("NA","","#DIV/0","#DIV/0!", "#WERT", "#WERT!"))
 save(dat, file=paste0(pfad,pfad3,".RData") )
 }
 load( paste0(pfad,pfad3,".RData") )
+idCol <- c("ID","X.ID")
+idCol=idCol[idCol%in%colnames(dat)]
+if(length(idCol)==0)
+stop("Internal error. No ID column found in GB__allg_Einzel.")
+idCol=idCol[1]
 id=c(...)
-res <- dat[match(id, dat[,"ID"]),"ID_unverschluesselt"]
+res <- dat[match(id, dat[,idCol]),"ID_unverschluesselt"]
 return(res)
 #  cbind(id,gb[,"ID_unverschluesselt"])
 #res <- dat[dat[,"ID"]%in%id,"ID_unverschluesselt"]
