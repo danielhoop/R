@@ -1,7 +1,8 @@
 # ***************************************
-# Title:   Functions to estimate the variance (imprecision) of estimators based on random samples
-# Authors: Daniel Hoop, Swetlana Renner
-# Version: 2018-07-26
+# Title:     VESS - Variance Estimation for Stratified Samples (Functions to estimate the variance (imprecision) of estimators based on random samples)
+# Copyright: Daniel Hoop, Swetlana Renner
+#            All rights reserved
+# Version:   2018-07-26
 # ***************************************
 
 # Description of package
@@ -18,6 +19,11 @@
 # if(!exists("mean.weight")) source("https://raw.githubusercontent.com/danielhoop/R/master/func.R")
 # if(!exists("variance.estimate")) loadVarEstCalibFunc()
 # Then you're done. All functions loaded.
+
+#### Notes TODO ####
+# Load ginv from MASS with the function: importFrom(MASS, ginv)
+# -> where can i find the function 'importFrom'?
+# https://stackoverflow.com/questions/13146849/how-to-load-only-specific-functions-from-a-package/13146922
 
 
 #### Public functions ####
@@ -1016,12 +1022,17 @@ calibTutorial <- function(giveURL=FALSE){
   message(paste0(tutorialTxt, sep="\n"))
 }
 
-varEstTutorial <- function(){
-  tutorialTxt <- '
-
-
-
-'
+varEstTutorial <- function(giveURL=FALSE){
+  tutorialURL <- "https://raw.githubusercontent.com/danielhoop/R/master/tutorials/variance_estimation_tutorial_FADN_sample.R"
+  if (giveURL)
+    return(tutorialURL)
+  tutorialTxt <- readLines(tutorialURL)
+  message(paste("#### Tutorial from gitbut ####", paste0("# ", tutorialURL), "", sep="\n"))
   message(paste0(tutorialTxt, sep="\n"))
 }
-varEstTutorial()
+
+message(
+'# *******************************************
+# *** variance stimation functions loaded ***
+# *******************************************
+# If you are looking for a tutorial, call this function: varEstTutorial()')
